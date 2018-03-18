@@ -28,6 +28,7 @@
         /// </summary>
         private void InitializeComponent()
         {
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form1));
             this.GenExlbut = new System.Windows.Forms.Button();
             this.ExcelToDTbut = new System.Windows.Forms.Button();
             this.openExcelFileDialog = new System.Windows.Forms.OpenFileDialog();
@@ -46,7 +47,7 @@
             // 
             // ExcelToDTbut
             // 
-            this.ExcelToDTbut.Location = new System.Drawing.Point(71, 44);
+            this.ExcelToDTbut.Location = new System.Drawing.Point(71, 37);
             this.ExcelToDTbut.Name = "ExcelToDTbut";
             this.ExcelToDTbut.Size = new System.Drawing.Size(142, 58);
             this.ExcelToDTbut.TabIndex = 2;
@@ -61,8 +62,9 @@
             this.ClientSize = new System.Drawing.Size(288, 297);
             this.Controls.Add(this.ExcelToDTbut);
             this.Controls.Add(this.GenExlbut);
+            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "Form1";
-            this.Text = "Form1";
+            this.Text = "转换导出job report";
             this.ResumeLayout(false);
 
         }

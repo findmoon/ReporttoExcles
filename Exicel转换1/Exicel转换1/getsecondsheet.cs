@@ -51,7 +51,8 @@ namespace Exicel转换1
             CustomerReport_DataTable = excelHelper.ExcelToDataTable(sheetName_CustomerReport, false);
             if (CustomerReport_DataTable==null)
             {
-                MessageBox.Show("未获取到sheet");
+                MessageBox.Show("未获取到sheet："+ CustomerReport_DataTable);
+                return;
             }
 
             #region 获取Detail，Feeder required number，Nozzle required number位置
@@ -206,7 +207,7 @@ namespace Exicel转换1
         }
 
 
-        #region 获取DataTable中某一string的位置
+        #region 普通通用方法，获取DataTable中某一string的位置
         //获取DataTable中某一string的位置
         public int[] getPoints(DataTable dt, string findString)
         {

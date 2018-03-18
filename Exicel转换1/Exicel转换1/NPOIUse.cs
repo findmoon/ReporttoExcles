@@ -108,6 +108,7 @@ namespace NPOIUse
                 catch (Exception ex)
                 {
                     MessageBox.Show(ex.Message);
+                    this.workbook = null;
                 }
             }
             
@@ -191,8 +192,14 @@ namespace NPOIUse
             int startRow = 0;
 
 
-            sheet = this.ExcelToIsheet(sheetName); 
-            
+            sheet = this.ExcelToIsheet(sheetName);
+
+            //sheet没有任何数据时返回null
+            if (sheet.PhysicalNumberOfRows == 0)
+            {
+                return null;
+            }
+
             try
             {
 

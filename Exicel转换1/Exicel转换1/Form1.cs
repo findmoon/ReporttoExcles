@@ -20,7 +20,11 @@ namespace Exicel转换1
     public partial class Form1 : Form
     {
         //ExcelHelper excel处理的类
-        ExcelHelper excelHelper;
+        ExcelHelper excelHelper=null;
+
+        //ExcelHelper 另一个轨道生产报告的实例
+        ExcelHelper excelHelper_another = null;
+
         //dt：Excel表格
         public DataTable dt=null;
         //三个位置点
@@ -66,12 +70,85 @@ namespace Exicel转换1
         #region 打开Excel对话框
         private void ExcelToDTbut_Click(object sender, EventArgs e)
         {
-            string file=OpenExcelFile();
-            dt = GetDataFromExcle(file);
+            string file;
+            if (excelHelper==null)
+            {
+                try
+                {
+                    file = OpenExcelFile();
+                    //判断是否获取到文件路径
+                    if (file == null)
+                    {
+                        return;
+                    }
+
+                    using (excelHelper = new ExcelHelper(file))
+                    {
+                        if (excelHelper.WorkBook==null)
+                        {
+                            excelHelper = null;
+                            return;
+                        }
+                        dt = excelHelper.ExcelToDataTable("Result", false);
+                        //dt = excelHelper.ExcelToDataTable(null, true);
+
+                        //如果打开没有Result的表格，打开其他非报告的表格，则返回DataTable null，重置
+                        if (dt==null)
+                        {
+                            MessageBox.Show(string.Format("未找到{0}表单，请重新选择！", "Result"));
+                            excelHelper = null;
+                            return;
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Message);
+                    return;
+                }
+            }
+            else
+            {
+                if (excelHelper_another==null)
+                {
+                    file = OpenExcelFile();
+                    //判断是否获取到文件路径
+                    if (file == null)
+                    {
+                        return;
+                    }
+
+                    try
+                    {
+                        using (excelHelper_another = new ExcelHelper(file))
+                        {
+                            if (excelHelper_another.WorkBook==null)
+                            {
+                                excelHelper_another = null;
+                                return;
+                            }
+                            //第二 另一个类中获取datatable
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show(ex.Message);
+                    }
+                }
+                else
+                {
+                    MessageBox.Show("选择的两个(轨道)的生产报告还未转换！请转换后在打开其他报告，如果想选择其他转换的报告请关闭后打开！");
+                    return;
+                }
+            }
+           
+
+
+
         }
         #endregion
 
-        #region //打开Excel的方法
+        #region //打开Excel file 的方法
         public string OpenExcelFile()
         {
             string file = null;
@@ -103,26 +180,7 @@ namespace Exicel转换1
 
         #region 获取result对应的dt，从Excel到DataTable
         // 获取result对应的dt，从Excel到DataTable
-        public DataTable GetDataFromExcle(string file)
-        {
-            DataTable dt;
-            try
-            {
-                using (excelHelper = new ExcelHelper(file))
-                {
-                    dt = excelHelper.ExcelToDataTable("Result", false);
-                    //dt = excelHelper.ExcelToDataTable(null, true);
-                    return dt;
-                }
-            }
-            catch (Exception ex)
-            {
 
-                MessageBox.Show(ex.Message);
-                return null;
-            }
-
-        }
         # endregion
 
         #region 获取result下的位置信息
@@ -360,9 +418,9 @@ namespace Exicel转换1
                 jobName = getSpecifyString_NextRow(findString_jobName, JOBs[i], 3, 17);
 
                 //cycletime是line1和 line2的两个时间的平均，但是是在两个报告，两个Excel里面
-                string findString_cycleTime = "Cycle time";
-                string cycleTime_line1 = getSpecifyString_NextRow(findString_cycleTime, JOBs[i], 3, 17);
-                cycleTime = cycleTime_line1;
+                //string findString_cycleTime = "Cycle time";
+                //string cycleTime_line1 = getSpecifyString_NextRow(findString_cycleTime, JOBs[i], 3, 17);
+                //cycleTime = cycleTime_line1;
 
                 string findString_partQty = "Part qty";
                 placementNumber = getSpecifyString_NextRow(findString_partQty, JOBs[i], 3, 17);
@@ -560,8 +618,49 @@ namespace Exicel转换1
 
         //生成DataTable
         //生成评估sheet1
+        //sheet2未验证jobName job名字
         private void GenExlbut_Click(object sender, EventArgs e)
         {
+            //未选择文件无法生成,必须excelHelper、excelHelper_another不为空时才能计算下面
+            if (excelHelper == null)
+            {
+                MessageBox.Show("未选择生产报告，请重新选择！");
+                return;
+            }
+            //生成需要打开第二个生产报告
+            if (excelHelper_another == null)
+            {
+                MessageBox.Show("未选择另一个轨道的生产报告，请重新选择！");
+                return;
+            }
+
+            #region 获取信息和对应的DataTable，获取结果的成功与失败，判断是否找到对应sheet和是否打开正确的Excel
+            //获取位置信息从getFirstSheetDataTable中提取处理，sheet1和sheet2都有需要的地方
+            getEveryInfo();
+
+            //第二个sheet DataTable的获取
+            string sheetName_CustomerReport = "CustomerReport_1T";
+            DataTable genDT2 = getSecondSheetDataTable(sheetName_CustomerReport);
+
+            //第一个sheet DataTable的获取  //需要第二个中的cycletime赋值
+            DataTable genDT = getFirstSheetDataTable();
+            #endregion
+
+            //未选择文件无法生成
+            if (excelHelper == null|| genDT==null)
+            {
+                MessageBox.Show("未选择生产报告，或生产报告中位找到对应的表单sheet，请重新选择！");
+                return;
+            }
+            //生成需要打开第二个生产报告
+            if (excelHelper_another==null|| genDT2==null)
+            {
+                MessageBox.Show("未选择另一个轨道的生产报告，或生产报告中位找到对应的表单sheet，请重新选择！");
+                return;
+            }
+
+
+            #region 保存对话框的实现
             //保存的路径
             //string fileName = @"D:\Test\110.xlsx";
             string fileName = null;
@@ -582,15 +681,15 @@ namespace Exicel转换1
                 MessageBox.Show("发生了意外！");
                 return;
             }
+            #endregion
 
-            //创建ExcelHelper，用以存放sheet1和sheet2
+
+            //创建ExcelHelper，用以存放转换后的sheet1和sheet2
             ExcelHelper excelHelper1 = new ExcelHelper(fileName);
 
             #region 第一个sheet的获取和生成
             //第一个sheet的标题，以字符串形式插入
             string oneTitle = "FUJI Line Throughput Report 三代";
-
-            DataTable genDT = getFirstSheetDataTable();
 
             string sheet1 = "sheet1";
 
@@ -600,24 +699,22 @@ namespace Exicel转换1
             StringInsertExcel(excelHelper1, oneTitle, sheet1, new int[2] { 1, 1 });
             #endregion
 
-
-            #region 第二个sheet的获取和生成
+            #region 生成第二个sheet
             //第二个sheet的标题，以字符串形式插入
             string secondTitle = jobName;
+            //第二个sheet的建议
+            string ProposalString = "Proposal \n Layout";
 
-            //
             //获取生成的第二个sheet对象在Excel对应的sheetname
-            string sheetName_CustomerReport = "CustomerReport_1T";
-
-            DataTable genDT2 = getSecondSheetDataTable(sheetName_CustomerReport);
-            
-
             string sheet2 = "sheet2";
 
             //插入sheet对应表格的datatable
             DataTableToResultSheet2(excelHelper1, genDT2, sheet2, true, new int[2] { 3, 2 });
             //插入标题
             StringInsertExcel(excelHelper1, secondTitle, sheet2, new int[2] { 2, 2 });
+
+            //插入建议
+            StringInsertExcel(excelHelper1, ProposalString, sheet2, new int[2] { 2, 1 });
             #endregion
 
 
@@ -630,18 +727,17 @@ namespace Exicel转换1
             excelHelper1.WorkBook.Write(fs); //写入到excel文件，并关闭流
 
             MessageBox.Show("生成Excel成功！");
+            //生成成功，重置两个实例
+            excelHelper = null;
+            excelHelper_another = null;
         }
 
         #region //根据各种信息生成第一个sheet信息的DataTable
         public DataTable  getFirstSheetDataTable()
         {
-            getEveryInfo();
-
-           
-
             //生成评估的表格
             DataTable genDT = new DataTable();
-            string[] genColumnString = { "Item", "Board", "Line" , "Head Type","Job name /r/n Panel Size" ,"Cycle time /n [((L1+L2)/2) Sec]", "Number of  placements", "CPH", "Output Board/hour" , "Output Board/Day(22H)", "CPH Rate", "Remark" };
+            string[] genColumnString = { "Item", "Board", "Line" , "Head \r\n Type","Job name \r\n Panel Size" ,"Cycle time \r\n [((L1+L2)/2) Sec]", "Number of \r\n placements", "CPH", "Output \r\n Board/hour" , "Output \r\n Board/Day(22H)", "CPH Rate", "Remark" };
 
             //评估表格的栏
             for (int i = 0; i < genColumnString.Length; i++)
@@ -651,22 +747,22 @@ namespace Exicel转换1
 
             //像生成的Excel添加行
             DataRow genRow = genDT.NewRow();
-            genRow["Board"] = boardQty;
-            genRow["Line"] = Line;
-            genRow["Head Type"] = Head_Type;
-            genRow["Job name /r/n Panel Size"] = jobName;
-            genRow["Cycle time /n [((L1+L2)/2) Sec]"] = cycleTime;
-            genRow["Number of  placements"] = placementNumber;
-            genRow["CPH"] = cPH;
+            genRow[1] = boardQty;
+            genRow[2] = Line;
+            genRow[3] = Head_Type;
+            genRow[4] = jobName;
+            genRow[5] = cycleTime;
+            genRow[6] = placementNumber;
+            genRow[7] = cPH;
             //float.Parse(cycleTime)  float转换
             double double1 = Convert.ToDouble(boardQty) * 3600 / Convert.ToDouble(cycleTime);
-            genRow["Output Board/hour"] = string.Format("{0:0}", double1);
-            genRow["Output Board/Day(22H)"] = string.Format("{0:0}", double1 * 22);
+            genRow[8] = string.Format("{0:0}", double1);
+            genRow[9] = string.Format("{0:0}", double1 * 22);
             //42000  H24头理论的CPH，10500  H04SF理论的CPH
             //需要建一个head type:CPH的字典，进行计算；
             double CPHRate = Convert.ToDouble(cPH) / (42000 * 7 + 10500 * 1);
-            genRow["CPH Rate"] = string.Format("{0:0.00%}",CPHRate);
-            genRow["Remark"] = "已删减大零件";
+            genRow[10] = string.Format("{0:0.00%}",CPHRate);
+            genRow[11] = "已删减大零件";
 
             //添加行
             genDT.Rows.Add(genRow);
@@ -685,14 +781,31 @@ namespace Exicel转换1
         public DataTable getSecondSheetDataTable(string sheetName_CustomerReport)
         {
             #region //获取生成的第二个sheet对象的sheetname
-            
+            //获取一轨的Excel生成对象
             getsecondsheet secondsheet = new getsecondsheet(excelHelper, sheetName_CustomerReport, jobName, conveyor);
 
             //获取二轨的Excel生成对象
+            getsecondsheet secondsheet_another = new getsecondsheet(excelHelper_another, sheetName_CustomerReport, jobName, conveyor);
 
+            if (secondsheet==null)
+            {
+                MessageBox.Show(string.Format("第一次选择的Excel未找到{0}表单，请重新选择！", sheetName_CustomerReport));
+                //重置
+                excelHelper = null;
+                //未获取到sheet，则没有DataTable，返回空
+                return null;
+            }
 
+            if (secondsheet_another == null)
+            {
+                MessageBox.Show(string.Format("第二次选择的Excel未找到{0}表单，请重新选择！", sheetName_CustomerReport));
+                //重置
+                excelHelper_another = null;
+                return null;
+            }
 
             //最终要组合的行
+            //
             int secondSheetrowCount = secondsheet.SmallSecondSheetDT.Rows.Count > secondsheet.SecondSheetDT.Rows.Count ? secondsheet.SmallSecondSheetDT.Rows.Count : secondsheet.SecondSheetDT.Rows.Count;
             DataTable secondSheetDT = new DataTable();
 
@@ -701,22 +814,22 @@ namespace Exicel转换1
 
             //设置secondSheetDT的DataTable的第一行
 
-            secondSheetDT.Columns.Add("Prouction Mode");
-            secondSheetDT.Columns.Add("Module No.");
+            secondSheetDT.Columns.Add("Prouction \n Mode");
+            secondSheetDT.Columns.Add("Module \n No.");
             secondSheetDT.Columns.Add("Module");
             secondSheetDT.Columns.Add("Head Type");
-            secondSheetDT.Columns.Add("Lane1 Cycle Time");
-            secondSheetDT.Columns.Add("Lane2 Cycle Time");
-            secondSheetDT.Columns.Add("Cycle Time");
+            secondSheetDT.Columns.Add("Lane1 \n Cycle \n Time");
+            secondSheetDT.Columns.Add("Lane2 \n Cycle \n Time");
+            secondSheetDT.Columns.Add("Cycle \n Time");
             secondSheetDT.Columns.Add("Qty");
             secondSheetDT.Columns.Add("Avg");
             secondSheetDT.Columns.Add("CPH");
 
-            secondSheetDT.Columns.Add("Feeder");
-            secondSheetDT.Columns.Add("Feeder Qty");
-            secondSheetDT.Columns.Add("Head Type ");
-            secondSheetDT.Columns.Add("Nozzle");
-            secondSheetDT.Columns.Add("Nozzle Qty");
+            secondSheetDT.Columns.Add("Feeder \n Type");
+            secondSheetDT.Columns.Add("Feeder \n Qty");
+            //secondSheetDT.Columns.Add("Head Type ");
+            secondSheetDT.Columns.Add("Nozzle \n Type");
+            secondSheetDT.Columns.Add("Nozzle \n Qty");
 
             /*
              *             //初始化各个栏
@@ -734,6 +847,16 @@ namespace Exicel转换1
             smallsecondSheetDT.Columns.Add("QTy  Nozzle");
              */
 
+            //使用List，用于计算最大、平均值
+            //Line1 cycletime list
+            List<double> Line1CycleTimeList = new List<double>();
+            //Line2 cycletime list
+            List<double> Line2CycleTimeList = new List<double>();
+            //cycletime list
+            List<double> CycleTimeList = new List<double>();
+            //Qty list
+            List<int> QtyList = new List<int>();
+
 
             //循环并组合新的datatable
             for (int i = 0; i < secondSheetrowCount; i++)
@@ -746,36 +869,77 @@ namespace Exicel转换1
                 secondSheetDT.Rows[i][3] = secondsheet.SecondSheetDT.Rows[i][3];
                 //lin1 cycyle time
                 secondSheetDT.Rows[i][4] = secondsheet.SecondSheetDT.Rows[i][4];
+                //secondSheetDT.Rows[i][4]  DBNull无法转换为任何其他类型
+                if (!secondSheetDT.Rows[i][4].Equals(DBNull.Value))
+                {
+                    Line1CycleTimeList.Add(System.Convert.ToDouble(secondSheetDT.Rows[i][4]));
+                }
+               
                 //lin2 cycyle time
-                //secondSheetDT.Rows[i][5] = secondsheet2.SecondSheetDT.Rows[i][4];
+                secondSheetDT.Rows[i][5] = secondsheet_another.SecondSheetDT.Rows[i][4];
+                if (!secondSheetDT.Rows[i][5].Equals(DBNull.Value))
+                {
+                    Line2CycleTimeList.Add(System.Convert.ToDouble(secondSheetDT.Rows[i][5]));
+                }
                 //平均cycle time
-                //secondSheetDT.Rows[i][6] = (secondsheet.SecondSheetDT.Rows[i][4]+ secondsheet2.SecondSheetDT.Rows[i][4])/2;
+                if (!secondSheetDT.Rows[i][5].Equals(DBNull.Value)&&!secondSheetDT.Rows[i][4].Equals(DBNull.Value))
+                {
+                    secondSheetDT.Rows[i][6] = (System.Convert.ToDouble(secondSheetDT.Rows[i][4]) + System.Convert.ToDouble(secondSheetDT.Rows[i][5])) / 2;
+                }
+               
+
+                if (!secondSheetDT.Rows[i][6].Equals(DBNull.Value))
+                {
+                    
+                    CycleTimeList.Add(System.Convert.ToDouble(secondSheetDT.Rows[i][6]));
+                }
                 //Qty
                 secondSheetDT.Rows[i][7] = secondsheet.SecondSheetDT.Rows[i][5];
+                if (!secondSheetDT.Rows[i][7].Equals(DBNull.Value))
+                {
+                    QtyList.Add(System.Convert.ToInt32(secondSheetDT.Rows[i][7]));
+                }
                 //Avg  问题 Cycle time/Qty
-                //secondSheetDT.Rows[i][8] = System.Convert.ToDouble(secondSheetDT.Rows[i][6])/ System.Convert.ToDouble(secondSheetDT.Rows[i][7]);
+                //两位小数
+                if (!secondSheetDT.Rows[i][6].Equals(DBNull.Value)&&!secondSheetDT.Rows[i][7].Equals(DBNull.Value))
+                {
+                    secondSheetDT.Rows[i][8] = Math.Round(System.Convert.ToDouble(secondSheetDT.Rows[i][6]) / System.Convert.ToDouble(secondSheetDT.Rows[i][7]),2);
+                }
+
                 //CPH  问题 Qty*3600/CyCle time
                 //secondSheetDT.Rows[i][9] = System.Convert.ToInt32(secondSheetDT.Rows[i][7])*3600/System.Convert.ToInt32(secondSheetDT.Rows[i][6]);
+                //取整
+                if (!secondSheetDT.Rows[i][7].Equals(DBNull.Value))
+                {
+                    secondSheetDT.Rows[i][9] = string.Format("{0:0}",(System.Convert.ToInt32(secondSheetDT.Rows[i][7]) * 3600) / System.Convert.ToDouble(secondSheetDT.Rows[i][6]));
+                }
+                
 
                 //Feeder
                 secondSheetDT.Rows[i][10] = secondsheet.SmallSecondSheetDT.Rows[i][0];
                 secondSheetDT.Rows[i][11] = secondsheet.SmallSecondSheetDT.Rows[i][1];
-                secondSheetDT.Rows[i][12] = secondsheet.SmallSecondSheetDT.Rows[i][2];
-                secondSheetDT.Rows[i][13] = secondsheet.SmallSecondSheetDT.Rows[i][3];
-                secondSheetDT.Rows[i][14] = secondsheet.SmallSecondSheetDT.Rows[i][4];
+                //这一列是Head Type 列，取消
+                //secondSheetDT.Rows[i][12] = secondsheet.SmallSecondSheetDT.Rows[i][2];
+                secondSheetDT.Rows[i][12] = secondsheet.SmallSecondSheetDT.Rows[i][3];
+                secondSheetDT.Rows[i][13] = secondsheet.SmallSecondSheetDT.Rows[i][4];
             }
 
-            //计算最后的平均值
-            secondSheetrowCount++;
+            //计算最后的一行的值
+            //secondSheetrowCount++;
+
+
             DataRow dr2 = secondSheetDT.NewRow();
             secondSheetDT.Rows.Add(dr2);
-            secondSheetDT.Rows[secondSheetrowCount - 1][0] = "Total";
-            secondSheetDT.Rows[secondSheetrowCount - 1][4] = "";
-            secondSheetDT.Rows[secondSheetrowCount - 1][5] = "";
-            secondSheetDT.Rows[secondSheetrowCount - 1][6] = "";
-            secondSheetDT.Rows[secondSheetrowCount - 1][7] = "";
-            secondSheetDT.Rows[secondSheetrowCount - 1][8] = "";
-            secondSheetDT.Rows[secondSheetrowCount - 1][9] = "";
+            secondSheetDT.Rows[secondSheetrowCount][0] = "Total";
+            secondSheetDT.Rows[secondSheetrowCount][4] = Line1CycleTimeList.Max();
+            secondSheetDT.Rows[secondSheetrowCount][5] = Line2CycleTimeList.Max();
+            secondSheetDT.Rows[secondSheetrowCount][6] = CycleTimeList.Max();
+            secondSheetDT.Rows[secondSheetrowCount][7] = QtyList.Sum(); ;
+            secondSheetDT.Rows[secondSheetrowCount][8] =string.Format("{0:0.00}",CycleTimeList.Max() * machineCount/ QtyList.Sum());
+            secondSheetDT.Rows[secondSheetrowCount][9] =string.Format("{0:0}",QtyList.Sum()*3600/ CycleTimeList.Max());
+
+            //为第一个sheet的cycletime赋值
+            cycleTime = string.Format("{0:0.00}",CycleTimeList.Max());
 
             //验证获取到的DataTable
             return secondSheetDT;
@@ -799,7 +963,6 @@ namespace Exicel转换1
             ISheet sheet = excelHelper1.ExcelToIsheet(sheetName);
 
             //sheet由excelHelper获取
-
             try
             {
                 
@@ -822,6 +985,9 @@ namespace Exicel转换1
                 cellStyle.VerticalAlignment = NPOI.SS.UserModel.VerticalAlignment.Center;
                 //水平对齐
                 cellStyle.Alignment = NPOI.SS.UserModel.HorizontalAlignment.Center;
+
+                //设置开启自动换行,在下面应用到单元格样式时，\n转义字符处理
+                cellStyle.WrapText = true;
 
                 //应用到单元格样式
                 row.GetCell(insertPoint[1]).CellStyle = cellStyle;
@@ -991,6 +1157,9 @@ namespace Exicel转换1
                 cellStyle.Alignment = NPOI.SS.UserModel.HorizontalAlignment.Center;
                 //  cellStyle.Alignment = NPOI.SS.UserModel.HorizontalAlignment.Right;
 
+                //设置开启自动换行,在下面应用到单元格样式时，\n转义字符处理
+                cellStyle.WrapText = true;
+
                 //设置整列单元格样式
                 //获取列数量
                 int column_count = ExcelHelper.sheetColumns(sheet);
@@ -1108,7 +1277,7 @@ namespace Exicel转换1
                     if (isFirstDataRow)
                     {
                         sheet.AddMergedRegion(new CellRangeAddress(i - 1, i - 1, 2, 2+mergeLastCount));
-
+                        sheet.AddMergedRegion(new CellRangeAddress(i - 1, sheet.LastRowNum, 1, 1));
                         sheet.GetRow(i).HeightInPoints = 60;
                     }
                     else
@@ -1121,9 +1290,7 @@ namespace Exicel转换1
 
                 
             }
-
-  
-
+    
             //设置单元格样式
 
             XSSFCellStyle cellStyle = (XSSFCellStyle)sheet.Workbook.CreateCellStyle();
@@ -1132,6 +1299,9 @@ namespace Exicel转换1
             //水平对齐
             cellStyle.Alignment = NPOI.SS.UserModel.HorizontalAlignment.Center;
             //  cellStyle.Alignment = NPOI.SS.UserModel.HorizontalAlignment.Right;
+
+            //设置开启自动换行,在下面应用到单元格样式时，\n转义字符处理
+            cellStyle.WrapText = true;
 
             //设置整列单元格样式
             //获取列数量
