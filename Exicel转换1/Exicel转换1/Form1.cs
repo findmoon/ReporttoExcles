@@ -11,7 +11,9 @@ using NPOI;
 using NPOI.SS.UserModel;
 using NPOI.SS.Util;
 using NPOI.XSSF.UserModel;
+using NPOI.HSSF.Util;
 using NPOI.HSSF.UserModel;
+using NPOI.POIFS.FileSystem;
 using NPOIUse;
 using NpoiOperatePicture;
 
@@ -493,7 +495,7 @@ namespace Exicel转换1
 
                 //"/r/n" 回车换行符
                 Line = "";
-                Line = machineKind + "-(" + moduleKind3 + "*" + module_Statistics[moduleKind3].ToString() + "+" + moduleKind6 + "*" + module_Statistics[moduleKind6] + ")" + "/r/n" + "4M BASE III*" + baseCount_4M.ToString() + "+2M BASE III*" + baseCount_2M.ToString();
+                Line = machineKind + "-(" + moduleKind3 + "*" + module_Statistics[moduleKind3].ToString() + "+" + moduleKind6 + "*" + module_Statistics[moduleKind6] + ")" + "\n" + "4M BASE III*" + baseCount_4M.ToString() + "+2M BASE III*" + baseCount_2M.ToString();
                 //MessageBox.Show(Line);
 
                 //获取组合"Head Type"的信息
@@ -668,7 +670,20 @@ namespace Exicel转换1
             saveExcelFileDialog.RestoreDirectory = true;
             if (saveExcelFileDialog.ShowDialog() == DialogResult.OK)
             {
-                fileName = saveExcelFileDialog.FileName;
+                try
+                {
+                    fileName = saveExcelFileDialog.FileName;
+                    if (File.Exists(fileName))
+                    {
+                        File.Delete(fileName);
+                    }
+                }
+                catch (Exception ex) 
+                {
+                    MessageBox.Show(ex.Message);
+                    return;
+                }
+                
             }
             else
             {
@@ -722,15 +737,32 @@ namespace Exicel转换1
             FileStream fs = excelHelper1.FS;
             if (fs == null)
             {
-                fs = new FileStream(fileName, FileMode.OpenOrCreate, FileAccess.ReadWrite);
+                using (fs = new FileStream(fileName, FileMode.OpenOrCreate, FileAccess.ReadWrite))
+                {
+                    excelHelper1.WorkBook.Write(fs); //写入到excel文件，并关闭流
+                    fs.Close();
+                }
+                
             }
-            excelHelper1.WorkBook.Write(fs); //写入到excel文件，并关闭流
+            else
+            {
+                excelHelper1.WorkBook.Write(fs); //写入到excel文件，并关闭流
+                fs.Close();
+            }
+            
 
             MessageBox.Show("生成Excel成功！");
             //生成成功，重置两个实例
             excelHelper = null;
             excelHelper_another = null;
         }
+
+        /// <summary>
+        /// 设置单元格背景
+        /// </summary>已经生成过单元格，再次设置背景无效.已验证。需要在第一次创建cell时填充颜色才可以
+        /// <returns></returns>
+        /// 
+
 
         #region //根据各种信息生成第一个sheet信息的DataTable
         public DataTable  getFirstSheetDataTable()
@@ -769,9 +801,6 @@ namespace Exicel转换1
 
             return genDT;
 
-           
-
-            
 
 
         }
@@ -952,8 +981,6 @@ namespace Exicel转换1
         //将string插入Excel指定位置
         public void StringInsertExcel(ExcelHelper excelHelper1, string insertString,string sheetName,int[] insertPoint)
         {
-            //使用指定的fileName 创建Iworkbook
-
 
             IWorkbook workbook = excelHelper1.WorkBook;
             //FileStream fs = excelHelper1.FS;
@@ -964,9 +991,7 @@ namespace Exicel转换1
 
             //sheet由excelHelper获取
             try
-            {
-                
-                              
+            {       
                 IRow row;
                 if (sheet.GetRow(count) == null)
                 {
@@ -980,7 +1005,9 @@ namespace Exicel转换1
                 //row.HeightInPoints = 15;
                 row.CreateCell(insertPoint[1]).SetCellValue(insertString);
 
-                XSSFCellStyle cellStyle = (XSSFCellStyle)workbook.CreateCellStyle();
+
+                #region 样式
+                ICellStyle cellStyle = workbook.CreateCellStyle();
                 //垂直居中
                 cellStyle.VerticalAlignment = NPOI.SS.UserModel.VerticalAlignment.Center;
                 //水平对齐
@@ -989,13 +1016,19 @@ namespace Exicel转换1
                 //设置开启自动换行,在下面应用到单元格样式时，\n转义字符处理
                 cellStyle.WrapText = true;
 
+                //设置背景
+                cellStyle.FillBackgroundColor = IndexedColors.White.Index;
+                cellStyle.FillForegroundColor = IndexedColors.BrightGreen.Index;
+                cellStyle.FillPattern = FillPattern.SolidForeground;
+
+                //设置边框在，在合并的单元格中，边框未应用到整个合并单元格
+                //cellStyle.BorderBottom = NPOI.SS.UserModel.BorderStyle.Thick;
+                //cellStyle.BorderTop = NPOI.SS.UserModel.BorderStyle.Thick;
+                //cellStyle.BorderLeft = NPOI.SS.UserModel.BorderStyle.Thick;
+                //cellStyle.BorderRight = NPOI.SS.UserModel.BorderStyle.Thick;
+
                 //应用到单元格样式
                 row.GetCell(insertPoint[1]).CellStyle = cellStyle;
-
-                #region 写入文件流应该在方法外，所有插入的数据和样式设置好后写入，并关闭流
-                //fs = new FileStream(fileName, FileMode.OpenOrCreate, FileAccess.ReadWrite);
-
-                //workbook.Write(fs); //写入到excel文件，并关闭流
                 #endregion
 
 
@@ -1083,9 +1116,9 @@ namespace Exicel转换1
                 sheet.SetColumnWidth(0, 1 * 256);
                 sheet.SetColumnWidth(1, commonWidth * 256);
                 sheet.SetColumnWidth(2, commonWidth * 256);
-                sheet.SetColumnWidth(3, System.Convert.ToInt32(System.Convert.ToDouble(commonWidth * 256)*1.5));
+                sheet.SetColumnWidth(3, System.Convert.ToInt32(System.Convert.ToDouble(commonWidth * 256) * 4.5));
                 sheet.SetColumnWidth(4, commonWidth * 2 * 256);
-                sheet.SetColumnWidth(5, commonWidth * 256);
+                sheet.SetColumnWidth(5, commonWidth * 2 * 256);
                 sheet.SetColumnWidth(6, commonWidth * 256);
                 sheet.SetColumnWidth(7, commonWidth * 256);
                 sheet.SetColumnWidth(8, commonWidth * 256);
@@ -1095,9 +1128,12 @@ namespace Exicel转换1
                 sheet.SetColumnWidth(12, commonWidth * 256);
 
 
+
                 //合并单元格
-                sheet.AddMergedRegion(new CellRangeAddress(1, 1, 1, 13));//2.0使用 2.0以下为Region
-                sheet.AddMergedRegion(new CellRangeAddress(2, 2, 1, 13));//2.0使用 2.0以下为Region
+                sheet.AddMergedRegion(new CellRangeAddress(1, 1, 1, (dt.Columns.Count - 1) + 1));//2.0使用 2.0以下为Region
+                sheet.AddMergedRegion(new CellRangeAddress(2, 2, 1, (dt.Columns.Count - 1) + 1));//2.0使用 2.0以下为Region
+
+
 
                 //设置行高
                 IRow row1,
@@ -1147,29 +1183,70 @@ namespace Exicel转换1
                 row3.HeightInPoints = 30;
                 row4.HeightInPoints = 50;
 
-
-                //设置单元格样式
-
-                XSSFCellStyle cellStyle = (XSSFCellStyle)workbook.CreateCellStyle();
-                //垂直居中
-                cellStyle.VerticalAlignment = NPOI.SS.UserModel.VerticalAlignment.Center;
-                //水平对齐
-                cellStyle.Alignment = NPOI.SS.UserModel.HorizontalAlignment.Center;
-                //  cellStyle.Alignment = NPOI.SS.UserModel.HorizontalAlignment.Right;
-
-                //设置开启自动换行,在下面应用到单元格样式时，\n转义字符处理
-                cellStyle.WrapText = true;
-
                 //设置整列单元格样式
                 //获取列数量
-                int column_count = ExcelHelper.sheetColumns(sheet);
-                for (int i = 0; i < column_count; i++)
+                //int column_count = ExcelHelper.sheetColumns(sheet);
+                //for (int i = 0; i < column_count; i++)
+                //{
+                //    //设置SetDefaultColumnStyle后，仅到新创建cell时，会应用这个默认设置
+                //    //sheet.SetDefaultColumnStyle(i, cellStyle);
+                //}
+                for (int i = 0; i <= sheet.LastRowNum; i++)
                 {
-                    sheet.SetDefaultColumnStyle(i, cellStyle);
+                    if (sheet.GetRow(i) != null)
+                    {
+                        IRow row = sheet.GetRow(i);
+
+                        for (int j = 0; j <= row.LastCellNum; j++)
+                        {
+                            //int j = row.FirstCellNum,这个复制在第一次循环时提示cell number必须>=0，FirstCellNum怎么会<0？
+                            if (row.GetCell(j) == null)
+                            {
+                                continue;
+                            }
+
+                            //设置单元格样式,必须每一个cell对饮一个样式，否则无法设置背景
+
+                            ICellStyle cellStyle = workbook.CreateCellStyle();
+                            //垂直居中
+                            cellStyle.VerticalAlignment = NPOI.SS.UserModel.VerticalAlignment.Center;
+                            //水平对齐
+                            cellStyle.Alignment = NPOI.SS.UserModel.HorizontalAlignment.Center;
+                            //  cellStyle.Alignment = NPOI.SS.UserModel.HorizontalAlignment.Right;
+
+                            //设置开启自动换行,在下面应用到单元格样式时，\n转义字符处理
+                            cellStyle.WrapText = true;
+
+                            //设置cellstyle背景
+                            cellStyle.FillBackgroundColor = IndexedColors.Black.Index;
+                            cellStyle.FillForegroundColor = IndexedColors.LightGreen.Index;
+
+                            //设置边框
+                            cellStyle.BorderBottom = NPOI.SS.UserModel.BorderStyle.Thick;
+                            cellStyle.BorderTop = NPOI.SS.UserModel.BorderStyle.Thick;
+                            cellStyle.BorderLeft = NPOI.SS.UserModel.BorderStyle.Thick;
+                            cellStyle.BorderRight = NPOI.SS.UserModel.BorderStyle.Thick;
+
+                            if (i == sheet.LastRowNum)
+                            {
+                                cellStyle.FillForegroundColor = IndexedColors.White.Index;
+                                if (j == row.LastCellNum)
+                                {
+                                    //创建字体和设置字号
+                                    IFont font = workbook.CreateFont();
+                                    font.FontHeightInPoints = 6;
+                                    cellStyle.SetFont(font);
+                                }
+                            }
+
+                            //填充模式
+                            cellStyle.FillPattern = FillPattern.SolidForeground;
+
+                            row.GetCell(j).CellStyle = cellStyle;
+                        }
+                    }
                 }
                 #endregion
-
-
 
                 #region 写入流应该在方法外
                 //if (fs == null)
@@ -1187,7 +1264,6 @@ namespace Exicel转换1
             }
 
         }
-
 
         public void DataTableToResultSheet2(ExcelHelper excelHelper1, DataTable dt, string sheetNamet, bool isColumnWritten, int[] insertPoint)
         {
@@ -1222,9 +1298,7 @@ namespace Exicel转换1
                     ++count;
                 }
 
-
-                setSecondSheetStyle(sheet, dt.Columns.Count);
-
+                setSecondSheetStyle(sheet, dt.Columns.Count-1);
 
                 #region 写入流应该在方法外
                 //if (fs == null)
@@ -1243,83 +1317,106 @@ namespace Exicel转换1
 
         }
 
-
-
         public void setSecondSheetStyle(ISheet sheet,int mergeLastCount)
         {
             //应使用静态方法，可以获取不规则行列的sheet的最大与最小列
             int sheetColumns = ExcelHelper.sheetColumns(sheet);
             #region sheet2的样式
             //设置列宽
-            int commonWidth = 15;
+            int commonWidth = 8;
             sheet.SetColumnWidth(0, 1 * 256);
-            for (int i = 0; i < sheetColumns; i++)
+            for (int i = 1; i < sheetColumns; i++)
             {
-                sheet.SetColumnWidth(12, commonWidth * 256);
+                if (i==sheetColumns-2)
+                {
+                    sheet.SetColumnWidth(i, System.Convert.ToInt32(commonWidth * 1.8) * 256);
+                    continue;
+                }
+                if (i == sheetColumns - 4)
+                {
+                    sheet.SetColumnWidth(i, System.Convert.ToInt32(commonWidth * 1.8) * 256);
+                    continue;
+                }
+                sheet.SetColumnWidth(i, commonWidth * 256);
             }
-            
-
-
-            ////合并单元格
-            //sheet.AddMergedRegion(new CellRangeAddress(1, 1, 1, 13));//2.0使用 2.0以下为Region
-            //sheet.AddMergedRegion(new CellRangeAddress(2, 2, 1, 13));//2.0使用 2.0以下为Region
 
             //设置行高
+            //是否是有内容的第一行，有内容的第一行上面和左边合并
             bool isFirstDataRow = true;
+            //workbook，创建cellstyle
+            IWorkbook workbook = sheet.Workbook;
             for (int i = 0; i <= sheet.LastRowNum; i++)
             {
-                if (sheet.GetRow(i) == null)
+                if (sheet.GetRow(i) != null)
                 {
-                        sheet.CreateRow(i).HeightInPoints = 20;
-                }
-                else
-                {
+                    //设置第一次数据行的行高和和合并，在cell循环之外。
                     if (isFirstDataRow)
                     {
-                        sheet.AddMergedRegion(new CellRangeAddress(i - 1, i - 1, 2, 2+mergeLastCount));
+                        sheet.AddMergedRegion(new CellRangeAddress(i - 1, i - 1, 2, 2 + mergeLastCount));
                         sheet.AddMergedRegion(new CellRangeAddress(i - 1, sheet.LastRowNum, 1, 1));
-                        sheet.GetRow(i).HeightInPoints = 60;
+                        sheet.GetRow(i).HeightInPoints = 50;
+                        sheet.CreateRow(i-1).HeightInPoints = 50;
+                        //第一次运行完后，变为非第一行
+                        isFirstDataRow = false;
                     }
                     else
-                    {                        
+                    {
                         sheet.GetRow(i).HeightInPoints = 20;
                     }
-                    
-                    isFirstDataRow = false;
+
+                    //设置cell的cellstyle
+                    IRow row = sheet.GetRow(i);
+                    for (int j = 0; j <= row.LastCellNum; j++)
+                    {
+                        if (row.GetCell(j) == null)
+                        {
+                            continue;
+                        }
+                        //设置单元格样式,必须每一个cell对应一个样式，否则无法设置背景
+                        ICellStyle cellStyle = workbook.CreateCellStyle();
+                        //垂直居中
+                        cellStyle.VerticalAlignment = NPOI.SS.UserModel.VerticalAlignment.Center;
+                        //水平对齐
+                        cellStyle.Alignment = NPOI.SS.UserModel.HorizontalAlignment.Center;
+                        //  cellStyle.Alignment = NPOI.SS.UserModel.HorizontalAlignment.Right;
+
+                        //设置开启自动换行,在下面应用到单元格样式时，\n转义字符处理
+                        cellStyle.WrapText = true;
+
+                        //设置cellstyle背景
+                        cellStyle.FillBackgroundColor = IndexedColors.Black.Index;
+                        cellStyle.FillForegroundColor = IndexedColors.White.Index;
+
+                        //设置边框
+                        cellStyle.BorderBottom = NPOI.SS.UserModel.BorderStyle.Thick;
+                        cellStyle.BorderTop = NPOI.SS.UserModel.BorderStyle.Thick;
+                        cellStyle.BorderLeft = NPOI.SS.UserModel.BorderStyle.Thick;
+                        cellStyle.BorderRight = NPOI.SS.UserModel.BorderStyle.Thick;
+
+                        //最后一行设置字体 红色
+                        if (i == sheet.LastRowNum)
+                        {
+                                //创建字体和设置字号
+                                IFont font = workbook.CreateFont();
+                                font.Color = IndexedColors.Red.Index;
+                                cellStyle.SetFont(font);
+                        }
+
+                        //填充模式
+                        cellStyle.FillPattern = FillPattern.SolidForeground;
+
+                        row.GetCell(j).CellStyle = cellStyle;
+                    }
                 }
-
-                
-            }
-    
-            //设置单元格样式
-
-            XSSFCellStyle cellStyle = (XSSFCellStyle)sheet.Workbook.CreateCellStyle();
-            //垂直居中
-            cellStyle.VerticalAlignment = NPOI.SS.UserModel.VerticalAlignment.Center;
-            //水平对齐
-            cellStyle.Alignment = NPOI.SS.UserModel.HorizontalAlignment.Center;
-            //  cellStyle.Alignment = NPOI.SS.UserModel.HorizontalAlignment.Right;
-
-            //设置开启自动换行,在下面应用到单元格样式时，\n转义字符处理
-            cellStyle.WrapText = true;
-
-            //设置整列单元格样式
-            //获取列数量
-
-            for (int i = 0; i < sheetColumns; i++)
-            {
-                sheet.SetDefaultColumnStyle(i, cellStyle);
+          
             }
             #endregion
 
         }
 
+        private void bindingSource1_CurrentChanged(object sender, EventArgs e)
+        {
 
-
-
-
-
-
-
+        }
     }
 }
