@@ -51,8 +51,17 @@ namespace Exicel转换1
 
         //字典，存放<模组类型:模组个数>
         Dictionary<string, int>  module_Statistics ;
+        //模组种类，即module_Statistics的key
+        string moduleKind3 = "M3III";
+        string moduleKind6 = "M6III";
+
         //字典，存放<HeadType:头个数>
         Dictionary<string, int> Head_Statistics;
+
+        //中间图片位置信息
+        string Line_short;
+        //图片信息
+        List<PicturesInfo> pictureInfoList=null;
 
         //---生成Excel各个栏的数据
         int boardQty;
@@ -462,8 +471,7 @@ namespace Exicel转换1
                 //创建统计模组信息的字典
                 module_Statistics = new Dictionary<string, int>();
                 //初始化，仅记录M3III，M6III，初始为0
-                string moduleKind3 = "M3III";
-                string moduleKind6 = "M6III";
+                
                 module_Statistics.Add(moduleKind3, 0);
                 module_Statistics.Add(moduleKind6, 0);
 
@@ -495,6 +503,8 @@ namespace Exicel转换1
 
                 //"/r/n" 回车换行符
                 Line = "";
+                Line_short = "";
+                Line_short = machineKind + "-(" + moduleKind3 + "*" + module_Statistics[moduleKind3].ToString() + "+" + moduleKind6 + "*" + module_Statistics[moduleKind6] + ")";
                 Line = machineKind + "-(" + moduleKind3 + "*" + module_Statistics[moduleKind3].ToString() + "+" + moduleKind6 + "*" + module_Statistics[moduleKind6] + ")" + "\n" + "4M BASE III*" + baseCount_4M.ToString() + "+2M BASE III*" + baseCount_2M.ToString();
                 //MessageBox.Show(Line);
 
@@ -530,73 +540,13 @@ namespace Exicel转换1
                 // MessageBox.Show(Head_Type);
 
                 #region
-                ////NPOI导出生成图片，不用判断格式，jpg和png均可生成。
-                ////获取图片
-                //List<PicturesInfo> pictureInfoList = new List<PicturesInfo>();
-                //ISheet sheet = excelHelper.ExcelToIsheet("Result");
-                //int maxColumn = excelHelper.sheetColumns(sheet);
-                ////仅处理只有一个程式的情况，machineconf_Pattern_POints，到文档结束。
-                //pictureInfoList=NpoiExtend.GetAllPictureInfos(sheet, machineconf_Pattern_POints[i][0], sheet.LastRowNum,machineconf_Pattern_POints[i][1], maxColumn);
-
-                ////测试>>>生成图片表格
-                //string file1 = @"D:\Test\120.xlsx";
-
-                ////ExcelHelper类内部创建
-                ////if (!File.Exists(file1))
-                ////{
-                ////    /*
-                ////    //file1正在被另一进程使用，，
-                ////    File.Create(file1);
-                ////    */
-                ////    using (File.Create(file1))
-                ////    {
-
-                ////    }
-                ////}
-
-                //ExcelHelper excelHelper1 = new ExcelHelper(file1);
-
-                //ISheet sheet1 = excelHelper1.ExcelToIsheet();
-
-                //int startRow;
-                //int startCol;
-                ////pictureInfoList需要排序
-                //foreach (PicturesInfo pictureInfo in pictureInfoList)
-                //{
-                //    /*
-                //    using (FileStream fsPicture=new FileStream(@"D:\Test\"+pictureInfoList.IndexOf(item)+".png",FileMode.OpenOrCreate,FileAccess.ReadWrite))
-                //    {
-                //        fsPicture.Write(pictureInfo.PictureData,0, pictureInfo.PictureData.Length);
-                //    }
-                //    */
-
-
-
-                //        if (pictureInfoList.IndexOf(pictureInfo) == 0)
-                //        {
-                //            startRow = 2;
-                //            startCol = 2;
-                //        }
-                //        else
-                //        {
-                //            startRow = 2;
-                //            //startRow = 2 + pictureInfoList[pictureInfoList.IndexOf(pictureInfo) - 1].MaxRow - pictureInfoList[pictureInfoList.IndexOf(pictureInfo) - 1].MinRow;
-                //            startCol = 2 + pictureInfoList[pictureInfoList.IndexOf(pictureInfo) - 1].MaxCol - pictureInfoList[pictureInfoList.IndexOf(pictureInfo) - 1].MinCol;
-                //        }
-
-
-
-                //        excelHelper1.pictureDataToSheet(sheet1, pictureInfo.PictureData, startRow, startCol, startRow + pictureInfo.MaxRow - pictureInfo.MinRow, startCol + pictureInfo.MaxCol - pictureInfo.MinCol);
-
-
-
-                //    //MessageBox.Show("OK");
-                //}
-
-                //using (FileStream file1fs =new FileStream(file1,FileMode.OpenOrCreate,FileAccess.ReadWrite) ) 
-                //{
-                //    excelHelper1.WorkBook.Write(file1fs);
-                //}
+                //NPOI导出生成图片，不用判断格式，jpg和png均可生成。
+                //获取图片
+                pictureInfoList = new List<PicturesInfo>();
+                ISheet sheet = excelHelper.ExcelToIsheet("Result");
+                int maxColumn = ExcelHelper.sheetColumns(sheet);
+                //仅处理只有一个程式的情况，machineconf_Pattern_POints，到文档结束。
+                //pictureInfoList = NpoiExtend.GetAllPictureInfos(sheet, machineconf_Pattern_POints[i][0], sheet.LastRowNum, machineconf_Pattern_POints[i][1], maxColumn);
 
                 #endregion
 
@@ -609,9 +559,6 @@ namespace Exicel转换1
                 string findString_Conveyor = "Conveyor";
                 conveyor = getSpecifyString_NextColumn(findString_Conveyor, machineconf_Pattern_POints[i]);
             }
-
-
-
         }
         #endregion
 
@@ -711,7 +658,13 @@ namespace Exicel转换1
             //插入sheet对应表格的datatable
             DataTableToResultSheet1(excelHelper1, genDT, sheet1, true, new int[2] { 3, 1 });
             //插入标题
-            StringInsertExcel(excelHelper1, oneTitle, sheet1, new int[2] { 1, 1 });
+            StringInsertExcel(excelHelper1, oneTitle, sheet1, new int[2] { 1, 1 }, IndexedColors.BrightGreen.Index);
+
+            //插入图片位置信息
+            StringInsertExcel(excelHelper1, "", sheet1, new int[2] { 2, 1 }, IndexedColors.LightGreen.Index);
+            //Line_short 需要以画布的形式写入，而不是单元格内的文字;
+            //插入图片
+            genFirstSheetPicture(excelHelper1, sheet1, new int[2] { 2, genDT.Columns.Count/2-2 }, module_Statistics);
             #endregion
 
             #region 生成第二个sheet
@@ -726,10 +679,10 @@ namespace Exicel转换1
             //插入sheet对应表格的datatable
             DataTableToResultSheet2(excelHelper1, genDT2, sheet2, true, new int[2] { 3, 2 });
             //插入标题
-            StringInsertExcel(excelHelper1, secondTitle, sheet2, new int[2] { 2, 2 });
+            StringInsertExcel(excelHelper1, secondTitle, sheet2, new int[2] { 2, 2 }, IndexedColors.BrightGreen.Index);
 
             //插入建议
-            StringInsertExcel(excelHelper1, ProposalString, sheet2, new int[2] { 2, 1 });
+            StringInsertExcel(excelHelper1, ProposalString, sheet2, new int[2] { 2, 1 }, IndexedColors.BrightGreen.Index);
             #endregion
 
 
@@ -756,6 +709,152 @@ namespace Exicel转换1
             excelHelper = null;
             excelHelper_another = null;
         }
+
+        /// <summary>
+        /// 生成图片
+        /// </summary>
+        /// <param name="excelHelper1"></param>
+        /// <param name="sheetName"></param>
+        /// <param name="insertPoint"></param>
+        public void genFirstSheetPicture(ExcelHelper excelHelper1, string sheetName, int[] insertPoint,Dictionary<string,int> module_Statistics)
+        {
+            if (pictureInfoList == null)
+            {
+                return;
+            }
+
+            //生成报告的excelHelper1 excelHelper类
+            IWorkbook workbook = excelHelper1.WorkBook;
+
+            //从指定的位置开始插入DataTable数据
+            int count = insertPoint[0];
+
+            ISheet sheet1 = excelHelper1.ExcelToIsheet(sheetName);
+
+            string img_M3 = @".\img\M3.png";
+            string img_M6 = @".\img\M6.png";
+
+            //获取两个文件的img
+            var imgM3 = Image.FromFile(img_M3);
+            var imgM6 = Image.FromFile(img_M6);
+
+            //获取要生成的图片的宽高
+            int finalWidth = imgM3.Width * module_Statistics[moduleKind3] / 2+imgM6.Width*module_Statistics[moduleKind6];
+            int finalHeight = imgM3.Height;
+
+            Bitmap finalImg = new Bitmap(finalWidth,finalHeight);
+            Graphics graph = Graphics.FromImage(finalImg);
+            graph.Clear(SystemColors.AppWorkspace);
+
+            //循环模组并获取img画图
+            //获取的位置
+            int pointX = 0;
+            int pointY = 0;
+
+            for (int i = 0; i < allModuleTypeString.Length; i++)
+            {
+                //M3模组图像
+                if (allModuleTypeString[i]== moduleKind3&& allModuleTypeString[i+1] == moduleKind3)
+                {
+                    graph.DrawImage(imgM3,pointX, pointY);
+                    pointX += imgM3.Width;
+                    i++;
+                }
+                else if(allModuleTypeString[i] == moduleKind6)//M6模组图像
+                {
+                    graph.DrawImage(imgM6, pointX, pointY);
+                    pointX += imgM6.Width;
+                }
+            }
+            graph.Dispose();
+
+            //将bitmap转换为byte[]
+            byte[] PictureData ;
+            using (MemoryStream stream=new MemoryStream())
+            {
+                finalImg.Save(stream, System.Drawing.Imaging.ImageFormat.Png);
+                PictureData = new byte[stream.Length];
+                stream.Seek(0,SeekOrigin.Begin);
+                stream.Read(PictureData, 0, Convert.ToInt32(stream.Length));
+            }
+
+
+            //插入的位置
+            int startRow = count;
+            int startCol = insertPoint[1];
+            int endRow = startRow + 1;
+            int endCol = startCol + 3;
+            //偏移依旧不起作用
+            excelHelper1.pictureDataToSheet(sheet1, PictureData, 100, 20, 100, 20, startRow, startCol, endRow, endCol);
+        }
+            /*
+        public void genFirstSheetPicture(ExcelHelper excelHelper1, string sheetName,int[] insertPoint)
+        {
+            if (pictureInfoList==null)
+            {
+                return;
+            }
+
+            //生成报告的excelHelper1 excelHelper类
+            IWorkbook workbook = excelHelper1.WorkBook;
+
+            //从指定的位置开始插入DataTable数据
+            int count = insertPoint[0];
+
+            ISheet sheet1 = excelHelper1.ExcelToIsheet(sheetName);
+
+
+            int startRow= count;
+            int startCol= insertPoint[1];
+            int endRow = startRow + 1;
+            int endCol = startCol + 1;
+
+            //单元格内的位置,
+            int dx1 = 0;
+            int dy1 = 0;
+            int dx2 = 500;
+            int dy2 = 0;
+
+            //获取单元格
+            //IRow row = sheet1.GetRow(startRow);
+            //ICell cell = sheet1.GetRow(startRow).GetCell(startCol);
+            //pictureInfoList需要排序
+            foreach (PicturesInfo pictureInfo in pictureInfoList)
+            {
+
+                if (pictureInfoList.IndexOf(pictureInfo) == 0)
+                {                  
+                }
+                else
+                {
+                    //图片开始偏移量
+                    dx1=dx1 + 500;
+
+                    if (dx1>=1023)
+                    {
+                        dx1 = dx1 - 1023;
+                        startCol++;
+                        endCol++;
+                    }
+
+                    //图片结束偏移量
+                    //当宽高小于偏移量时，移动到下一单元格
+                    if (1023 <= dx1 + 500)
+                    {
+                        dx2 = (dx1 + 500) - 1023;
+                        endCol = endCol + 1;
+                    }
+                    else
+                    {
+                        //下一个图片的开始，是上一个图片的结束，总宽1023-dy2
+                        dx2 = dx1 + 500;
+                    }           
+                }
+                 excelHelper1.pictureDataToSheet(sheet1, pictureInfo.PictureData,dx1,dy1,dx2,dy2, startRow, startCol, endRow, endCol);
+
+            }
+        }
+        */
 
         /// <summary>
         /// 设置单元格背景
@@ -794,7 +893,8 @@ namespace Exicel转换1
             //需要建一个head type:CPH的字典，进行计算；
             double CPHRate = Convert.ToDouble(cPH) / (42000 * 7 + 10500 * 1);
             genRow[10] = string.Format("{0:0.00%}",CPHRate);
-            genRow[11] = "已删减大零件";
+            //genRow[11] = "已删减大零件";
+            genRow[11] = "";
 
             //添加行
             genDT.Rows.Add(genRow);
@@ -979,7 +1079,7 @@ namespace Exicel转换1
 
 
         //将string插入Excel指定位置
-        public void StringInsertExcel(ExcelHelper excelHelper1, string insertString,string sheetName,int[] insertPoint)
+        public void StringInsertExcel(ExcelHelper excelHelper1, string insertString,string sheetName,int[] insertPoint,short colorShort)
         {
 
             IWorkbook workbook = excelHelper1.WorkBook;
@@ -1018,7 +1118,7 @@ namespace Exicel转换1
 
                 //设置背景
                 cellStyle.FillBackgroundColor = IndexedColors.White.Index;
-                cellStyle.FillForegroundColor = IndexedColors.BrightGreen.Index;
+                cellStyle.FillForegroundColor = colorShort;
                 cellStyle.FillPattern = FillPattern.SolidForeground;
 
                 //设置边框在，在合并的单元格中，边框未应用到整个合并单元格
@@ -1179,7 +1279,7 @@ namespace Exicel转换1
 
 
                 row1.HeightInPoints = 50;
-                row2.HeightInPoints = 60;
+                row2.HeightInPoints = 80;
                 row3.HeightInPoints = 30;
                 row4.HeightInPoints = 50;
 
@@ -1191,6 +1291,7 @@ namespace Exicel转换1
                 //    //设置SetDefaultColumnStyle后，仅到新创建cell时，会应用这个默认设置
                 //    //sheet.SetDefaultColumnStyle(i, cellStyle);
                 //}
+                ICellStyle cellStyle;
                 for (int i = 0; i <= sheet.LastRowNum; i++)
                 {
                     if (sheet.GetRow(i) != null)
@@ -1207,7 +1308,7 @@ namespace Exicel转换1
 
                             //设置单元格样式,必须每一个cell对饮一个样式，否则无法设置背景
 
-                            ICellStyle cellStyle = workbook.CreateCellStyle();
+                            cellStyle = workbook.CreateCellStyle();
                             //垂直居中
                             cellStyle.VerticalAlignment = NPOI.SS.UserModel.VerticalAlignment.Center;
                             //水平对齐
@@ -1222,10 +1323,10 @@ namespace Exicel转换1
                             cellStyle.FillForegroundColor = IndexedColors.LightGreen.Index;
 
                             //设置边框
-                            cellStyle.BorderBottom = NPOI.SS.UserModel.BorderStyle.Thick;
-                            cellStyle.BorderTop = NPOI.SS.UserModel.BorderStyle.Thick;
-                            cellStyle.BorderLeft = NPOI.SS.UserModel.BorderStyle.Thick;
-                            cellStyle.BorderRight = NPOI.SS.UserModel.BorderStyle.Thick;
+                            cellStyle.BorderBottom = NPOI.SS.UserModel.BorderStyle.Thin;
+                            cellStyle.BorderTop = NPOI.SS.UserModel.BorderStyle.Thin;
+                            cellStyle.BorderLeft = NPOI.SS.UserModel.BorderStyle.Thin;
+                            cellStyle.BorderRight = NPOI.SS.UserModel.BorderStyle.Thin;
 
                             if (i == sheet.LastRowNum)
                             {
@@ -1243,6 +1344,7 @@ namespace Exicel转换1
                             cellStyle.FillPattern = FillPattern.SolidForeground;
 
                             row.GetCell(j).CellStyle = cellStyle;
+                            //cellStyle.Dispose();
                         }
                     }
                 }
@@ -1345,6 +1447,7 @@ namespace Exicel转换1
             bool isFirstDataRow = true;
             //workbook，创建cellstyle
             IWorkbook workbook = sheet.Workbook;
+            ICellStyle cellStyle;
             for (int i = 0; i <= sheet.LastRowNum; i++)
             {
                 if (sheet.GetRow(i) != null)
@@ -1373,7 +1476,7 @@ namespace Exicel转换1
                             continue;
                         }
                         //设置单元格样式,必须每一个cell对应一个样式，否则无法设置背景
-                        ICellStyle cellStyle = workbook.CreateCellStyle();
+                        cellStyle = workbook.CreateCellStyle();
                         //垂直居中
                         cellStyle.VerticalAlignment = NPOI.SS.UserModel.VerticalAlignment.Center;
                         //水平对齐
@@ -1388,10 +1491,10 @@ namespace Exicel转换1
                         cellStyle.FillForegroundColor = IndexedColors.White.Index;
 
                         //设置边框
-                        cellStyle.BorderBottom = NPOI.SS.UserModel.BorderStyle.Thick;
-                        cellStyle.BorderTop = NPOI.SS.UserModel.BorderStyle.Thick;
-                        cellStyle.BorderLeft = NPOI.SS.UserModel.BorderStyle.Thick;
-                        cellStyle.BorderRight = NPOI.SS.UserModel.BorderStyle.Thick;
+                        cellStyle.BorderBottom = NPOI.SS.UserModel.BorderStyle.Thin;
+                        cellStyle.BorderTop = NPOI.SS.UserModel.BorderStyle.Thin;
+                        cellStyle.BorderLeft = NPOI.SS.UserModel.BorderStyle.Thin;
+                        cellStyle.BorderRight = NPOI.SS.UserModel.BorderStyle.Thin;
 
                         //最后一行设置字体 红色
                         if (i == sheet.LastRowNum)
@@ -1414,9 +1517,5 @@ namespace Exicel转换1
 
         }
 
-        private void bindingSource1_CurrentChanged(object sender, EventArgs e)
-        {
-
-        }
     }
 }

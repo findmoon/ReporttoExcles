@@ -451,9 +451,22 @@ namespace NPOIUse
         }
         */
 
-
+        /// <summary>
+        /// Excel sheet中插入图片
+        /// </summary>
+        /// <param name="sheet"></param>
+        /// <param name="pictureNPOI"></param>
+        /// <param name="dx1"></param>
+        /// <param name="dy1"></param>
+        /// <param name="dx2"></param>
+        /// <param name="dy2"></param>
+        /// <param name="startRow"></param>
+        /// <param name="startCol"></param>
+        /// <param name="endRow"></param>
+        /// <param name="endCol"></param>
+        /// <returns></returns>
         //重载
-        public ISheet pictureDataToSheet(ISheet sheet, byte[] pictureNPOI, int startRow, int startCol, int endRow, int endCol)
+        public ISheet pictureDataToSheet(ISheet sheet, byte[] pictureNPOI,int dx1,int dy1,int dx2,int dy2, int startRow, int startCol, int endRow, int endCol)
         {
             /*将实际图片转换为pictureData时使用，但是pictureNPOI本身就是picture
             byte[] pictureByte=
@@ -461,28 +474,29 @@ namespace NPOIUse
             */
             //判断是否有sheet
             //无，则创建
-            if (sheet==null)
+            if (sheet == null)
             {
-                sheet=this.workbook.CreateSheet();
+                sheet = this.workbook.CreateSheet();
             }
 
             //执行向sheet写图片
             //创建DrawingPatriarch，存放的容器
             IDrawing patriarch = sheet.CreateDrawingPatriarch();
-
             ///System.InvalidCastException:“无法将类型为“NPOI.XSSF.UserModel.XSSFDrawing”的对象强制转换为类型“NPOI.HSSF.UserModel.HSSFPatriarch”。”
             ///            HSSFPatriarch patriarch = (HSSFPatriarch)sheetA.CreateDrawingPatriarch();
             ///    根据报错改为如下       
            // IDrawing patriarch = sheet.CreateDrawingPatriarch();
 
-            XSSFClientAnchor anchor = new XSSFClientAnchor(0, 0, 0, 0, startCol, startRow, endCol, endRow);
+            //XSSFClientAnchor anchor = new XSSFClientAnchor(dx1, dy1, dx2, dy2, startCol, startRow, endCol, endRow);
+            IClientAnchor anchor = patriarch.CreateAnchor(dx1, dy1, dx2, dy2, startCol, startRow, endCol, endRow);
 
             //将图片文件读入workbook，用索引指向该文件
             int pictureIdx = workbook.AddPicture(pictureNPOI, PictureType.PNG);
 
             //根据读入图片和anchor把图片插到相应的位置
-            XSSFPicture pict = (XSSFPicture)patriarch.CreatePicture(anchor, pictureIdx);
-
+            IPicture pict = patriarch.CreatePicture(anchor, pictureIdx);
+            //原始大小显示,重载可指定缩放
+            //pict.Resize(0.9);
             return sheet;
         }
         ////重载
@@ -492,6 +506,45 @@ namespace NPOIUse
         //    workbook.AddPicture(pictureNPOI.)
         //}
 
+        /// <summary>
+        /// 画矩形，2.0似乎还未实现，xslx格式未实现
+        /// </summary>
+        /// <param name="sheet"></param>
+        /// <param name="content_string"></param>
+        /// <param name="dx1"></param>
+        /// <param name="dy1"></param>
+        /// <param name="dx2"></param>
+        /// <param name="dy2"></param>
+        /// <param name="startRow"></param>
+        /// <param name="startCol"></param>
+        /// <param name="endRow"></param>
+        /// <param name="endCol"></param>
+        /// <returns></returns>
+        public ISheet shapJuxingToSheet(ISheet sheet, string content_string, int dx1, int dy1, int dx2, int dy2, int startRow, int startCol, int endRow, int endCol)
+        {
+            if (sheet == null)
+            {
+                sheet = this.workbook.CreateSheet();
+            }
+
+            
+            //创建DrawingPatriarch，存放的容器
+            IDrawing patriarch = sheet.CreateDrawingPatriarch();
+            //画图形的位置点
+            IClientAnchor anchor = patriarch.CreateAnchor(dx1, dy1, dx2, dy2, startCol, startRow, endCol, endRow);
+            
+            //将图片文件读入workbook，用索引指向该文件
+            //int pictureIdx = workbook.AddPicture(pictureNPOI, PictureType.TIFF);
+            IShape recl;
+
+            
+
+            //根据读入图片和anchor把图片插到相应的位置
+            //IPicture pict = patriarch.CreatePicture(anchor, pictureIdx);
+            //原始大小显示,重载可指定缩放
+            //pict.Resize(0.9);
+            return sheet;
+        }
 
         public void Dispose()
         {

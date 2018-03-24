@@ -28,14 +28,11 @@
         /// </summary>
         private void InitializeComponent()
         {
-            this.components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form1));
             this.GenExlbut = new System.Windows.Forms.Button();
             this.ExcelToDTbut = new System.Windows.Forms.Button();
             this.openExcelFileDialog = new System.Windows.Forms.OpenFileDialog();
             this.saveExcelFileDialog = new System.Windows.Forms.SaveFileDialog();
-            this.bindingSource1 = new System.Windows.Forms.BindingSource(this.components);
-            ((System.ComponentModel.ISupportInitialize)(this.bindingSource1)).BeginInit();
             this.SuspendLayout();
             // 
             // GenExlbut
@@ -58,10 +55,6 @@
             this.ExcelToDTbut.UseVisualStyleBackColor = true;
             this.ExcelToDTbut.Click += new System.EventHandler(this.ExcelToDTbut_Click);
             // 
-            // bindingSource1
-            // 
-            this.bindingSource1.CurrentChanged += new System.EventHandler(this.bindingSource1_CurrentChanged);
-            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
@@ -72,7 +65,6 @@
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "Form1";
             this.Text = "转换导出job report";
-            ((System.ComponentModel.ISupportInitialize)(this.bindingSource1)).EndInit();
             this.ResumeLayout(false);
 
         }
@@ -82,7 +74,6 @@
         private System.Windows.Forms.Button ExcelToDTbut;
         private System.Windows.Forms.OpenFileDialog openExcelFileDialog;
         private System.Windows.Forms.SaveFileDialog saveExcelFileDialog;
-        private System.Windows.Forms.BindingSource bindingSource1;
     }
 }
 

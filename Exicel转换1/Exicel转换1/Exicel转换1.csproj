@@ -7,7 +7,7 @@
     <ProjectGuid>{00F7C266-4CD6-4BCE-A52F-DEC564990221}</ProjectGuid>
     <OutputType>WinExe</OutputType>
     <RootNamespace>Exicel转换1</RootNamespace>
-    <AssemblyName>Exicel转换</AssemblyName>
+    <AssemblyName>Exicel转换Job Report</AssemblyName>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>
