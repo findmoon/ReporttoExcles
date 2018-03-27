@@ -22,15 +22,17 @@ namespace Exicel转换1
         private string JOBName;
         private string Conveyor;
         private ExcelHelper excelHelper = null;
-        private string sheetName_CustomerReport;        
+        private string sheetName_CustomerReport;
         private DataTable secondSheetDT = null;
         private DataTable smallsecondSheetDT = null;
 
+        private int machineCount;
         private string sheetName_Result;
         private string Job;
         private string targetConveyor;
 
-        public DataTable SecondSheetDT{
+        public DataTable SecondSheetDT
+        {
             get
             {
                 return this.secondSheetDT;
@@ -44,13 +46,20 @@ namespace Exicel转换1
             }
         }
 
-        public getsecondsheet(ExcelHelper excelHelper,string sheetName_CustomerReport, string JOBName,string Conveyor,int machineCount)
+        //getsecondsheet构造函数
+        public getsecondsheet(ExcelHelper excelHelper, string sheetName_CustomerReport, string JOBName, string Conveyor, int machineCount)
         {
             #region 获取sheetName_CustomerReport的各种信息
             this.JOBName = JOBName;
             this.Conveyor = Conveyor;
             this.excelHelper = excelHelper;
             this.sheetName_CustomerReport = sheetName_CustomerReport;
+            this.machineCount = machineCount;
+        }
+        //生成第二个表格所需要的各个信息
+        //返回0，生成失败，返回1生成成功
+        public bool getsecondsheetInfo()
+        {
 
             DataTable CustomerReport_DataTable = null;
             //ExcelToDataTabl获取sheet到DataTable，第一行是否作为DataTable的列名
@@ -58,7 +67,16 @@ namespace Exicel转换1
             if (CustomerReport_DataTable == null)
             {
                 MessageBox.Show("未获取到sheet：" + CustomerReport_DataTable);
-                return;
+                return false;
+            }
+
+            //判断jobname，前后选择的两个报告是否一致
+            //int[] find_confirmJobNamePoint = getPoints(CustomerReport_DataTable, "Name");
+            string confirmJobName = getSpecifyString_NextColumn(CustomerReport_DataTable, "Name", new int[] { 0, 0 }, new int[] { 10, 3 });
+            if (confirmJobName != this.JOBName)
+            {
+                MessageBox.Show("所选两个报告的Job名字不一样，无法生成，请重新选择同一程式两个轨道对应的生产报告！");
+                return false;
             }
 
             #region 获取Detail，Feeder required number，Nozzle required number位置
@@ -89,7 +107,7 @@ namespace Exicel转换1
             #region 获取确定点的区域
             //第一行均作为DataTable的列，因为sheet生成的表格是个标准的行列对应的表格，便于查找和操作
             //获取module区域，9行，12列的区域, 行=模组数 machineCount+1 ，12列固定
-            int[] moduleArea = new int[] { machineCount+1, 12 };
+            int[] moduleArea = new int[] { machineCount + 1, 12 };
             GetCellsDefined getModuleCells = new GetCellsDefined();
             getModuleCells.GetCellArea(CustomerReport_DataTable, modulePoint, moduleArea[0], moduleArea[1], true);
             //获取这个区域的DataTable
@@ -209,29 +227,29 @@ namespace Exicel转换1
             #endregion
             #endregion
 
+            return true;
+
             #region 获取sheetname_Result的各种信息
-            this.sheetName_Result = sheetName_Result;
-            DataTable Result_DataTable = null;
-            //ExcelToDataTabl获取sheet到DataTable，第一行是否作为DataTable的列名
-            Result_DataTable = excelHelper.ExcelToDataTable(sheetName_Result, false);
-            if (Result_DataTable == null)
-            {
-                MessageBox.Show("未获取到sheet：" + CustomerReport_DataTable);
-                return;
-            }
+            //this.sheetName_Result = sheetName_Result;
+            //DataTable Result_DataTable = null;
+            ////ExcelToDataTabl获取sheet到DataTable，第一行是否作为DataTable的列名
+            //Result_DataTable = excelHelper.ExcelToDataTable(sheetName_Result, false);
+            //if (Result_DataTable == null)
+            //{
+            //    MessageBox.Show("未获取到sheet：" + CustomerReport_DataTable);
+            //    return 0;
+            //}
 
-            int[] targetConveyor_Point = getPoints(Result_DataTable, "TargetConveyor");
-            
+            //int[] targetConveyor_Point = getPoints(Result_DataTable, "TargetConveyor");
+
             #endregion
-
         }
-
 
         #region 普通通用方法，获取DataTable中某一string的位置
         //获取DataTable中某一string的位置
         public int[] getPoints(DataTable dt, string findString)
         {
-           
+
             getDataTablePointsInfo sectionInfo = new getDataTablePointsInfo(dt);
             int[][] Pannel_Points = sectionInfo.GetInfo_Between(findString);
 
@@ -241,12 +259,44 @@ namespace Exicel转换1
 
 
         //获取DataTable中两点间某一string的位置
-        public int[] getPoints(DataTable dt, int[] Point1,int[] Point2,string findString1)
+        public int[] getPoints(DataTable dt, int[] Point1, int[] Point2, string findString1)
         {
             getDataTablePointsInfo sectionInfo = new getDataTablePointsInfo(dt, Point1, Point2);
             return sectionInfo.GetInfo_Between(findString1)[0];
 
         }
 
+        /// <summary>
+        /// 通用方法，通过开始字符串获取一个以字符串开始位置，此字符串右侧的的数据
+        /// </summary>
+
+        public string getSpecifyString_NextColumn(DataTable dt, string findString, int[] underThisPoints, int[] overThisPoints = null)
+        {
+            //findString对应的位置
+            int[][] findString_Points;
+            //findString_points的位置的对象
+            getDataTablePointsInfo findStringPoint;
+            //判断有无结束位置
+            if (overThisPoints == null)
+            {
+                //获取findString_points位置
+                findStringPoint = new getDataTablePointsInfo(dt, underThisPoints);
+            }
+            else
+            {
+                //获取findString_points位置
+                findStringPoint = new getDataTablePointsInfo(dt, underThisPoints, overThisPoints);
+            }
+            findString_Points = findStringPoint.GetInfo_Between(findString);
+
+            if (findString_Points == null)
+            {
+                //没有找到字符串
+                return null;
+            }
+            int[] lastFindPoints = new int[] { findString_Points[0][0], findString_Points[0][1] + 1 };
+            //theDestString.Add(findStringPoint.GetInfo_Between(lastFindPoints));
+            return findStringPoint.GetInfo_Between(lastFindPoints);
+        }
     }
 }

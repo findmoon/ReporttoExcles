@@ -22,13 +22,13 @@ namespace Exicel转换1
     public partial class Form1 : Form
     {
         //ExcelHelper excel处理的类
-        ExcelHelper excelHelper=null;
+        ExcelHelper excelHelper = null;
 
         //ExcelHelper 另一个轨道生产报告的实例
         ExcelHelper excelHelper_another = null;
 
         //dt：Excel表格
-        public DataTable dt=null;
+        public DataTable dt = null;
         //三个位置点
         public int[] Pannel_Point;
         public int[] Calculation_Point;
@@ -50,7 +50,7 @@ namespace Exicel转换1
         string[] allHeadTypeString;
 
         //字典，存放<模组类型:模组个数>
-        Dictionary<string, int>  module_Statistics ;
+        Dictionary<string, int> module_Statistics;
         //模组种类，即module_Statistics的key
         ////M3、M6三代、二代\一代的使用
         //string moduleKind3_III = "M3III";
@@ -66,7 +66,7 @@ namespace Exicel转换1
         //中间图片位置信息
         string Line_short;
         //图片信息
-        List<PicturesInfo> pictureInfoList=null;
+        List<PicturesInfo> pictureInfoList = null;
 
         //---生成Excel各个栏的数据
         int boardQty;
@@ -87,13 +87,13 @@ namespace Exicel转换1
         #region 打开Excel对话框
         private void ExcelToDTbut_Click(object sender, EventArgs e)
         {
-            if (System.DateTime.Now >DateTime.Parse("2021-9-10"))
+            if (System.DateTime.Now > DateTime.Parse("2021-4-10"))
             {
                 return;
             }
-            
+
             string file;
-            if (excelHelper==null)
+            if (excelHelper == null)
             {
                 try
                 {
@@ -107,7 +107,7 @@ namespace Exicel转换1
                     using (excelHelper = new ExcelHelper(file))
                     {
                         //打开file失败，或创建WorkBook失败
-                        if (excelHelper.WorkBook==null)
+                        if (excelHelper.WorkBook == null)
                         {
                             excelHelper = null;
                             return;
@@ -134,7 +134,7 @@ namespace Exicel转换1
             }
             else
             {
-                if (excelHelper_another==null)
+                if (excelHelper_another == null)
                 {
                     file = OpenExcelFile();
                     //判断是否获取到文件路径
@@ -147,7 +147,7 @@ namespace Exicel转换1
                     {
                         using (excelHelper_another = new ExcelHelper(file))
                         {
-                            if (excelHelper_another.WorkBook==null)
+                            if (excelHelper_another.WorkBook == null)
                             {
                                 excelHelper_another = null;
                                 return;
@@ -166,7 +166,7 @@ namespace Exicel转换1
                     return;
                 }
             }
-           
+
 
 
 
@@ -222,9 +222,9 @@ namespace Exicel转换1
             int[][] Calculation_Points = sectionInfo.GetInfo_Between(findString2);
             int[][] Machineconf_Points = sectionInfo.GetInfo_Between(findString3);
 
-            Pannel_Point= Pannel_Points[0];
-            Calculation_Point= Calculation_Points[0];
-            Machineconf_Point= Machineconf_Points[0];
+            Pannel_Point = Pannel_Points[0];
+            Calculation_Point = Calculation_Points[0];
+            Machineconf_Point = Machineconf_Points[0];
         }
 
         //获取所有JOB位置
@@ -232,7 +232,7 @@ namespace Exicel转换1
         {
             //获取的JOB字符
             string findString1 = "JOB";
-            
+
             getDataTablePointsInfo sectionInfo = new getDataTablePointsInfo(dt, Pannel_Point, Calculation_Point);
             JOBs = sectionInfo.GetInfo_Between(findString1);
 
@@ -247,7 +247,7 @@ namespace Exicel转换1
 
             getDataTablePointsInfo sectionInfo = new getDataTablePointsInfo(dt, Calculation_Point, Machineconf_Point);
 
-            calculation_Pattern_POints = sectionInfo.GetInfo_Between(findString1,false);
+            calculation_Pattern_POints = sectionInfo.GetInfo_Between(findString1, false);
 
         }
 
@@ -261,10 +261,10 @@ namespace Exicel转换1
 
             getDataTablePointsInfo sectionInfo = new getDataTablePointsInfo(dt, Machineconf_Point);
 
-            machineconf_Pattern_POints = sectionInfo.GetInfo_Between(findString1,false);
+            machineconf_Pattern_POints = sectionInfo.GetInfo_Between(findString1, false);
 
         }
-#endregion
+        #endregion
 
         #region 一些通用方法
 
@@ -274,9 +274,9 @@ namespace Exicel转换1
         /// <param name="findString"></param>
         /// <param name="underThisPoints"></param>
         /// <returns></returns>
-        public string getSpecifyString_NextRow(string findString, int[] underThisPoints,int[] overThisPoints)
+        public string getSpecifyString_NextRow(string findString, int[] underThisPoints, int[] overThisPoints)
         {
-            string[] destString=getSpecifyString_NextRow(findString, underThisPoints, overThisPoints, 1);
+            string[] destString = getSpecifyString_NextRow(findString, underThisPoints, overThisPoints, 1);
             return destString[0];
         }
 
@@ -286,9 +286,9 @@ namespace Exicel转换1
         /// <param name="findString"></param>
         /// <param name="underThisPoints"></param>
         /// <returns></returns>
-        public string getSpecifyString_NextRow(string findString, int[] underThisPoints, int RowX,int ColumnY)
+        public string getSpecifyString_NextRow(string findString, int[] underThisPoints, int RowX, int ColumnY)
         {
-            string[] destString = getSpecifyString_NextRow(findString,underThisPoints, new int[] { underThisPoints[0] + RowX, underThisPoints[1] + ColumnY },1);
+            string[] destString = getSpecifyString_NextRow(findString, underThisPoints, new int[] { underThisPoints[0] + RowX, underThisPoints[1] + ColumnY }, 1);
             return destString[0];
         }
 
@@ -304,7 +304,7 @@ namespace Exicel转换1
             //findString_points的位置
             getDataTablePointsInfo findStringPoint;
             //判断有无结束位置
-            if (overThisPoints==null)
+            if (overThisPoints == null)
             {
                 //获取findString_points位置
                 findStringPoint = new getDataTablePointsInfo(dt, underThisPoints);
@@ -316,17 +316,17 @@ namespace Exicel转换1
             }
             findString_Points = findStringPoint.GetInfo_Between(findString);
 
-            if (findString_Points==null)
+            if (findString_Points == null)
             {
-               //没有找到字符串
-                return null ;
+                //没有找到字符串
+                return null;
             }
 
             //获取findString_points位置下面findN行的内容
             List<string> theDestString = new List<string>();
             for (int i = 0; i < findN; i++)
             {
-                int[] lastFindPoints = new int[] { findString_Points[0][0] + (i+1), findString_Points[0][1] };
+                int[] lastFindPoints = new int[] { findString_Points[0][0] + (i + 1), findString_Points[0][1] };
                 theDestString.Add(findStringPoint.GetInfo_Between(lastFindPoints));
             }
 
@@ -339,7 +339,7 @@ namespace Exicel转换1
         /// <returns></returns>
         public string getSpecifyString_NextRow(string findString, int[] underThisPoints)
         {
-            string[] destString = getSpecifyString_NextRow(findString, underThisPoints,1);
+            string[] destString = getSpecifyString_NextRow(findString, underThisPoints, 1);
             return destString[0];
         }
 
@@ -351,8 +351,8 @@ namespace Exicel转换1
         /// <returns></returns>
         public string[] getSpecifyString_NextRow(string findString, int[] underThisPoints, int findN)
         {
-            return  getSpecifyString_NextRow(findString, underThisPoints, null, findN);
-            
+            return getSpecifyString_NextRow(findString, underThisPoints, null, findN);
+
         }
 
         /// <summary>
@@ -378,7 +378,7 @@ namespace Exicel转换1
         /// 通用方法，通过开始字符串获取一个以字符串开始位置，此字符串右侧的的数据
         /// </summary>
 
-        public string getSpecifyString_NextColumn(string findString, int[] underThisPoints, int[] overThisPoints=null)
+        public string getSpecifyString_NextColumn(string findString, int[] underThisPoints, int[] overThisPoints = null)
         {
             //findString对应的位置
             int[][] findString_Points;
@@ -402,9 +402,9 @@ namespace Exicel转换1
                 //没有找到字符串
                 return null;
             }
-                int[] lastFindPoints = new int[] { findString_Points[0][0] , findString_Points[0][1]+1 };
-                //theDestString.Add(findStringPoint.GetInfo_Between(lastFindPoints));
-          return findStringPoint.GetInfo_Between(lastFindPoints);
+            int[] lastFindPoints = new int[] { findString_Points[0][0], findString_Points[0][1] + 1 };
+            //theDestString.Add(findStringPoint.GetInfo_Between(lastFindPoints));
+            return findStringPoint.GetInfo_Between(lastFindPoints);
         }
         #endregion
 
@@ -451,7 +451,7 @@ namespace Exicel转换1
                 placementNumber = getSpecifyString_NextRow(findString_partQty, JOBs[i], 3, 17);
             }
 
-            
+
             //读取calculation Patterns
             //for (int i = 0; i < calculation_Pattern_POints.Rank; i++)
             for (int i = 0; i < 1; i++)
@@ -546,17 +546,17 @@ namespace Exicel转换1
                 int Count_M = 0;
                 foreach (var moduleKind in module_Statistics)
                 {
-                    if (moduleKind.Key.Substring(0,2)=="M3")
+                    if (moduleKind.Key.Substring(0, 2) == "M3")
                     {
-                        Count_M+= moduleKind.Value;
+                        Count_M += moduleKind.Value;
                     }
                     if (moduleKind.Key.Substring(0, 2) == "M6")
                     {
-                        Count_M += moduleKind.Value*2;
+                        Count_M += moduleKind.Value * 2;
                     }
                 }
                 int baseCount_4M = (Count_M / 4);
-                int baseCount_2M=0;
+                int baseCount_2M = 0;
                 if ((Count_M % 4) != 0)
                 {
                     baseCount_2M = 1;
@@ -569,8 +569,21 @@ namespace Exicel转换1
                 {
                     Line_short += item.Key + "*" + item.Value.ToString() + "+";
                 }
-                Line_short = machineKind + "-(" + Line_short.Substring(0, Line_short.Length-1) + ")";
-                Line = Line_short + "\n" + "4M BASE III*" + baseCount_4M.ToString() + "+2M BASE III*" + baseCount_2M.ToString();
+                Line_short = machineKind + "-(" + Line_short.Substring(0, Line_short.Length - 1) + ")";
+                //判断4Mhe 2M base的数量，进行拼接
+                if (baseCount_2M == 0 && baseCount_4M != 0)
+                {
+                    Line = Line_short + "\n" + "4M BASE III*" + baseCount_4M.ToString();
+                }
+                if (baseCount_2M != 0 && baseCount_4M != 0)
+                {
+                    Line = Line_short + "\n" + "4M BASE III*" + baseCount_4M.ToString() + "+2M BASE III*" + baseCount_2M.ToString();
+                }
+                if (baseCount_2M != 0 && baseCount_4M == 0)
+                {
+                    Line = Line_short + "\n" + "2M BASE III*" + baseCount_2M.ToString();
+                }
+
                 //MessageBox.Show(Line);
 
                 //获取组合"Head Type"的信息
@@ -633,7 +646,7 @@ namespace Exicel转换1
         #endregion
 
 
-  
+
 
         //生成DataTable
         //生成评估sheet1
@@ -662,22 +675,22 @@ namespace Exicel转换1
             string sheetName_Result = "Result";
             //主要数据从sheetName_CustomerReport获取
             string sheetName_CustomerReport = "CustomerReport_1T";
-            DataTable genDT2 = getSecondSheetDataTable(sheetName_CustomerReport);
+            DataTable genDT2 = getSecondSheetDataTable(sheetName_CustomerReport, jobName);
 
             //第一个sheet DataTable的获取  //需要第二个中的cycletime赋值
             DataTable genDT = getFirstSheetDataTable();
             #endregion
 
             //未选择文件无法生成
-            if (excelHelper == null|| genDT==null)
+            if (excelHelper == null || genDT == null)
             {
-                MessageBox.Show("未选择生产报告，或生产报告中位找到对应的表单sheet，请重新选择！");
+                MessageBox.Show("第一次选择的生产报告未找到对应的工作表，请确认后重新选择！");
                 return;
             }
             //生成需要打开第二个生产报告
-            if (excelHelper_another==null|| genDT2==null)
+            if (excelHelper_another == null || genDT2 == null)
             {
-                MessageBox.Show("未选择另一个轨道的生产报告，或生产报告中位找到对应的表单sheet，请重新选择！");
+                MessageBox.Show("第二次选择的生产报告与第一次选择的程式名不同，或未找到对应的工作表sheet，请确认后重新选择！");
                 return;
             }
 
@@ -698,12 +711,12 @@ namespace Exicel转换1
                         File.Delete(fileName);
                     }
                 }
-                catch (Exception ex) 
+                catch (Exception ex)
                 {
                     MessageBox.Show(ex.Message);
                     return;
                 }
-                
+
             }
             else
             {
@@ -724,7 +737,7 @@ namespace Exicel转换1
 
             #region 第一个sheet的获取和生成
             //第一个sheet的标题，以字符串形式插入
-            string oneTitle = "FUJI Line Throughput Report "+ machineKind;
+            string oneTitle = "FUJI Line Throughput Report " + machineKind;
 
             string sheet1 = "sheet1";
 
@@ -737,7 +750,7 @@ namespace Exicel转换1
             StringInsertExcel(excelHelper1, "", sheet1, new int[2] { 2, 1 }, IndexedColors.LightGreen.Index);
             //Line_short 需要以画布的形式写入，而不是单元格内的文字;
             //插入图片
-            genFirstSheetPicture(excelHelper1, sheet1, new int[2] { 2, genDT.Columns.Count/2-2 }, module_Statistics);
+            genFirstSheetPicture(excelHelper1, sheet1, new int[2] { 2, genDT.Columns.Count / 2 - 2 }, module_Statistics);
             #endregion
 
             #region 生成第二个sheet
@@ -768,14 +781,14 @@ namespace Exicel转换1
                     excelHelper1.WorkBook.Write(fs); //写入到excel文件，并关闭流
                     fs.Close();
                 }
-                
+
             }
             else
             {
                 excelHelper1.WorkBook.Write(fs); //写入到excel文件，并关闭流
                 fs.Close();
             }
-            
+
 
             MessageBox.Show("生成Excel成功！");
             //生成成功，重置两个实例
@@ -789,7 +802,7 @@ namespace Exicel转换1
         /// <param name="excelHelper1"></param>
         /// <param name="sheetName"></param>
         /// <param name="insertPoint"></param>
-        public void genFirstSheetPicture(ExcelHelper excelHelper1, string sheetName, int[] insertPoint,Dictionary<string,int> module_Statistics)
+        public void genFirstSheetPicture(ExcelHelper excelHelper1, string sheetName, int[] insertPoint, Dictionary<string, int> module_Statistics)
         {
             if (pictureInfoList == null)
             {
@@ -817,13 +830,13 @@ namespace Exicel转换1
             //int finalWidth = imgM3.Width * module_Statistics[moduleKind3_III]/2 + imgM6.Width*module_Statistics[moduleKind6_III] + jiange*2;
 
             //统计所需要拼接的图片数量
-            int M3Image_count=0;
+            int M3Image_count = 0;
             int M6Image_count = 0;
             foreach (var item in module_Statistics)
             {
-                if (item.Key.Substring(0,2)=="M3")
+                if (item.Key.Substring(0, 2) == "M3")
                 {
-                    M3Image_count += item.Value/2;
+                    M3Image_count += item.Value / 2;
                 }
                 if (item.Key.Substring(0, 2) == "M6")
                 {
@@ -833,7 +846,7 @@ namespace Exicel转换1
             int finalWidth = imgM3.Width * M3Image_count + imgM6.Width * M6Image_count + jiange * 2;
             int finalHeight = imgM3.Height + jiange * 2;
 
-            Bitmap finalImg = new Bitmap(finalWidth,finalHeight);
+            Bitmap finalImg = new Bitmap(finalWidth, finalHeight);
             Graphics graph = Graphics.FromImage(finalImg);
             //graph.Clear(SystemColors.AppWorkspace);
             graph.Clear(Color.Empty);
@@ -846,13 +859,13 @@ namespace Exicel转换1
             for (int i = 0; i < allModuleTypeString.Length; i++)
             {
                 //M3模组图像
-                if (allModuleTypeString[i].Substring(0,2)== "M3"&& allModuleTypeString[i+1].Substring(0,2) == "M3")
+                if (allModuleTypeString[i].Substring(0, 2) == "M3" && allModuleTypeString[i + 1].Substring(0, 2) == "M3")
                 {
-                    graph.DrawImage(imgM3,pointX, pointY);
+                    graph.DrawImage(imgM3, pointX, pointY);
                     pointX += imgM3.Width;
                     i++;
                 }
-                else if(allModuleTypeString[i].Substring(0,2) == "M6")//M6模组图像
+                else if (allModuleTypeString[i].Substring(0, 2) == "M6")//M6模组图像
                 {
                     graph.DrawImage(imgM6, pointX, pointY);
                     pointX += imgM6.Width;
@@ -861,12 +874,12 @@ namespace Exicel转换1
             graph.Dispose();
 
             //将bitmap转换为byte[]
-            byte[] PictureData ;
-            using (MemoryStream stream=new MemoryStream())
+            byte[] PictureData;
+            using (MemoryStream stream = new MemoryStream())
             {
                 finalImg.Save(stream, System.Drawing.Imaging.ImageFormat.Png);
                 PictureData = new byte[stream.Length];
-                stream.Seek(0,SeekOrigin.Begin);
+                stream.Seek(0, SeekOrigin.Begin);
                 stream.Read(PictureData, 0, Convert.ToInt32(stream.Length));
             }
 
@@ -885,78 +898,78 @@ namespace Exicel转换1
             {
                 endCol = startCol + 4;
             }
-            
+
             //偏移依旧不起作用
             excelHelper1.pictureDataToSheet(sheet1, PictureData, 50, 10, 50, 10, startRow, startCol, endRow, endCol);
         }
-            /*
-        public void genFirstSheetPicture(ExcelHelper excelHelper1, string sheetName,int[] insertPoint)
+        /*
+    public void genFirstSheetPicture(ExcelHelper excelHelper1, string sheetName,int[] insertPoint)
+    {
+        if (pictureInfoList==null)
         {
-            if (pictureInfoList==null)
-            {
-                return;
+            return;
+        }
+
+        //生成报告的excelHelper1 excelHelper类
+        IWorkbook workbook = excelHelper1.WorkBook;
+
+        //从指定的位置开始插入DataTable数据
+        int count = insertPoint[0];
+
+        ISheet sheet1 = excelHelper1.ExcelToIsheet(sheetName);
+
+
+        int startRow= count;
+        int startCol= insertPoint[1];
+        int endRow = startRow + 1;
+        int endCol = startCol + 1;
+
+        //单元格内的位置,
+        int dx1 = 0;
+        int dy1 = 0;
+        int dx2 = 500;
+        int dy2 = 0;
+
+        //获取单元格
+        //IRow row = sheet1.GetRow(startRow);
+        //ICell cell = sheet1.GetRow(startRow).GetCell(startCol);
+        //pictureInfoList需要排序
+        foreach (PicturesInfo pictureInfo in pictureInfoList)
+        {
+
+            if (pictureInfoList.IndexOf(pictureInfo) == 0)
+            {                  
             }
-
-            //生成报告的excelHelper1 excelHelper类
-            IWorkbook workbook = excelHelper1.WorkBook;
-
-            //从指定的位置开始插入DataTable数据
-            int count = insertPoint[0];
-
-            ISheet sheet1 = excelHelper1.ExcelToIsheet(sheetName);
-
-
-            int startRow= count;
-            int startCol= insertPoint[1];
-            int endRow = startRow + 1;
-            int endCol = startCol + 1;
-
-            //单元格内的位置,
-            int dx1 = 0;
-            int dy1 = 0;
-            int dx2 = 500;
-            int dy2 = 0;
-
-            //获取单元格
-            //IRow row = sheet1.GetRow(startRow);
-            //ICell cell = sheet1.GetRow(startRow).GetCell(startCol);
-            //pictureInfoList需要排序
-            foreach (PicturesInfo pictureInfo in pictureInfoList)
+            else
             {
+                //图片开始偏移量
+                dx1=dx1 + 500;
 
-                if (pictureInfoList.IndexOf(pictureInfo) == 0)
-                {                  
+                if (dx1>=1023)
+                {
+                    dx1 = dx1 - 1023;
+                    startCol++;
+                    endCol++;
+                }
+
+                //图片结束偏移量
+                //当宽高小于偏移量时，移动到下一单元格
+                if (1023 <= dx1 + 500)
+                {
+                    dx2 = (dx1 + 500) - 1023;
+                    endCol = endCol + 1;
                 }
                 else
                 {
-                    //图片开始偏移量
-                    dx1=dx1 + 500;
-
-                    if (dx1>=1023)
-                    {
-                        dx1 = dx1 - 1023;
-                        startCol++;
-                        endCol++;
-                    }
-
-                    //图片结束偏移量
-                    //当宽高小于偏移量时，移动到下一单元格
-                    if (1023 <= dx1 + 500)
-                    {
-                        dx2 = (dx1 + 500) - 1023;
-                        endCol = endCol + 1;
-                    }
-                    else
-                    {
-                        //下一个图片的开始，是上一个图片的结束，总宽1023-dy2
-                        dx2 = dx1 + 500;
-                    }           
-                }
-                 excelHelper1.pictureDataToSheet(sheet1, pictureInfo.PictureData,dx1,dy1,dx2,dy2, startRow, startCol, endRow, endCol);
-
+                    //下一个图片的开始，是上一个图片的结束，总宽1023-dy2
+                    dx2 = dx1 + 500;
+                }           
             }
+             excelHelper1.pictureDataToSheet(sheet1, pictureInfo.PictureData,dx1,dy1,dx2,dy2, startRow, startCol, endRow, endCol);
+
         }
-        */
+    }
+    */
 
         /// <summary>
         /// 设置单元格背景
@@ -966,11 +979,11 @@ namespace Exicel转换1
 
 
         #region //根据各种信息生成第一个sheet信息的DataTable
-        public DataTable  getFirstSheetDataTable()
+        public DataTable getFirstSheetDataTable()
         {
             //生成评估的表格
             DataTable genDT = new DataTable();
-            string[] genColumnString = { "Item", "Board", "Line" , "Head \r\n Type","Job name \r\n Panel Size" ,"Cycle time \r\n [((L1+L2)/2) Sec]", "Number of \r\n placements", "CPH", "Output \r\n Board/hour" , "Output \r\n Board/Day(22H)", "CPH Rate", "Remark" };
+            string[] genColumnString = { "Item", "Board", "Line", "Head \r\n Type", "Job name \r\n Panel Size", "Cycle time \r\n [((L1+L2)/2) Sec]", "Number of \r\n placements", "CPH", "Output \r\n Board/hour", "Output \r\n Board/Day(22H)", "CPH Rate", "Remark" };
 
             //评估表格的栏
             for (int i = 0; i < genColumnString.Length; i++)
@@ -994,7 +1007,7 @@ namespace Exicel转换1
             //42000  H24头理论的CPH，10500  H04SF理论的CPH
             //需要建一个head type:CPH的字典，进行计算；
             double CPHRate = Convert.ToDouble(cPH) / (42000 * 7 + 10500 * 1);
-            genRow[10] = string.Format("{0:0.00%}",CPHRate);
+            genRow[10] = string.Format("{0:0.00%}", CPHRate);
             //genRow[11] = "已删减大零件";
             genRow[11] = "";
 
@@ -1009,28 +1022,29 @@ namespace Exicel转换1
         #endregion
 
         #region //根据各种信息生成第二个sheet信息的DataTable
-        public DataTable getSecondSheetDataTable(string sheetName_CustomerReport)
+        public DataTable getSecondSheetDataTable(string sheetName_CustomerReport, string jobName)
         {
             #region //获取生成的第二个sheet对象的sheetname
             //每模组的cyccle time 在两个Excel分别获取
             //获取一轨的Excel生成对象
             getsecondsheet secondsheet = new getsecondsheet(excelHelper, sheetName_CustomerReport, jobName, conveyor, machineCount);
-
+            bool getSecondsheetResult = secondsheet.getsecondsheetInfo();
             //获取二轨的Excel生成对象
             getsecondsheet secondsheet_another = new getsecondsheet(excelHelper_another, sheetName_CustomerReport, jobName, conveyor, machineCount);
+            bool getSecondsheet_anotherResult = secondsheet_another.getsecondsheetInfo();
 
-            if (secondsheet==null)
+            if (!getSecondsheetResult)
             {
-                MessageBox.Show(string.Format("第一次选择的Excel未找到{0}表单，请重新选择！", sheetName_CustomerReport));
+                //MessageBox.Show(string.Format("第一次选择的Excel未找到{0}表单，请重新选择！", sheetName_CustomerReport));
                 //重置
                 excelHelper = null;
                 //未获取到sheet，则没有DataTable，返回空
                 return null;
             }
 
-            if (secondsheet_another == null)
+            if (!getSecondsheet_anotherResult)
             {
-                MessageBox.Show(string.Format("第二次选择的Excel未找到{0}表单，请重新选择！", sheetName_CustomerReport));
+               // MessageBox.Show(string.Format("第二次选择的Excel未找到{0}表单，请重新选择！", sheetName_CustomerReport));
                 //重置
                 excelHelper_another = null;
                 return null;
@@ -1104,10 +1118,9 @@ namespace Exicel转换1
                 //secondSheetDT.Rows[i][4]  DBNull无法转换为任何其他类型
                 if (!secondSheetDT.Rows[i][4].Equals(DBNull.Value))
                 {
-                    MessageBox.Show(secondSheetDT.Rows[i][4].ToString());
                     Line1CycleTimeList.Add(System.Convert.ToDouble(secondSheetDT.Rows[i][4]));
                 }
-               
+
                 //lin2 cycyle time
                 secondSheetDT.Rows[i][5] = secondsheet_another.SecondSheetDT.Rows[i][4];
                 if (!secondSheetDT.Rows[i][5].Equals(DBNull.Value))
@@ -1115,15 +1128,15 @@ namespace Exicel转换1
                     Line2CycleTimeList.Add(System.Convert.ToDouble(secondSheetDT.Rows[i][5]));
                 }
                 //平均cycle time
-                if (!secondSheetDT.Rows[i][5].Equals(DBNull.Value)&&!secondSheetDT.Rows[i][4].Equals(DBNull.Value))
+                if (!secondSheetDT.Rows[i][5].Equals(DBNull.Value) && !secondSheetDT.Rows[i][4].Equals(DBNull.Value))
                 {
                     secondSheetDT.Rows[i][6] = (System.Convert.ToDouble(secondSheetDT.Rows[i][4]) + System.Convert.ToDouble(secondSheetDT.Rows[i][5])) / 2;
                 }
-               
+
 
                 if (!secondSheetDT.Rows[i][6].Equals(DBNull.Value))
                 {
-                    
+
                     CycleTimeList.Add(System.Convert.ToDouble(secondSheetDT.Rows[i][6]));
                 }
                 //Qty
@@ -1134,9 +1147,9 @@ namespace Exicel转换1
                 }
                 //Avg  问题 Cycle time/Qty
                 //两位小数
-                if (!secondSheetDT.Rows[i][6].Equals(DBNull.Value)&&!secondSheetDT.Rows[i][7].Equals(DBNull.Value))
+                if (!secondSheetDT.Rows[i][6].Equals(DBNull.Value) && !secondSheetDT.Rows[i][7].Equals(DBNull.Value))
                 {
-                    secondSheetDT.Rows[i][8] = Math.Round(System.Convert.ToDouble(secondSheetDT.Rows[i][6]) / System.Convert.ToDouble(secondSheetDT.Rows[i][7]),2);
+                    secondSheetDT.Rows[i][8] = Math.Round(System.Convert.ToDouble(secondSheetDT.Rows[i][6]) / System.Convert.ToDouble(secondSheetDT.Rows[i][7]), 2);
                 }
 
                 //CPH  问题 Qty*3600/CyCle time
@@ -1144,9 +1157,9 @@ namespace Exicel转换1
                 //取整
                 if (!secondSheetDT.Rows[i][7].Equals(DBNull.Value))
                 {
-                    secondSheetDT.Rows[i][9] = string.Format("{0:0}",(System.Convert.ToInt32(secondSheetDT.Rows[i][7]) * 3600) / System.Convert.ToDouble(secondSheetDT.Rows[i][6]));
+                    secondSheetDT.Rows[i][9] = string.Format("{0:0}", (System.Convert.ToInt32(secondSheetDT.Rows[i][7]) * 3600) / System.Convert.ToDouble(secondSheetDT.Rows[i][6]));
                 }
-                
+
 
                 //Feeder
                 secondSheetDT.Rows[i][10] = secondsheet.SmallSecondSheetDT.Rows[i][0];
@@ -1168,11 +1181,11 @@ namespace Exicel转换1
             secondSheetDT.Rows[secondSheetrowCount][5] = Line2CycleTimeList.Max();
             secondSheetDT.Rows[secondSheetrowCount][6] = CycleTimeList.Max();
             secondSheetDT.Rows[secondSheetrowCount][7] = QtyList.Sum(); ;
-            secondSheetDT.Rows[secondSheetrowCount][8] =string.Format("{0:0.00}",CycleTimeList.Max() * machineCount/ QtyList.Sum());
-            secondSheetDT.Rows[secondSheetrowCount][9] =string.Format("{0:0}",QtyList.Sum()*3600/ CycleTimeList.Max());
+            secondSheetDT.Rows[secondSheetrowCount][8] = string.Format("{0:0.00}", CycleTimeList.Max() * machineCount / QtyList.Sum());
+            secondSheetDT.Rows[secondSheetrowCount][9] = string.Format("{0:0}", QtyList.Sum() * 3600 / CycleTimeList.Max());
 
             //为第一个sheet的cycletime赋值
-            cycleTime = string.Format("{0:0.00}",CycleTimeList.Max());
+            cycleTime = string.Format("{0:0.00}", CycleTimeList.Max());
 
             //验证获取到的DataTable
             return secondSheetDT;
@@ -1183,7 +1196,7 @@ namespace Exicel转换1
 
 
         //将string插入Excel指定位置
-        public void StringInsertExcel(ExcelHelper excelHelper1, string insertString,string sheetName,int[] insertPoint,short colorShort)
+        public void StringInsertExcel(ExcelHelper excelHelper1, string insertString, string sheetName, int[] insertPoint, short colorShort)
         {
 
             IWorkbook workbook = excelHelper1.WorkBook;
@@ -1195,7 +1208,7 @@ namespace Exicel转换1
 
             //sheet由excelHelper获取
             try
-            {       
+            {
                 IRow row;
                 if (sheet.GetRow(count) == null)
                 {
@@ -1244,7 +1257,7 @@ namespace Exicel转换1
             }
         }
 
-        
+
         /// <summary>
         /// 
         /// </summary>
@@ -1254,7 +1267,7 @@ namespace Exicel转换1
         /// <param name="sheetNamet">将dt插入到指定sheet</param>
         /// <param name="isColumnWritten">是否吧列名作为单元格插入</param>
         /// <param name="insertPoint">插入的位置</param>
-        public void DataTableToResultSheet1(ExcelHelper excelHelper1,DataTable dt, string sheetName,bool isColumnWritten, int[] insertPoint)
+        public void DataTableToResultSheet1(ExcelHelper excelHelper1, DataTable dt, string sheetName, bool isColumnWritten, int[] insertPoint)
         {
 
 
@@ -1299,7 +1312,7 @@ namespace Exicel转换1
                     {
                         row.CreateCell(insertPoint[1] + j).SetCellValue(dt.Columns[j].ColumnName);
                     }
-                    count ++;
+                    count++;
                 }
 
 
@@ -1308,7 +1321,7 @@ namespace Exicel转换1
                     IRow row = sheet.CreateRow(count);
                     for (int j = 0; j < dt.Columns.Count; ++j)
                     {
-                        row.CreateCell(insertPoint[1]+j).SetCellValue(dt.Rows[i][j].ToString());
+                        row.CreateCell(insertPoint[1] + j).SetCellValue(dt.Rows[i][j].ToString());
                     }
                     ++count;
                 }
@@ -1504,7 +1517,7 @@ namespace Exicel转换1
                     ++count;
                 }
 
-                setSecondSheetStyle(sheet, dt.Columns.Count-1);
+                setSecondSheetStyle(sheet, dt.Columns.Count - 1);
 
                 #region 写入流应该在方法外
                 //if (fs == null)
@@ -1523,7 +1536,7 @@ namespace Exicel转换1
 
         }
 
-        public void setSecondSheetStyle(ISheet sheet,int mergeLastCount)
+        public void setSecondSheetStyle(ISheet sheet, int mergeLastCount)
         {
             //应使用静态方法，可以获取不规则行列的sheet的最大与最小列
             int sheetColumns = ExcelHelper.sheetColumns(sheet);
@@ -1533,7 +1546,7 @@ namespace Exicel转换1
             sheet.SetColumnWidth(0, 1 * 256);
             for (int i = 1; i < sheetColumns; i++)
             {
-                if (i==sheetColumns-2)
+                if (i == sheetColumns - 2)
                 {
                     sheet.SetColumnWidth(i, System.Convert.ToInt32(commonWidth * 1.8) * 256);
                     continue;
@@ -1562,7 +1575,7 @@ namespace Exicel转换1
                         sheet.AddMergedRegion(new CellRangeAddress(i - 1, i - 1, 2, 2 + mergeLastCount));
                         sheet.AddMergedRegion(new CellRangeAddress(i - 1, sheet.LastRowNum, 1, 1));
                         sheet.GetRow(i).HeightInPoints = 50;
-                        sheet.CreateRow(i-1).HeightInPoints = 50;
+                        sheet.CreateRow(i - 1).HeightInPoints = 50;
                         //第一次运行完后，变为非第一行
                         isFirstDataRow = false;
                     }
@@ -1603,10 +1616,10 @@ namespace Exicel转换1
                         //最后一行设置字体 红色
                         if (i == sheet.LastRowNum)
                         {
-                                //创建字体和设置字号
-                                IFont font = workbook.CreateFont();
-                                font.Color = IndexedColors.Red.Index;
-                                cellStyle.SetFont(font);
+                            //创建字体和设置字号
+                            IFont font = workbook.CreateFont();
+                            font.Color = IndexedColors.Red.Index;
+                            cellStyle.SetFont(font);
                         }
 
                         //填充模式
@@ -1615,7 +1628,7 @@ namespace Exicel转换1
                         row.GetCell(j).CellStyle = cellStyle;
                     }
                 }
-          
+
             }
             #endregion
 
