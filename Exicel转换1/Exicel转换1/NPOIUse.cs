@@ -73,18 +73,19 @@ namespace NPOIUse
         }
 
         //创建workbook
-        public void createWorkBook()
+        private void createWorkBook()
         {
             //文件不存在，创建对应的workbook
             if (!File.Exists(this.fileName))
             {
+                fs=new FileStream(this.fileName, FileMode.OpenOrCreate, FileAccess.ReadWrite);
                 if (fileName.IndexOf(".xlsx") > 0) // 2007版本
                 {
-                    this.workbook = new XSSFWorkbook();
+                    this.workbook = new XSSFWorkbook(fs);
 
                 }
                 else if (fileName.IndexOf(".xls") > 0) // 2003版本
-                    this.workbook = new HSSFWorkbook();
+                    this.workbook = new HSSFWorkbook(fs);
 
             }
             else//存在则读取

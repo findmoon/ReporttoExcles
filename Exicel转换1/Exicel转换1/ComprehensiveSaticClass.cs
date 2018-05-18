@@ -771,7 +771,7 @@ namespace Exicel转换1
             }
             if (baseComprehensiveList.Count == 1)//只选择了一个job报告，直接生成
             {
-                genExcelfromBaseComprehensive(excelFileName, baseComprehensiveList[0]);                
+                GenExclefromBaseComprehensive(excelFileName,baseComprehensiveList[0].Jobname, baseComprehensiveList[0]);                
             }
 
             if (baseComprehensiveList.Count>1)
@@ -808,6 +808,10 @@ namespace Exicel转换1
                             //只能判断i j是同一机种，而不同判断其他还有同一机种
                             theSameModel_Number.Add(j);
                             //添加 已经确认的位置j
+                            if (!hasConfirmed_Number.Contains(i))
+                            {
+                                hasConfirmed_Number.Add(i);
+                            }
                             hasConfirmed_Number.Add(j);
                         }
                     }
@@ -835,6 +839,10 @@ namespace Exicel转换1
                         {
                             theSameConfig_Number.Add(j);
                             //添加 已经确认的位置j
+                            if (!hasConfirmed_Number.Contains(i))
+                            {
+                                hasConfirmed_Number.Add(i);
+                            }
                             hasConfirmed_Number.Add(j);
                         }
                     }
@@ -853,45 +861,184 @@ namespace Exicel转换1
                 }
                 #endregion
 
+                //将BaseComprehensive信息写入到workbook的处理
+                //创建存放BaseComprehensive个信息的ExcelHelper
+                NPOIUse.ExcelHelper excelHelper1 = new NPOIUse.ExcelHelper(excelFileName);
                 //同一机种的处理
                 if (theSameModelArray_List.Count>0)
                 {
+                    for (int i = 0; i < theSameModelArray_List.Count; i++)
+                    {
+                        //获取当前同一机种 组的sheetName
+                        string sheetName = baseComprehensiveList[theSameModelArray_List[i][0]].Jobname;
 
+                        //layout  插入的位置,第一个layout插入默认从2开始
+                        int layoutInsertRowNum = 2;
+                        for (int j = 0; j < theSameModelArray_List[i].Length; j++)
+                        {
+                            //计算layoutInsertRowNum插入的位置
+                            if (j>0)
+                            {
+                                layoutInsertRowNum += (baseComprehensiveList[theSameModelArray_List[i][j - 1]].layoutDT.Rows.Count + 2);
+                            }
+                            
+                            //将    插入workbook
+                            InsertWorkbookfromBaseComprehensive(excelHelper1, sheetName, baseComprehensiveList[theSameModelArray_List[i][j]],
+                                2 + j * 6, layoutInsertRowNum);
+                            
+                        }
+                    }
                 }
 
                 //同一配置的处理
                 if (theSameConfigArray_List.Count>0)
                 {
+                    for (int i = 0; i < theSameModelArray_List.Count; i++)
+                    {
+                        //获取当前同一配置 组的sheetName
+                        string sheetName = baseComprehensiveList[theSameModelArray_List[i][0]].MachineKind;
 
+                        //layout  插入的位置,第一个layout插入默认从2开始
+                        int layoutInsertRowNum = 2;
+                        for (int j = 0; j < theSameModelArray_List[i].Length; j++)
+                        {
+                            //计算layoutInsertRowNum插入的位置
+                            if (j > 0)
+                            {
+                                layoutInsertRowNum += (baseComprehensiveList[theSameModelArray_List[i][j - 1]].layoutDT.Rows.Count + 2);
+                            }
+
+                            //将    插入workbook
+                            InsertWorkbookfromBaseComprehensive(excelHelper1, sheetName, baseComprehensiveList[theSameModelArray_List[i][j]],
+                                2 + j * 6, layoutInsertRowNum);
+
+                        }
+                    }
                 }
 
                 //其他job的正常处理
                 if (theOrther_Number.Count>0)
                 {
+                    //layout  插入的位置,第一个layout插入默认从2开始
+                    int layoutInsertRowNum = 2;
+                    for (int j = 0; j < theOrther_Number.Count; j++)
+                    {
+                        //获取当前 组的 不同 baseComprehensive的sheetName
+                        string sheetName = "sheet"+(j+1);
+                        //计算layoutInsertRowNum插入的位置
+                        if (j > 0)
+                        {
+                            layoutInsertRowNum += (baseComprehensiveList[theOrther_Number[j - 1]].layoutDT.Rows.Count + 2);
+                        }
 
+                        //将    插入workbook
+                        InsertWorkbookfromBaseComprehensive(excelHelper1, sheetName, baseComprehensiveList[theOrther_Number[j]],
+                            2 + j * 6, layoutInsertRowNum);
+                    }
                 }
+
+                //WorkBook生成结束，将excelHelper1的WorkBook写入到流中
+                excelHelper1.WorkBook.Write(excelHelper1.FS);
+                MessageBox.Show("生成Excel成功！");
             }
 
 
         }
 
         //在指定位置（行）插入baseComprehensive，解决多个baseComprehensive时插入Excel
-        //使用参数ExcelHelper类
-        static public void genExcelfromBaseComprehensive(ExcelHelper excelHelper1, BaseComprehensive baseComprehensive,int insertRowNum)
+        //使用参数ExcelHelper类,插入成功返回true
+        //summaryInfo插入的位置，LayoutDT插入的位置
+        static void InsertWorkbookfromBaseComprehensive(ExcelHelper excelHelper1,string sheetName, BaseComprehensive baseComprehensive,
+            int summaryInsertRowNum,int layoutInsertRowNum)
         {
+            #region 第一个sheet的获取和生成
+            //第一个sheet的标题，以字符串形式插入
+            string oneTitle = "FUJI Line Throughput Report " + baseComprehensive.MachineKind;
 
+            string sheet1 = sheetName;
+
+            //插入sheet对应表格的datatable
+            DataTableToResultSheet1(excelHelper1, baseComprehensive.SummaryInfoDT, sheet1, true, new int[2] { summaryInsertRowNum+2, 1 });
+            //插入标题
+            StringInsertExcel(excelHelper1, oneTitle, sheet1, new int[2] { summaryInsertRowNum, 1 }, IndexedColors.BrightGreen.Index);
+
+            //插入图片位置信息
+            //StringInsertExcel(excelHelper1, "", sheet1, new int[2] { 2, 1 }, IndexedColors.LightGreen.Index);
+            //Line_short 需要以画布的形式写入，而不是单元格内的文字;
+            //插入图片
+            insertPictureToExcel(excelHelper1, sheet1, new int[2] { summaryInsertRowNum+1,
+                baseComprehensive.SummaryInfoDT.Columns.Count / 2 - 2 }, baseComprehensive.PictureDataByte,
+                baseComprehensive.MachineCount);
+            #endregion
+
+            #region 生成第二个sheet
+            //第二个sheet的标题，以字符串形式插入
+            string secondTitle = baseComprehensive.Jobname;
+            //第二个sheet的建议
+            string ProposalString = "Proposal \n Layout";
+
+            //获取生成的第二个sheet对象在Excel对应的sheetname
+            string sheet2 = sheetName+"layout";
+
+            //插入sheet对应表格的datatable
+            //插入位置
+            int[] layoutDTPoint = new int[2] { summaryInsertRowNum, 2 };
+
+            //插入layoutDT
+            DataTableToResultSheet2(excelHelper1, baseComprehensive.layoutDT, sheet2, true, new int[2] { layoutDTPoint[0] + 1, layoutDTPoint[1] });
+            //插入feederNozzleDT
+            DataTableToResultSheet2(excelHelper1, baseComprehensive.feederNozzleDT, sheet2, true,
+                new int[2] { layoutDTPoint[0] + 1, layoutDTPoint[1] + 10 });
+            //插入标题
+            StringInsertExcel(excelHelper1, secondTitle, sheet2, layoutDTPoint,
+                IndexedColors.BrightGreen.Index, MergeOrientation.Horizontal,
+                baseComprehensive.layoutDT.Columns.Count + baseComprehensive.feederNozzleDT.Columns.Count - 1);
+
+            //插入建议
+            StringInsertExcel(excelHelper1, ProposalString, sheet2, new int[2] { layoutDTPoint[0], layoutDTPoint[1]-1 }, IndexedColors.BrightGreen.Index,
+                MergeOrientation.Vertical, baseComprehensive.layoutDT.Rows.Count + 1, new int[2] { 0, 50 });
+            //StringInsertExcel(excelHelper1, ProposalString, sheet2, new int[2] { 2, 1 }, IndexedColors.BrightGreen.Index);
+            #endregion
+
+            //return true;
+
+            //获取对象excelHelper1的文件流，即使用filename创建的文件流，判断是否有文件，没有文件的fa为null
+            //FileStream fs = excelHelper1.FS;
+            //if (fs == null)
+            //{
+            //    using (fs = new FileStream(excelFileName, FileMode.OpenOrCreate, FileAccess.ReadWrite))
+            //    {
+            //        excelHelper1.WorkBook.Write(fs); //写入到excel文件，并关闭流
+            //        fs.Close();
+            //    }
+
+            //}
+            //else
+            //{
+            //    excelHelper1.WorkBook.Write(fs); //写入到excel文件，并关闭流
+            //    fs.Close();
+            //}
+
+            //写入关闭流应该在所有sheet中的DataTable都写入完成以后，
+            //InsertWorkbookfromXXX，只是将信息插入excelHelp的WorkbooK
+            //excelHelper1.WorkBook.Write(fs); //写入到excel文件，并关闭流
+            //MessageBox.Show("生成Excel成功！");
+            //生成成功，重置两个实例
+            //excelHelper = null;
+            //excelHelper_another = null;
         }
 
-        //插入单个baseComprehensive
+        //插入单个baseComprehensive 到Workbook
         //在指定位置（行）插入baseComprehensive，解决多个baseComprehensive时插入Excel
         //使用参数ExcelHelper类
-        static public void genExcelfromBaseComprehensive(ExcelHelper excelHelper1, BaseComprehensive baseComprehensive)
+        static public void InsertWorkbookfromBaseComprehensive(ExcelHelper excelHelper1, string sheetName, BaseComprehensive baseComprehensive)
         {
-
+            //不指定插入行，默认第二行插入。
+            InsertWorkbookfromBaseComprehensive(excelHelper1, sheetName, baseComprehensive, 2, 2);
         }
 
-        #region 插入BaseComprehensive对应的各个信息到Excel
-        static public void genExcelfromBaseComprehensive(string excelFileName, BaseComprehensive baseComprehensive)
+        #region //从生成excelFileName生成Excel，插入BaseComprehensive对应的各个信息到Excel
+        static public void GenExclefromBaseComprehensive(string excelFileName, string sheetName,BaseComprehensive baseComprehensive)
         {
             //使用指定的fileName 创建Iworkbook
             if (excelFileName == null)
@@ -903,78 +1050,12 @@ namespace Exicel转换1
             //创建ExcelHelper，用以存放转换后的sheet1和sheet2
             NPOIUse.ExcelHelper excelHelper1 = new NPOIUse.ExcelHelper(excelFileName);
 
-            #region 第一个sheet的获取和生成
-            //第一个sheet的标题，以字符串形式插入
-            string oneTitle = "FUJI Line Throughput Report " + baseComprehensive.MachineKind;
+            //调用重载
+            InsertWorkbookfromBaseComprehensive(excelHelper1,sheetName, baseComprehensive);
 
-            string sheet1 = "sheet1";
-
-            //插入sheet对应表格的datatable
-            DataTableToResultSheet1(excelHelper1, baseComprehensive.SummaryInfoDT, sheet1, true, new int[2] { 3, 1 });
-            //插入标题
-            StringInsertExcel(excelHelper1, oneTitle, sheet1, new int[2] { 1, 1 }, IndexedColors.BrightGreen.Index);
-
-            //插入图片位置信息
-            //StringInsertExcel(excelHelper1, "", sheet1, new int[2] { 2, 1 }, IndexedColors.LightGreen.Index);
-            //Line_short 需要以画布的形式写入，而不是单元格内的文字;
-            //插入图片
-            insertPictureToExcel(excelHelper1, sheet1, new int[2] { 2,
-                baseComprehensive.SummaryInfoDT.Columns.Count / 2 - 2 },baseComprehensive.PictureDataByte,
-                baseComprehensive.MachineCount);
-            #endregion
-
-            #region 生成第二个sheet
-            //第二个sheet的标题，以字符串形式插入
-            string secondTitle = baseComprehensive.Jobname;
-            //第二个sheet的建议
-            string ProposalString = "Proposal \n Layout";
-
-            //获取生成的第二个sheet对象在Excel对应的sheetname
-            string sheet2 = "sheet2";
-
-            //插入sheet对应表格的datatable
-            //插入位置
-            int[] layoutDTPoint = new int[2] { 3, 2 };
-            
-            //插入layoutDT
-            DataTableToResultSheet2(excelHelper1, baseComprehensive.layoutDT, sheet2, true, layoutDTPoint);
-            //插入feederNozzleDT
-            DataTableToResultSheet2(excelHelper1, baseComprehensive.feederNozzleDT, sheet2, true, 
-                new int[2] { layoutDTPoint[0],layoutDTPoint[1]+10});
-            //插入标题
-            StringInsertExcel(excelHelper1, secondTitle, sheet2, new int[2] { layoutDTPoint[0]-1, layoutDTPoint[1] }, 
-                IndexedColors.BrightGreen.Index, MergeOrientation.Horizontal, 
-                baseComprehensive.layoutDT.Columns.Count+ baseComprehensive.feederNozzleDT.Columns.Count-1);
-
-            //插入建议
-            StringInsertExcel(excelHelper1, ProposalString, sheet2, new int[2] { 2, 1 }, IndexedColors.BrightGreen.Index,
-                MergeOrientation.Vertical, baseComprehensive.layoutDT.Rows.Count+1,new int[2] { 0,50});
-            //StringInsertExcel(excelHelper1, ProposalString, sheet2, new int[2] { 2, 1 }, IndexedColors.BrightGreen.Index);
-            #endregion
-
-
-            //获取对象excelHelper1的文件流，即使用filename创建的文件流，判断是否有文件，没有文件的fa为null
-            FileStream fs = excelHelper1.FS;
-            if (fs == null)
-            {
-                using (fs = new FileStream(excelFileName, FileMode.OpenOrCreate, FileAccess.ReadWrite))
-                {
-                    excelHelper1.WorkBook.Write(fs); //写入到excel文件，并关闭流
-                    fs.Close();
-                }
-
-            }
-            else
-            {
-                excelHelper1.WorkBook.Write(fs); //写入到excel文件，并关闭流
-                fs.Close();
-            }
-
-
+            //将ExcelHelper 的workbook写入到ExcelHelper 对应的文件流
+            excelHelper1.WorkBook.Write(excelHelper1.FS); //写入到excel文件，并关闭流
             MessageBox.Show("生成Excel成功！");
-            //生成成功，重置两个实例
-            //excelHelper = null;
-            //excelHelper_another = null;
         }
         #endregion
     }

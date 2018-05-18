@@ -847,15 +847,21 @@ namespace Exicel转换1
                 return;
             }
 
+            //summaryandLayout_ComprehensiveList 写入到Excel
+            if (summaryandLayout_ComprehensiveList.Count>0)
+            {
+                ComprehensiveSaticClass.genExcelfromBaseComprehensiveList(summaryandLayout_ComprehensiveList, excelFileName);
+
+            }
             //将summaryandLayout_ComprehensiveList 列表中的
             //summaryandLayout_Comprehensive按同一机种不同配置、不同配置同一机种写入到Excel
-            if (theEndSummaryandLayout!=null)
-            {
-                //保存所需信息到Excel
-                ComprehensiveSaticClass.genExcelfromBaseComprehensive(excelFileName, theEndSummaryandLayout);
-                //生成成功后重置所有变量的状态
-                theEndSummaryandLayout = null;
-            }
+            //if (theEndSummaryandLayout!=null)
+            //{
+            //    //保存所需信息到Excel
+            //    ComprehensiveSaticClass.genExcelfromBaseComprehensive(excelFileName, theEndSummaryandLayout);
+            //    //生成成功后重置所有变量的状态
+            //    theEndSummaryandLayout = null;
+            //}
 
             
         }
