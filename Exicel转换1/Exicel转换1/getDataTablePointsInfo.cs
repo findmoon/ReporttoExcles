@@ -224,6 +224,7 @@ namespace Exicel转换1
         //如果有则返回一个二维数组，没有的返回一个空的二维数组
         //
         //未找到则返回一个length为0 的二维数组
+        //isFullFind 是否模糊查找，还是完全相等查找
         public int[][] GetInfo_Between(string findString,bool isFullFind=true)
         {
             #region 切记不要依赖于其他文件、类、或者类库，，不用获取 指定区域 也能实现，一个类只实现一个方法，且要独立
@@ -316,6 +317,11 @@ namespace Exicel转换1
         public string GetInfo_Between(int[] findPoints)
         {
             //位置肯定唯一，所以直接获取即可；
+            //判断唯一行是否为DBNull
+            if (this.DT.Rows[findPoints[0]][findPoints[1]].Equals(DBNull.Value))
+            {
+                return null;
+            }
             return  this.DT.Rows[findPoints[0]][findPoints[1]].ToString();
             
         }
