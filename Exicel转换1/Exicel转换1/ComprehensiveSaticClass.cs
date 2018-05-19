@@ -12,13 +12,15 @@ using System.Windows.Forms;
 
 namespace Exicel转换1
 {
-    //枚举类型，代表横向和竖向的枚举类型，用于插入文字时合并单元格方位的选择
-    public enum MergeOrientation
+    //枚举类型，代表横向和竖向的枚举类型，用于插入文字时合并单元格方位,或插入图片时隐藏border边框的选择
+    public enum Orientation
     {
         Horizontal,
         Vertical,
         Origin//圆点，表示不合并不横向也不竖向
     }
+
+    //
 
     //存放一些公共的静态方法、数据（字典）的静态类
     static class ComprehensiveSaticClass
@@ -223,10 +225,10 @@ namespace Exicel转换1
         
 
         //将string插入Excel指定位置
-        private static void StringInsertExcel(ExcelHelper excelHelper1, string insertString, string sheetName, 
+        private static void StringInsertWorkbook(ExcelHelper excelHelper1, string insertString, string sheetName, 
             int[] insertPoint, short colorShort)
         {
-            StringInsertExcel(excelHelper1, insertString, sheetName, insertPoint, colorShort, MergeOrientation.Origin, 0);                 
+            StringInsertWorkbook(excelHelper1, insertString, sheetName, insertPoint, colorShort, Orientation.Origin, 0);                 
         }
 
         //重载字符串插入sheet，指定合并插入时的单元格，合并方向和单元格数量
@@ -240,10 +242,10 @@ namespace Exicel转换1
         /// <param name="insertPoint"></param>
         /// <param name="colorShort"></param>
         /// <param name="mergeOrientation"></param>
-        /// <param name="mergeNum"></param>
+        /// <param name="mergeNum">从插入位置开始合并单元格的数量</param>
         /// <param name="WidthHeight">插入时的宽高，只实现了设置高度</param>
-        private static void StringInsertExcel(ExcelHelper excelHelper1, string insertString, string sheetName,
-            int[] insertPoint, short colorShort, MergeOrientation mergeOrientation,int mergeNum,int[] WidthHeight= null)
+        private static void StringInsertWorkbook(ExcelHelper excelHelper1, string insertString, string sheetName,
+            int[] insertPoint, short colorShort, Orientation mergeOrientation,int mergeNum,int[] WidthHeight= null)
         {
             IWorkbook workbook = excelHelper1.WorkBook;
             //FileStream fs = excelHelper1.FS;
@@ -271,13 +273,14 @@ namespace Exicel转换1
                 row.CreateCell(insertPoint[1]).SetCellValue(insertString);
 
                 //合并单元格
-                if (mergeOrientation==MergeOrientation.Horizontal)//横向
+                //mergeNum为合并的cell数量，结束位置为mergeNum-1
+                if (mergeOrientation==Orientation.Horizontal)//横向
                 {
-                    sheet.AddMergedRegion(new CellRangeAddress(insertPoint[0], insertPoint[0], insertPoint[1], insertPoint[1] + mergeNum));
+                    sheet.AddMergedRegion(new CellRangeAddress(insertPoint[0], insertPoint[0], insertPoint[1], insertPoint[1] + mergeNum-1));
                 }
-                if (mergeOrientation == MergeOrientation.Vertical)
+                if (mergeOrientation == Orientation.Vertical)
                 {
-                    sheet.AddMergedRegion(new CellRangeAddress(insertPoint[0], insertPoint[0] + mergeNum, insertPoint[1], insertPoint[1]));
+                    sheet.AddMergedRegion(new CellRangeAddress(insertPoint[0], insertPoint[0] + mergeNum-1, insertPoint[1], insertPoint[1]));
                 }
 
                 #region 样式
@@ -322,7 +325,8 @@ namespace Exicel转换1
         /// <param name="sheetNamet">将dt插入到指定sheet</param>
         /// <param name="isColumnWritten">是否吧列名作为单元格插入</param>
         /// <param name="insertPoint">插入的位置</param>
-        private static void DataTableToResultSheet1(ExcelHelper excelHelper1, DataTable dt, string sheetName, bool isColumnWritten, int[] insertPoint)
+        private static void DataTableToResultSheet1(ExcelHelper excelHelper1, DataTable dt, string sheetName, 
+            bool isColumnWritten, int[] insertPoint)
         {
             //生成报告的excelHelper1 excelHelper类
             IWorkbook workbook = excelHelper1.WorkBook;
@@ -383,7 +387,7 @@ namespace Exicel转换1
                 sheet.SetColumnWidth(2, commonWidth * 256);
                 sheet.SetColumnWidth(3, System.Convert.ToInt32(System.Convert.ToDouble(commonWidth * 256) * 3));
                 sheet.SetColumnWidth(4, commonWidth * 2 * 256);
-                sheet.SetColumnWidth(5, commonWidth * 2 * 256);
+                sheet.SetColumnWidth(5, System.Convert.ToInt32(System.Convert.ToDouble(commonWidth  * 256) * 1.8));
                 sheet.SetColumnWidth(6, commonWidth * 256);
                 sheet.SetColumnWidth(7, commonWidth * 256);
                 sheet.SetColumnWidth(8, commonWidth * 256);
@@ -392,55 +396,31 @@ namespace Exicel转换1
                 sheet.SetColumnWidth(11, commonWidth * 256);
                 sheet.SetColumnWidth(12, commonWidth * 256);
 
-                //合并单元格
-                sheet.AddMergedRegion(new CellRangeAddress(1, 1, 1, (dt.Columns.Count - 1) + 1));//2.0使用 2.0以下为Region
-                sheet.AddMergedRegion(new CellRangeAddress(2, 2, 1, (dt.Columns.Count - 1) + 1));//2.0使用 2.0以下为Region
-                
-                //设置行高
+
+                //设置行高,仅设置summaryDT两行的行高
                 IRow row1,
-                    row2,
-                    row3,
-                    row4;
-                if (sheet.GetRow(1) == null)
+                    row2;
+                    
+                if (sheet.GetRow(insertPoint[0]) == null)
                 {
-                    row1 = sheet.CreateRow(1);
+                    row1 = sheet.CreateRow(insertPoint[0]);
                 }
                 else
                 {
-                    row1 = sheet.GetRow(1);
+                    row1 = sheet.GetRow(insertPoint[0]);
                 }
 
-                if (sheet.GetRow(2) == null)
+                if (sheet.GetRow(insertPoint[0]+1) == null)
                 {
-                    row2 = sheet.CreateRow(2);
+                    row2 = sheet.CreateRow(insertPoint[0]+1);
                 }
                 else
                 {
-                    row2 = sheet.GetRow(2);
-                }
-
-                if (sheet.GetRow(3) == null)
-                {
-                    row3 = sheet.CreateRow(3);
-                }
-                else
-                {
-                    row3 = sheet.GetRow(3);
-                }
-
-                if (sheet.GetRow(4) == null)
-                {
-                    row4 = sheet.CreateRow(4);
-                }
-                else
-                {
-                    row4 = sheet.GetRow(4);
+                    row2 = sheet.GetRow(insertPoint[0]+1);
                 }
 
                 row1.HeightInPoints = 50;
-                row2.HeightInPoints = 80;
-                row3.HeightInPoints = 50;
-                row4.HeightInPoints = 50;
+                row2.HeightInPoints = 50;
 
                 //设置整列单元格样式
                 //获取列数量
@@ -451,7 +431,7 @@ namespace Exicel转换1
                 //    //sheet.SetDefaultColumnStyle(i, cellStyle);
                 //}
                 ICellStyle cellStyle;
-                for (int i = 0; i <= sheet.LastRowNum; i++)
+                for (int i = insertPoint[0]; i < insertPoint[0]+4; i++)
                 {
                     if (sheet.GetRow(i) != null)
                     {
@@ -466,7 +446,7 @@ namespace Exicel转换1
                                 continue;
                             }
 
-                            //设置单元格样式,必须每一个cell对饮一个样式，否则无法设置背景
+                            //设置单元格样式,必须每一个cell对应一个样式，否则无法设置背景
 
                             cellStyle = workbook.CreateCellStyle();
                             //垂直居中
@@ -705,20 +685,32 @@ namespace Exicel转换1
         /// <param name="insertPoint">插入位置</param>
         /// <param name="PictureDataByte">图片</param>
         /// <param name="machineCount">根据机器长度判定结束单元格的长短</param>
-        private static void insertPictureToExcel(ExcelHelper excelHelper1,string sheetName,int[] insertPoint,
-            byte[] PictureDataByte,int machineCount)
+        private static void insertPictureToWorbook(ExcelHelper excelHelper1,string sheetName,int[] insertPoint,
+            byte[] PictureDataByte,int machineCount,Orientation hideborderOrientation, int hideborderCellNum, int[] WidthHeight = null)
         {
             #region 将图片插入sheet的实现
             //生成报告的excelHelper1 excelHelper类
-            //IWorkbook workbook = excelHelper1.WorkBook;
+            IWorkbook workbook = excelHelper1.WorkBook;
 
             ISheet sheet1 = excelHelper1.ExcelToIsheet(sheetName);
 
+            //设置行高
+            if (WidthHeight!=null)
+            {
+                IRow row = sheet1.GetRow(insertPoint[0]);
+                if (row == null)
+                {
+                    row = sheet1.CreateRow(insertPoint[0]);
+                }
+                row.HeightInPoints = WidthHeight[1];
+            }
+
             //从指定的位置开始插入图片
-            int count = insertPoint[0];
+            //int count = insertPoint[0];
             //插入的位置
-            int startRow = count;
-            int startCol = insertPoint[1];
+            int startRow = insertPoint[0];
+            //插入图片位置偏移一下，否则样式不好看
+            int startCol = insertPoint[1]+ hideborderCellNum/2-2;
             int endRow = startRow + 1;
             int endCol = startCol + 1;
             //根据模组数量长度，变更结束单元格位置
@@ -738,6 +730,27 @@ namespace Exicel转换1
 
             //偏移依旧不起作用
             excelHelper1.pictureDataToSheet(sheet1, PictureDataByte, 50, 10, 50, 10, startRow, startCol, endRow, endCol);
+
+            //对单元格隐藏的处理
+            if (hideborderOrientation==Orientation.Horizontal)
+            {
+                IRow rowPicture = sheet1.GetRow(insertPoint[0]);
+                for (int i = 0; i < hideborderCellNum-1; i++)
+                {
+                    //设置单元格边框右边为空
+                    ICellStyle cellStyle = workbook.CreateCellStyle();
+                    cellStyle.BorderRight = NPOI.SS.UserModel.BorderStyle.None;
+                    //填充模式
+                    cellStyle.FillPattern = FillPattern.SolidForeground;
+                    //设置样式
+                    ICell cellPicture = rowPicture.GetCell(insertPoint[1] + i);
+                    if (rowPicture.GetCell(insertPoint[1] + i)==null)
+                    {
+                        cellPicture = rowPicture.CreateCell(insertPoint[1] + i);
+                    }
+                    cellPicture.CellStyle = cellStyle;
+                }
+            }
             #endregion
         }
 
@@ -879,7 +892,7 @@ namespace Exicel转换1
                             //计算layoutInsertRowNum插入的位置
                             if (j>0)
                             {
-                                layoutInsertRowNum += (baseComprehensiveList[theSameModelArray_List[i][j - 1]].layoutDT.Rows.Count + 2);
+                                layoutInsertRowNum += (baseComprehensiveList[theSameModelArray_List[i][j - 1]].feederNozzleDT.Rows.Count + 5);
                             }
                             
                             //将    插入workbook
@@ -905,7 +918,7 @@ namespace Exicel转换1
                             //计算layoutInsertRowNum插入的位置
                             if (j > 0)
                             {
-                                layoutInsertRowNum += (baseComprehensiveList[theSameModelArray_List[i][j - 1]].layoutDT.Rows.Count + 2);
+                                layoutInsertRowNum += (baseComprehensiveList[theSameModelArray_List[i][j - 1]].feederNozzleDT.Rows.Count + 5);
                             }
 
                             //将    插入workbook
@@ -928,7 +941,7 @@ namespace Exicel转换1
                         //计算layoutInsertRowNum插入的位置
                         if (j > 0)
                         {
-                            layoutInsertRowNum += (baseComprehensiveList[theOrther_Number[j - 1]].layoutDT.Rows.Count + 2);
+                            layoutInsertRowNum += (baseComprehensiveList[theOrther_Number[j - 1]].feederNozzleDT.Rows.Count + 5);
                         }
 
                         //将    插入workbook
@@ -960,15 +973,16 @@ namespace Exicel转换1
             //插入sheet对应表格的datatable
             DataTableToResultSheet1(excelHelper1, baseComprehensive.SummaryInfoDT, sheet1, true, new int[2] { summaryInsertRowNum+2, 1 });
             //插入标题
-            StringInsertExcel(excelHelper1, oneTitle, sheet1, new int[2] { summaryInsertRowNum, 1 }, IndexedColors.BrightGreen.Index);
+            StringInsertWorkbook(excelHelper1, oneTitle, sheet1, new int[2] { summaryInsertRowNum, 1 }, IndexedColors.BrightGreen.Index, 
+                Orientation.Horizontal, baseComprehensive.SummaryInfoDT.Columns.Count, new int[] {0,45 });
 
             //插入图片位置信息
-            //StringInsertExcel(excelHelper1, "", sheet1, new int[2] { 2, 1 }, IndexedColors.LightGreen.Index);
+            //StringInsertWorkbook(excelHelper1, "", sheet1, new int[2] { 2, 1 }, IndexedColors.LightGreen.Index);
             //Line_short 需要以画布的形式写入，而不是单元格内的文字;
             //插入图片
-            insertPictureToExcel(excelHelper1, sheet1, new int[2] { summaryInsertRowNum+1,
-                baseComprehensive.SummaryInfoDT.Columns.Count / 2 - 2 }, baseComprehensive.PictureDataByte,
-                baseComprehensive.MachineCount);
+            insertPictureToWorbook(excelHelper1, sheet1, new int[2] { summaryInsertRowNum+1,
+                1 }, baseComprehensive.PictureDataByte,baseComprehensive.MachineCount,
+                Orientation.Horizontal, baseComprehensive.SummaryInfoDT.Columns.Count,new int[] { 0,80});
             #endregion
 
             #region 生成第二个sheet
@@ -982,22 +996,22 @@ namespace Exicel转换1
 
             //插入sheet对应表格的datatable
             //插入位置
-            int[] layoutDTPoint = new int[2] { summaryInsertRowNum, 2 };
+            int[] layoutInsertPoint = new int[2] { layoutInsertRowNum, 2 };
 
             //插入layoutDT
-            DataTableToResultSheet2(excelHelper1, baseComprehensive.layoutDT, sheet2, true, new int[2] { layoutDTPoint[0] + 1, layoutDTPoint[1] });
+            DataTableToResultSheet2(excelHelper1, baseComprehensive.layoutDT, sheet2, true, new int[2] { layoutInsertPoint[0] + 1, layoutInsertPoint[1] });
             //插入feederNozzleDT
             DataTableToResultSheet2(excelHelper1, baseComprehensive.feederNozzleDT, sheet2, true,
-                new int[2] { layoutDTPoint[0] + 1, layoutDTPoint[1] + 10 });
+                new int[2] { layoutInsertPoint[0] + 1, layoutInsertPoint[1] + 10 });
             //插入标题
-            StringInsertExcel(excelHelper1, secondTitle, sheet2, layoutDTPoint,
-                IndexedColors.BrightGreen.Index, MergeOrientation.Horizontal,
-                baseComprehensive.layoutDT.Columns.Count + baseComprehensive.feederNozzleDT.Columns.Count - 1);
+            StringInsertWorkbook(excelHelper1, secondTitle, sheet2, layoutInsertPoint,
+                IndexedColors.BrightGreen.Index, Orientation.Horizontal,
+                baseComprehensive.layoutDT.Columns.Count + baseComprehensive.feederNozzleDT.Columns.Count);
 
             //插入建议
-            StringInsertExcel(excelHelper1, ProposalString, sheet2, new int[2] { layoutDTPoint[0], layoutDTPoint[1]-1 }, IndexedColors.BrightGreen.Index,
-                MergeOrientation.Vertical, baseComprehensive.layoutDT.Rows.Count + 1, new int[2] { 0, 50 });
-            //StringInsertExcel(excelHelper1, ProposalString, sheet2, new int[2] { 2, 1 }, IndexedColors.BrightGreen.Index);
+            StringInsertWorkbook(excelHelper1, ProposalString, sheet2, new int[2] { layoutInsertPoint[0], layoutInsertPoint[1]-1 }, IndexedColors.BrightGreen.Index,
+                Orientation.Vertical, baseComprehensive.layoutDT.Rows.Count + 1, new int[2] { 0, 50 });
+            //StringInsertWorkbook(excelHelper1, ProposalString, sheet2, new int[2] { 2, 1 }, IndexedColors.BrightGreen.Index);
             #endregion
 
             //return true;

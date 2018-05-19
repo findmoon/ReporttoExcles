@@ -41,7 +41,7 @@ namespace Exicel转换1
         };
 
         //存放生产模式的变量
-        string productionMode=null;
+        string productionMode = null;
         public string ProductionMode
         {
             set
@@ -56,41 +56,43 @@ namespace Exicel转换1
         //最后包含summaryInfo和layouInfoDT feederNozzleDT的信息
         BaseComprehensive theEndSummaryandLayout = null;
 
-        //Feeder type : num
-        public XmlDocument xml_FeederReportUnit = null;
 
-        
-
-        //module：Header type
-        //public XmlDocument xml_HeadReportUnit = new XmlDocument();
-
-        //Nozzle (ncstNzlName): count
-        public XmlDocument xml_NozzleChangerReportUnit = null;
-
-        //module : head cycletime，置件数量Qty
-        //只有二轨的time
-        public XmlDocument xml_TimingReportUnitNxt = null;
-
-        //machine name\job name\top or bottom
-        public XmlDocument xml_TimingReportHeader = null;
-
-        //seqBrdNum=>borad num，
-        public XmlDocument xml_PartReportUnit = null;
-
-        //pannel size   prgPnlLength
-        public XmlDocument xml_PartReportHead = null;
-
-        //xml_TimingReportHeaderUnit   Total_Cycle_Time  Number_of_Placements
-        public XmlDocument xml_TimingReportHeaderUnit = null;
-
-        //rtf文件的StreamReader，用于读取里面内容
-        StreamReader srRTFFile =null;
         //已打开开的目录
-        string pathXmlFolder =null;
+        string pathXmlFolder = null;
 
         #region //打开xml report文件夹 按钮
         private void OpenXmlFolder_Btn_Click(object sender, EventArgs e)
         {
+            #region //将每次打开一个文件夹都会变化的变量设置为局部变量，全局的话会影响多次的打开后的判断
+            //Feeder type : num
+            XmlDocument xml_FeederReportUnit = null;
+
+            //module：Header type
+            //public XmlDocument xml_HeadReportUnit = new XmlDocument();
+
+            //Nozzle (ncstNzlName): count
+            XmlDocument xml_NozzleChangerReportUnit = null;
+
+            //module : head cycletime，置件数量Qty
+            //只有二轨的time
+            XmlDocument xml_TimingReportUnitNxt = null;
+
+            //machine name\job name\top or bottom
+            XmlDocument xml_TimingReportHeader = null;
+
+            //seqBrdNum=>borad num，
+            XmlDocument xml_PartReportUnit = null;
+
+            //pannel size   prgPnlLength
+            XmlDocument xml_PartReportHead = null;
+
+            //xml_TimingReportHeaderUnit   Total_Cycle_Time  Number_of_Placements
+            XmlDocument xml_TimingReportHeaderUnit = null;
+
+            //rtf文件的StreamReader，用于读取里面内容
+            StreamReader srRTFFile = null;
+            #endregion
+
             //打开文件夹浏览器
             if (folderBrowserDialog1.ShowDialog() == DialogResult.OK)
             {
@@ -239,7 +241,7 @@ namespace Exicel转换1
                 }
                 //打开的目录和目录数
                 openFolderNum++;
-                HasOpenFolderLbel.Text = pathXmlFolder;
+                HasOpenFolderLbel.Text += pathXmlFolder + "\n";
 
             }
             else
@@ -247,14 +249,17 @@ namespace Exicel转换1
                 return;//未选择任何
             }
             //生成最后的BaseComprehensive，未实现生成BaseComprehensive List
-            genBaseComprehensive();
+            GenBaseComprehensive(xml_TimingReportHeaderUnit,xml_TimingReportUnitNxt,xml_TimingReportHeader,
+            xml_PartReportUnit,xml_PartReportHead,xml_NozzleChangerReportUnit,xml_FeederReportUnit,srRTFFile);
         }
         #endregion
-        
+
 
         #region //生成 summaryandLayout_ComprehensiveList  theEndSummaryandLayout
         //生成所有信息 BaseComprehensive class 由summaryinfo和layoutinfo组成
-        public void genBaseComprehensive()
+        public void GenBaseComprehensive(XmlDocument xml_TimingReportHeaderUnit,XmlDocument xml_TimingReportUnitNxt,
+            XmlDocument xml_TimingReportHeader,XmlDocument xml_PartReportUnit,XmlDocument xml_PartReportHead,
+            XmlDocument xml_NozzleChangerReportUnit,XmlDocument xml_FeederReportUnit,StreamReader srRTFFile)
         {
             //生成综合的类，包含summary和layout及需要的验证信息。
             BaseComprehensive baseComprehensive = new BaseComprehensive();
@@ -511,7 +516,7 @@ namespace Exicel转换1
             GetProductionModel();
 
             //获取 genLayoutEndDT，最后的cycletime cph layoutDT、feedernozzleDT
-            Tuple<double, int, DataTable, DataTable> layoutEndInfo_tuple = genLayoutEndDT(productionMode,
+            Tuple<double, int, DataTable, DataTable> layoutEndInfo_tuple = genLayoutEndDT(srRTFFile,productionMode,
                 line2_module_head_cycletime_qty_TupleList, feeder_Statistics, nozzle_Statistics);
             //判断是否获取到 
             if (layoutEndInfo_tuple == null)
@@ -558,6 +563,8 @@ namespace Exicel转换1
 
             //添加到SummaryandLayout_ComprehensiveList列表
             summaryandLayout_ComprehensiveList.Add(theEndSummaryandLayout);
+            //使用全局变量，因为多处需要判断全局变量的值，因此如果选择一个文件夹后处理完所有的过程后，需要重置所有变量，
+            //否则导致下一次选择判断的混乱。
         }
 
         #endregion
@@ -573,16 +580,17 @@ namespace Exicel转换1
         /// <returns>
         /// cycletime\CPH\LayouDT\FeederNozzleDT
         /// </returns>
-        public Tuple<double, int, DataTable, DataTable> genLayoutEndDT(string productionMode,List<Tuple<string, string, string, string>> line2_module_head_cycletime_qty_TupleList,
+        public Tuple<double, int, DataTable, DataTable> genLayoutEndDT(StreamReader srRTFFile,string productionMode, 
+            List<Tuple<string, string, string, string>> line2_module_head_cycletime_qty_TupleList,
             Dictionary<string, int> feeder_Statistics, Dictionary<string, int> nozzle_Statistics)
         {
             string[] line1_cycletimes = null;//一轨cycletime
-            if (srRTFFile!=null)//有一轨数据//Line1线的cycletime从 生成报告的rtf文件中获取
+            if (srRTFFile != null)//有一轨数据//Line1线的cycletime从 生成报告的rtf文件中获取
             {
                 #region //解析rtf文件，获取line1的cycletime列表
                 line1_cycletimes = ParseRTFCycletime(srRTFFile);
                 //判断返回值，如果length为0，则代表rtf有问题
-                if (line1_cycletimes==null)
+                if (line1_cycletimes == null)
                 {
                     return null;
                 }
@@ -628,7 +636,7 @@ namespace Exicel转换1
             //模组数
             int Module_count = line2_module_head_cycletime_qty_TupleList.Count;
             //feederNozzleDTRowCount、last_layoutExpressDTRowCount。DataTable的行数
-            int feederNozzleDTRowCount = nozzle_Statistics.Count > feeder_Statistics.Count ? 
+            int feederNozzleDTRowCount = nozzle_Statistics.Count > feeder_Statistics.Count ?
                 nozzle_Statistics.Count : feeder_Statistics.Count;
             int last_layoutExpressDTRowCount = feederNozzleDTRowCount > Module_count ? feederNozzleDTRowCount : Module_count;
             //循环获取各个单元格的值
@@ -637,7 +645,7 @@ namespace Exicel转换1
                 #region layoutDT
                 DataRow dr = layoutDT.NewRow();
                 if (j < Module_count)//模组的layout
-                {                    
+                {
                     dr["Prouction \n Mode"] = productionMode;
                     dr["Module \n No."] = j;
                     dr["Module"] = line2_module_head_cycletime_qty_TupleList[j].Item1;
@@ -658,7 +666,7 @@ namespace Exicel转换1
                     //计算avg
                     dr["Avg"] = string.Format("{0:0.0000}", Convert.ToDouble(dr["Cycle \nTime"]) / Convert.ToDouble(dr["Qty"]));
                     dr["CPH"] = string.Format("{0:0}", Convert.ToDouble(dr["Qty"]) * 3600 / Convert.ToDouble(dr["Cycle \nTime"]));
-                    
+
                 }
                 //添加全部行，空行也添加，为了下面的插入最后一行
                 layoutDT.Rows.Add(dr);
@@ -713,12 +721,12 @@ namespace Exicel转换1
             dr2[6] = cycletime_temp;
             dr2[7] = qty_temp; ;
             dr2[8] = string.Format("{0:0.00}", cycletime_temp * Module_count / qty_temp);
-            int CPH =Convert.ToInt32(qty_temp * 3600 / cycletime_temp);
+            int CPH = Convert.ToInt32(qty_temp * 3600 / cycletime_temp);
             dr2[9] = CPH;
 
             //在指定行  last_layoutExpressDTRowCount+1 插入DataRow
             //直接插入指定行，如果指定行前面行不存在，则插入已有行的下面
-            layoutDT.Rows.InsertAt(dr2, last_layoutExpressDTRowCount+1);
+            layoutDT.Rows.InsertAt(dr2, last_layoutExpressDTRowCount + 1);
             #endregion
 
             #region //feederNozzleDT
@@ -752,6 +760,10 @@ namespace Exicel转换1
         #region //解析rtf文件，获取line1的cycletime列表
         public string[] ParseRTFCycletime(StreamReader srRTFFile)
         {
+            if (srRTFFile==null)
+            {
+                return null;
+            }
             string line = srRTFFile.ReadLine();
             int lineNum = 1; //读取的line行
             int line_CycleTime = 1000;// 读取的line1 cycletime开始的行,用以标记开始，初始设置为1000
@@ -835,22 +847,27 @@ namespace Exicel转换1
 
         private void GenExcleReport_Btn_Click(object sender, EventArgs e)
         {
-            if (srRTFFile==null|| xml_TimingReportHeaderUnit==null|| theEndSummaryandLayout==null)
+            if (summaryandLayout_ComprehensiveList.Count == 0)
             {
                 MessageBox.Show("未选择任何可以生成报告的文件夹！");
                 return;
             }
-            //调用保存对话框
-            string excelFileName = ComprehensiveSaticClass.SaveExcleDialogShow();
-            if (excelFileName==null)
-            {
-                return;
-            }
+
 
             //summaryandLayout_ComprehensiveList 写入到Excel
-            if (summaryandLayout_ComprehensiveList.Count>0)
+            if (summaryandLayout_ComprehensiveList.Count > 0)
             {
+                //调用保存对话框
+                string excelFileName = ComprehensiveSaticClass.SaveExcleDialogShow();
+                if (excelFileName == null)
+                {
+                    return;
+                }
                 ComprehensiveSaticClass.genExcelfromBaseComprehensiveList(summaryandLayout_ComprehensiveList, excelFileName);
+
+                //保存完后清空列表 summaryandLayout_ComprehensiveList
+                summaryandLayout_ComprehensiveList = null;
+                //释放资源，未实现
 
             }
             //将summaryandLayout_ComprehensiveList 列表中的
@@ -863,7 +880,7 @@ namespace Exicel转换1
             //    theEndSummaryandLayout = null;
             //}
 
-            
+
         }
 
         private void XmlReport_Load(object sender, EventArgs e)

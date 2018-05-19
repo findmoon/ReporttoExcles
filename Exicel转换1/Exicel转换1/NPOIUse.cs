@@ -78,14 +78,15 @@ namespace NPOIUse
             //文件不存在，创建对应的workbook
             if (!File.Exists(this.fileName))
             {
-                fs=new FileStream(this.fileName, FileMode.OpenOrCreate, FileAccess.ReadWrite);
+                this.fs=new FileStream(this.fileName, FileMode.OpenOrCreate, FileAccess.ReadWrite);
+                //ICSharpCode.SharpZipLib.Zip.ZipException:“EOF in header”，报错应该和没有文件有关
                 if (fileName.IndexOf(".xlsx") > 0) // 2007版本
                 {
-                    this.workbook = new XSSFWorkbook(fs);
+                    this.workbook = new XSSFWorkbook();
 
                 }
                 else if (fileName.IndexOf(".xls") > 0) // 2003版本
-                    this.workbook = new HSSFWorkbook(fs);
+                    this.workbook = new HSSFWorkbook();
 
             }
             else//存在则读取
@@ -347,9 +348,6 @@ namespace NPOIUse
 
             try
             {
-
-
-
                 if (sheetName != null)
                 {
                     sheet = this.workbook.GetSheet(sheetName);
@@ -365,9 +363,7 @@ namespace NPOIUse
                         //else
                         //{
                         //    sheet = workbook.GetSheetAt(0);
-                        //}                   
-                    
-                       
+                        //}
                     }
                 }
                 else//没有指定sheetname时
