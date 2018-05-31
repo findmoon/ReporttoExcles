@@ -56,20 +56,26 @@ namespace NPOIUse
             disposed = false;
         }
 
-        public void workbookToFile(string outFile)
+        public void SaveWorkbook()
         {
-            if (File.Exists(outFile))
+            if (this.workbook.NumberOfSheets==0)
             {
-                var result = MessageBox.Show("是否覆盖现有文件", "注意！", MessageBoxButtons.YesNo);
-                if (result == DialogResult.No)
-                {
-                    return;
-                }
-                else
-                {
-
-                }
+                MessageBox.Show("没有可生成的数据！");
+                return;
             }
+            if (this.fileName!=null)
+            {
+                if (this.fs==null)
+                {
+                    this.fs = new FileStream(this.fileName, FileMode.OpenOrCreate, FileAccess.ReadWrite);
+                    //ICSharpCode.SharpZipLib.Zip.ZipException:“EOF in header”，报错应该和没有文件有关
+                }
+
+                this.workbook.Write(this.fs);
+                this.fs.Close();
+                MessageBox.Show("生成Excel成功！");
+            }
+
         }
 
         //创建workbook
@@ -78,7 +84,7 @@ namespace NPOIUse
             //文件不存在，创建对应的workbook
             if (!File.Exists(this.fileName))
             {
-                this.fs=new FileStream(this.fileName, FileMode.OpenOrCreate, FileAccess.ReadWrite);
+                //this.fs=new FileStream(this.fileName, FileMode.OpenOrCreate, FileAccess.ReadWrite);
                 //ICSharpCode.SharpZipLib.Zip.ZipException:“EOF in header”，报错应该和没有文件有关
                 if (fileName.IndexOf(".xlsx") > 0) // 2007版本
                 {
@@ -95,7 +101,7 @@ namespace NPOIUse
                 {
                     //FileAccess.ReadWrite、FileAccess.Read若为读写、只读权限，当文档被打开时，下面的操作不会执行，需要给一个“文件已打开”提示
                     //fs = new FileStream(fileName, FileMode.OpenOrCreate, FileAccess.ReadWrite);
-                    fs = new FileStream(fileName, FileMode.Open, FileAccess.ReadWrite);
+                    this.fs = new FileStream(fileName, FileMode.Open, FileAccess.ReadWrite);
                     if (fileName.IndexOf(".xlsx") > 0) // 2007版本
                     {
                         this.workbook = new XSSFWorkbook(fs);
@@ -368,16 +374,16 @@ namespace NPOIUse
                 }
                 else//没有指定sheetname时
                 {
-                    //如果没有sheet，则创建
-                    if (workbook.NumberOfSheets == 0)
-                    {
-                        sheet = workbook.CreateSheet();
-                    }
-                    else
-                    {
-                        sheet = workbook.GetSheetAt(0);
-                    }
-
+                    ////如果没有sheet，则创建
+                    //if (workbook.NumberOfSheets != 0)
+                    //{
+                    //    sheet = workbook.GetSheetAt(0);                        
+                    //}
+                    //else
+                    //{
+                    //    sheet = workbook.CreateSheet();
+                    //}
+                    sheet = workbook.CreateSheet();
                 }
 
                 return sheet;

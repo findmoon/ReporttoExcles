@@ -9,6 +9,7 @@ using System.Windows.Forms;
 using System.Xml;
 using System.IO;
 using System.Threading;
+using System.Data.SQLite;
 
 namespace Exicel转换1
 {
@@ -281,34 +282,22 @@ namespace Exicel转换1
 
             }
 
-            //使用元组存放module head cycletime  Qty
+            //使用元组存放module head cycletime  Qt
+            //获取 line2_module_head_cycletime_qty_TupleList 元组列表，使用sqlite
+            //调用方法
+            //module、head、avgCPH、prior_productionCPH	、high_precisionCPH做成一个小DataTable输出.
+            //使用out参数
+            DataTable module_Head_TheoryCPH_Table = null;
             List<Tuple<string, string, string, string>> line2_module_head_cycletime_qty_TupleList =
-                new List<Tuple<string, string, string, string>>();
+                Getline2_module_head_cycletime_qty_TupleList(xml_TimingReportUnitNxt,out module_Head_TheoryCPH_Table);
 
-            //获取line对应的module\head\Qty|cycletime信息 
-            XmlNodeList truUnitNode = xml_TimingReportUnitNxt.GetElementsByTagName("Unit");
-            for (int i = 0; i < truUnitNode.Count; i++)
+            if (module_Head_TheoryCPH_Table == null)
             {
-                if (i == 0)
-                {
-                    continue;
-                }
-                try
-                {
-                    //得到的module_head_TupleList是代号，需要进行处理
-                    line2_module_head_cycletime_qty_TupleList.Add(new Tuple<string, string, string, string>(
-                        moduleCodeDict[truUnitNode[i].SelectSingleNode("./cfgModuleType1").InnerText],
-                        headCodeDict[truUnitNode[i].SelectSingleNode("./cfgHeadType1_1").InnerText],
-                        truUnitNode[i].SelectSingleNode("./CycleTime").InnerText,
-                        truUnitNode[i].SelectSingleNode("./Qty").InnerText
-                        )
-                        );
-                }
-                catch (Exception ex)
-                {
-                    throw ex;
-                }
+                MessageBox.Show("获取CPH出现了严重错误，请联系作者！");
+                return ;
             }
+
+
             //模组总数
 
             //模组统计
@@ -450,29 +439,29 @@ namespace Exicel转换1
             #region Remark  电气功率ip等。//未加入try LTCTry
             #region //生成Remake信息
             //
-            double gonglv = Count_M3 * ComprehensiveSaticClass.power_Dictionary["M3III"] +
-                Count_M6 * ComprehensiveSaticClass.power_Dictionary["M6III"] +
-                baseCount_2M * ComprehensiveSaticClass.power_Dictionary["2MBase"] +
-                baseCount_4M * ComprehensiveSaticClass.power_Dictionary["4MBase"];
-            int haoqiliang = baseCount_4M * ComprehensiveSaticClass.air_Consumption_Dictionary["4MBase"] +
-                baseCount_2M * ComprehensiveSaticClass.air_Consumption_Dictionary["2MBase"];
+            double gonglv = Count_M3 * ComprehensiveStaticClass.power_Dictionary["M3III"] +
+                Count_M6 * ComprehensiveStaticClass.power_Dictionary["M6III"] +
+                baseCount_2M * ComprehensiveStaticClass.power_Dictionary["2MBase"] +
+                baseCount_4M * ComprehensiveStaticClass.power_Dictionary["4MBase"];
+            int haoqiliang = baseCount_4M * ComprehensiveStaticClass.air_Consumption_Dictionary["4MBase"] +
+                baseCount_2M * ComprehensiveStaticClass.air_Consumption_Dictionary["2MBase"];
             int countu_ip = baseCount_2M + baseCount_4M;
-            double baseLength = ComprehensiveSaticClass.baseLength_Dictionary["2MBase"] * baseCount_2M +
-                ComprehensiveSaticClass.baseLength_Dictionary["4MBase"] * baseCount_4M;
+            double baseLength = ComprehensiveStaticClass.baseLength_Dictionary["2MBase"] * baseCount_2M +
+                ComprehensiveStaticClass.baseLength_Dictionary["4MBase"] * baseCount_4M;
             //最后拼接
-            string remark = string.Format("功率：{0}\n耗气量：{1}\n长度：{2}\nIP数：{3}",
+            string remark = string.Format("功率：{0}\n耗气量：{1}\n长度：{2}\n最少IP数：{3}",
                 gonglv, haoqiliang, baseLength, countu_ip);
             #endregion
             #endregion
 
-            #region //生成ExpressSummayDataTable
+            
 
+            #region //生成ExpressSummayDataTable
             //cPH 两个轨道综合的CPH，cycletime
-            DataTable expressSummayDataTable = ComprehensiveSaticClass.getExpressSummayDataTable(boardQty, Line,
+            DataTable expressSummayDataTable = ComprehensiveStaticClass.getExpressSummayDataTable(boardQty, Line,
                 Head_Type, jobName, Pannelsize, placementNumber, remark);
             //baseComprehensive.GetTheEndInfoDT()
             //SummaryEveryInfo.PictureDataByte = genJobsPicture(allModuleTypeString, module_Statistics);
-
             #endregion
 
             #region //获取Feeder type、feederQty
@@ -515,7 +504,7 @@ namespace Exicel转换1
             //getProductionModelThread.Start();
             GetProductionModel();
 
-            //获取 genLayoutEndDT，最后的cycletime cph layoutDT、feedernozzleDT
+            //获取 genLayoutEndDT，最后的cycletime cph theory_cph layoutDT、feedernozzleDT
             Tuple<double, int, DataTable, DataTable> layoutEndInfo_tuple = genLayoutEndDT(srRTFFile,productionMode,
                 line2_module_head_cycletime_qty_TupleList, feeder_Statistics, nozzle_Statistics);
             //判断是否获取到 
@@ -530,24 +519,59 @@ namespace Exicel转换1
             // CPP  链接报价单，未实现
             //以上由函数GetTheEndSummaryInfoDT实现
 
-            //获取最后的综合的 SummaryandLayout
-            theEndSummaryandLayout = new BaseComprehensive();
-            theEndSummaryandLayout.T_or_B = t_or_b;
-            theEndSummaryandLayout.MachineCount = MachineCount;
-            theEndSummaryandLayout.MachineKind = machineKind;
-            theEndSummaryandLayout.Jobname = jobName;
-            // machine_name   
-            //获取最后的SummaryinfoDT
-            theEndSummaryandLayout.GetTheEndSummaryInfoDT(expressSummayDataTable,
-                layoutEndInfo_tuple.Item1, layoutEndInfo_tuple.Item2);
-
             //所有模组type的string。获取最后的图片 byte
             string[] allModuleTypeString = new string[line2_module_head_cycletime_qty_TupleList.Count];
             for (int j = 0; j < line2_module_head_cycletime_qty_TupleList.Count; j++)
             {
                 allModuleTypeString[j] = line2_module_head_cycletime_qty_TupleList[j].Item1;
             }
-            theEndSummaryandLayout.PictureDataByte = ComprehensiveSaticClass.genJobsPicture(allModuleTypeString, module_Statistics);
+            #region //pictureData放在前面，未生成则不进行下面对象的创建
+            //判断是否获取成功图片的byte[]
+            byte[] pictureDataByte = ComprehensiveStaticClass.genJobsPicture(allModuleTypeString, module_Statistics);
+            if (pictureDataByte == null)
+            {
+                return;
+            }
+            #endregion
+
+            //获取最后的综合的 SummaryandLayout
+            theEndSummaryandLayout = new BaseComprehensive();
+            theEndSummaryandLayout.T_or_B = t_or_b;
+            theEndSummaryandLayout.MachineCount = MachineCount;
+            theEndSummaryandLayout.MachineKind = machineKind;
+            theEndSummaryandLayout.Jobname = jobName;
+            //获取CPHRate
+            //dr["module"] 
+            //dr["Head Type"] 
+            //dr["avgCPH"]
+            //dr["prior_productionCPH"]
+            //dr["high_precisionCPH"]
+            //dr["special"]
+            int theoryCPH = 0;
+            for (int i = 0; i < module_Head_TheoryCPH_Table.Rows.Count; i++)
+            {
+                //判断高速生产模式cph是否为 空
+                if (!module_Head_TheoryCPH_Table.Rows[i]["prior_productionCPH"].Equals(0))
+                {
+                    theoryCPH += System.Convert.ToInt32(module_Head_TheoryCPH_Table.Rows[i]["prior_productionCPH"]);
+                }
+                else if (!module_Head_TheoryCPH_Table.Rows[i]["avgCPH"].Equals(0))
+                {
+                    theoryCPH += System.Convert.ToInt32(module_Head_TheoryCPH_Table.Rows[i]["avgCPH"]);
+                }
+                else if (!module_Head_TheoryCPH_Table.Rows[i]["high_precisionCPH"].Equals(0))
+                {
+                    theoryCPH += System.Convert.ToInt32(module_Head_TheoryCPH_Table.Rows[i]["high_precisionCPH"]);
+                }
+                
+            }
+            string cphRate = string.Format("{0:P}", System.Convert.ToDouble(layoutEndInfo_tuple.Item2) / System.Convert.ToDouble(theoryCPH));
+            // machine_name
+            //获取最后的SummaryinfoDT
+            theEndSummaryandLayout.GetTheEndSummaryInfoDT(expressSummayDataTable,
+                layoutEndInfo_tuple.Item1, layoutEndInfo_tuple.Item2,cphRate);
+                        
+            theEndSummaryandLayout.PictureDataByte = pictureDataByte;
 
             theEndSummaryandLayout.layoutDT = layoutEndInfo_tuple.Item3;
             theEndSummaryandLayout.feederNozzleDT = layoutEndInfo_tuple.Item4;
@@ -568,6 +592,130 @@ namespace Exicel转换1
         }
 
         #endregion
+
+        public List<Tuple<string, string, string, string>> Getline2_module_head_cycletime_qty_TupleList(XmlDocument xml_TimingReportUnitNxt,
+            out DataTable module_Head_TheoryCPH_Table)
+        {
+            //使用元组存放module head cycletime  Qty
+            //获取 line2_module_head_cycletime_qty_TupleList 元组列表，使用sqlite
+            //调用方法
+            List<Tuple<string, string, string, string>> line2_module_head_cycletime_qty_TupleList =
+                new List<Tuple<string, string, string, string>>();
+
+            //获取line对应的module\head\Qty|cycletime信息 
+            XmlNodeList truUnitNode = xml_TimingReportUnitNxt.GetElementsByTagName("Unit");
+            
+
+            //初始化module_Head_TheoryCPH_Table对象
+            module_Head_TheoryCPH_Table = new DataTable();
+            //DataColumn dc = new DataColumn();
+            //dc.
+            module_Head_TheoryCPH_Table.Columns.Add("module");
+            module_Head_TheoryCPH_Table.Columns.Add("Head Type");
+            module_Head_TheoryCPH_Table.Columns.Add("avgCPH"); 
+            module_Head_TheoryCPH_Table.Columns.Add("prior_productionCPH");
+            module_Head_TheoryCPH_Table.Columns.Add("high_precisionCPH");
+            module_Head_TheoryCPH_Table.Columns.Add("special");
+
+            //定义dqlite的数据库连接对象
+
+            string connString = string.Format("Data Source={0};Version=3;", @".\convertDB.db");
+            SQLiteConnection liteConn = new SQLiteConnection();//创建数据库连接实例
+            liteConn.ConnectionString = connString;
+            try
+            {
+                liteConn.Open();
+            }
+            catch (Exception)
+            {
+                MessageBox.Show("连接失败");
+            }
+           
+            for (int i = 1; i < truUnitNode.Count; i++)//从1开始读取
+            {                
+                try
+                {
+                    //
+                    string moduleid = truUnitNode[i].SelectSingleNode("./cfgModuleType1").InnerText;
+                    string headid = truUnitNode[i].SelectSingleNode("./cfgHeadType1_1").InnerText;
+                    
+                    //sqlite的命令对象,查询moduleType
+                    SQLiteCommand command = new SQLiteCommand(string.Format("select moduletype from ModuleTable where moduleid={0};", moduleid),
+                        liteConn);
+                    if (liteConn.State == ConnectionState.Closed)
+                    {
+                        liteConn.Open();
+                    }
+                    string moduleType = command.ExecuteScalar().ToString();
+                    
+
+                    //查询headType
+                    command = new SQLiteCommand(string.Format("select head from HeadTable where headid={0};", headid),
+                        liteConn);
+                    if (liteConn.State == ConnectionState.Closed)
+                    {
+                        liteConn.Open();
+                    }
+                    string head = command.ExecuteScalar().ToString();
+                    
+
+                    //查询CPH
+                    string sqlQueryCPH = string.Format(
+                        "select a.moduletype,b.head,c.avgCPH,c.prior_productionCPH,c.high_precisionCPH,c.special from " +
+                        "ModuleTable a,HeadTable b ,CPHTable c where a.moduleid=c.moduleid and b.headid=c.headid and" +
+                        " c.headid={0} and c.moduleid={1};",
+                        headid, moduleid);
+                    command = new SQLiteCommand(sqlQueryCPH, liteConn);
+                    DataSet ds = new DataSet();
+                    if (liteConn.State == ConnectionState.Closed)
+                    {
+                        liteConn.Open();
+                    }
+                    SQLiteDataAdapter da = new SQLiteDataAdapter(command);
+                    da.Fill(ds);
+
+                    //datarow module_Head_TheoryCPH_Table
+                    DataRow dr = module_Head_TheoryCPH_Table.NewRow();
+                    for (int j = 0; j < ds.Tables[0].Rows.Count; j++)
+                    {
+                        if (j>0)//先跳过H24 S G head 的处理
+                        {
+                            continue;
+                        }
+                        dr["module"] = ds.Tables[0].Rows[j]["moduletype"];
+                        dr["Head Type"] = ds.Tables[0].Rows[j]["head"];
+                        dr["avgCPH"] = ds.Tables[0].Rows[j]["avgCPH"];
+                        dr["prior_productionCPH"] = ds.Tables[0].Rows[j]["prior_productionCPH"];
+                        dr["high_precisionCPH"] = ds.Tables[0].Rows[j]["high_precisionCPH"];
+                        dr["special"] = ds.Tables[0].Rows[j]["special"];
+                    }
+
+                    module_Head_TheoryCPH_Table.Rows.Add(dr);
+
+                    da.Dispose();
+                    command.Dispose();
+                    
+
+                    //得到的module_head_TupleList是代号，需要进行处理
+                    line2_module_head_cycletime_qty_TupleList.Add(new Tuple<string, string, string, string>(
+                        moduleType,
+                        head,
+                        truUnitNode[i].SelectSingleNode("./CycleTime").InnerText,
+                        truUnitNode[i].SelectSingleNode("./Qty").InnerText
+                        )
+                        );
+
+                }
+                catch (Exception ex)
+                {
+                    throw ex;
+                }
+            }
+
+            liteConn.Close();
+            return line2_module_head_cycletime_qty_TupleList;
+        }
+
 
         #region //生成layoutDataTable
         /// <summary>
@@ -858,15 +1006,17 @@ namespace Exicel转换1
             if (summaryandLayout_ComprehensiveList.Count > 0)
             {
                 //调用保存对话框
-                string excelFileName = ComprehensiveSaticClass.SaveExcleDialogShow();
+                string excelFileName = ComprehensiveStaticClass.SaveExcleDialogShow();
                 if (excelFileName == null)
                 {
                     return;
                 }
-                ComprehensiveSaticClass.genExcelfromBaseComprehensiveList(summaryandLayout_ComprehensiveList, excelFileName);
+                ComprehensiveStaticClass.genExcelfromBaseComprehensiveList(summaryandLayout_ComprehensiveList, excelFileName);
 
                 //保存完后清空列表 summaryandLayout_ComprehensiveList
-                summaryandLayout_ComprehensiveList = null;
+                //不能设置为null，导出后，再次打开目录 生成处理时summaryandLayout_ComprehensiveList.add添加报 null【未将对象引用设置到对象的实例】
+                //summaryandLayout_ComprehensiveList = null;
+                summaryandLayout_ComprehensiveList.Clear();//移除所有元素
                 //释放资源，未实现
 
             }

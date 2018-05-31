@@ -212,7 +212,7 @@ namespace Exicel转换1
             #region 
 
             //调用保存对话框
-            string excelFileName = ComprehensiveSaticClass.SaveExcleDialogShow();
+            string excelFileName = ComprehensiveStaticClass.SaveExcleDialogShow();
 
             //保存所需信息到Excel
             //ComprehensiveSaticClass.genExcelfromBaseComprehensive(excelFileName, baseComprehensive);

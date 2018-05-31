@@ -906,17 +906,17 @@ namespace Exicel转换1
 
                 #region //生成Remake信息
                 //
-                double gonglv = Count_M3 * ComprehensiveSaticClass.power_Dictionary["M3III"] + 
-                    Count_M6 * ComprehensiveSaticClass.power_Dictionary["M6III"] +
-                    baseCount_2M * ComprehensiveSaticClass.power_Dictionary["2MBase"] + 
-                    baseCount_4M * ComprehensiveSaticClass.power_Dictionary["4MBase"] +
-                    count_LT_Tray * ComprehensiveSaticClass.power_Dictionary["LT-Tray"] + 
-                    count_LTC_Tray * ComprehensiveSaticClass.power_Dictionary["LTC-Tray"];
-                int haoqiliang = baseCount_4M * ComprehensiveSaticClass.air_Consumption_Dictionary["4MBase"] + 
-                    baseCount_2M * ComprehensiveSaticClass.air_Consumption_Dictionary["2MBase"];
+                double gonglv = Count_M3 * ComprehensiveStaticClass.power_Dictionary["M3III"] + 
+                    Count_M6 * ComprehensiveStaticClass.power_Dictionary["M6III"] +
+                    baseCount_2M * ComprehensiveStaticClass.power_Dictionary["2MBase"] + 
+                    baseCount_4M * ComprehensiveStaticClass.power_Dictionary["4MBase"] +
+                    count_LT_Tray * ComprehensiveStaticClass.power_Dictionary["LT-Tray"] + 
+                    count_LTC_Tray * ComprehensiveStaticClass.power_Dictionary["LTC-Tray"];
+                int haoqiliang = baseCount_4M * ComprehensiveStaticClass.air_Consumption_Dictionary["4MBase"] + 
+                    baseCount_2M * ComprehensiveStaticClass.air_Consumption_Dictionary["2MBase"];
                 int countu_ip = baseCount_2M + baseCount_4M;
-                double baseLength = ComprehensiveSaticClass.baseLength_Dictionary["2MBase"] * baseCount_2M + 
-                    ComprehensiveSaticClass.baseLength_Dictionary["4MBase"] * baseCount_4M;
+                double baseLength = ComprehensiveStaticClass.baseLength_Dictionary["2MBase"] * baseCount_2M + 
+                    ComprehensiveStaticClass.baseLength_Dictionary["4MBase"] * baseCount_4M;
                 //最后拼接
                 remark = string.Format("功率：{0}\n耗气量：{1}\n长度：{2}\nIP数：{3}",
                     gonglv, haoqiliang, baseLength, countu_ip);
@@ -930,8 +930,8 @@ namespace Exicel转换1
                 expressSummaryEveryInfo.Conveyor = conveyor;
                 expressSummaryEveryInfo.MachineCount = machineCount;
                 //, cPH 两个轨道综合的CPH，由Layoutinfo获取
-                expressSummaryEveryInfo.SummaryInfoDT = ComprehensiveSaticClass.getExpressSummayDataTable(boardQty, Line, Head_Type, jobName, Pannelsize, placementNumber, remark);
-                expressSummaryEveryInfo.PictureDataByte = ComprehensiveSaticClass.genJobsPicture(allModuleTypeString, module_Statistics);
+                expressSummaryEveryInfo.SummaryInfoDT = ComprehensiveStaticClass.getExpressSummayDataTable(boardQty, Line, Head_Type, jobName, Pannelsize, placementNumber, remark);
+                expressSummaryEveryInfo.PictureDataByte = ComprehensiveStaticClass.genJobsPicture(allModuleTypeString, module_Statistics);
                 expressSummaryEveryInfo.AllModuleType = allModuleTypeString;
                 expressSummaryEveryInfo.AllHeadType = allHeadTypeString;
 
