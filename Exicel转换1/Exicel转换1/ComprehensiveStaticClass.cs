@@ -21,19 +21,43 @@ namespace Exicel转换1
     }
 
     //
+    //存放module head 理论CPH素有可能性，用以修改的结构
+    public struct Module_Head_Cph_Struct
+    {
+        public string[] moduleTrayTypestring;
+
+        public List<string> headTypeString_List;
+        public List<string[]> CPH_strings_List;
+    }
 
     //存放一些公共的静态方法、数据（字典）的静态类
     static class ComprehensiveStaticClass
     {
+        
         //电、气每种机器的值是固定的，使用字典，将字典放入结构中
+        //所有Tray：LTray-LTTray-LT2Tray-LTCTray-MTray。只在M6II\M6III上搭配Tray        
         static public Dictionary<string, double> power_Dictionary = new Dictionary<string, double>()
         {
+            {"M3",0.6 },
+            {"M3S",0.8 },
+            {"M6",0.6 },
+            {"M6S",1.0 },
+            {"M3II",1.5 },
+            {"M6II",1.5 },
+            {"M3IIc",1.5 },
+            {"M6IIc",1.5 },
             {"M3III",0.8 },
             {"M6III",0.9 },
+            {"M3IIIc",0.8 },
+            {"M6IIIc",0.9 },
+            {"2MBaseII", 1.0 },
+            {"4MBaseII",1.0 },
             {"2MBase", 0.5 },
-            {"4MBase",0.7 },
-            {"LT-Tray",0.5 },
-            {"LTC-Tray",0.5 }
+            {"4MBase",0.7 },//实际上为III代，应该写成全局配置参数，方便调整修改
+            {"LTray",0.1 },
+            {"LTTray",0.5 },
+            {"LT2Tray",0.5 },
+            {"LTCTray",0.5 }//M Tray
         };
         static public Dictionary<string, int> air_Consumption_Dictionary = new Dictionary<string, int>()
         {
@@ -102,7 +126,7 @@ namespace Exicel转换1
         /// <param name="excelHelper1"></param>
         /// <param name="sheetName"></param>
         /// <param name="insertPoint"></param>
-        public static byte[] genJobsPicture(string[] allModuleTypeString, Dictionary<string, int> module_Statistics)
+        public static byte[] GenJobsPicture(string[] allModuleTypeString, Dictionary<string, int> module_Statistics)
         {
 
             string img_M3 = @".\img\M3.png";
@@ -180,11 +204,7 @@ namespace Exicel转换1
                 stream.Read(PictureDataByte, 0, Convert.ToInt32(stream.Length));
             }
             return PictureDataByte;
-            #endregion
-
-
-
-            
+            #endregion                        
         }
         #endregion
 
@@ -221,15 +241,13 @@ namespace Exicel转换1
             }
         }
         #endregion
-
         
-
-        //将string插入Excel指定位置
-        private static void StringInsertWorkbook(ExcelHelper excelHelper1, string insertString, string sheetName, 
+        #region //将string插入Excel指定位置
+        private static void StringInsertWorkbook(ExcelHelper excelHelper1, string insertString, string sheetName,
             int[] insertPoint, short colorShort)
         {
-            StringInsertWorkbook(excelHelper1, insertString, sheetName, insertPoint, colorShort, Orientation.Origin, 0);                 
-        }
+            StringInsertWorkbook(excelHelper1, insertString, sheetName, insertPoint, Orientation.Origin, 0, null, colorShort);
+        }        
 
         //重载字符串插入sheet，指定合并插入时的单元格，合并方向和单元格数量
         //MergeOrientation
@@ -239,13 +257,13 @@ namespace Exicel转换1
         /// <param name="excelHelper1"></param>
         /// <param name="insertString"></param>
         /// <param name="sheetName"></param>
-        /// <param name="insertPoint"></param>
-        /// <param name="colorShort"></param>
+        /// <param name="insertPoint"></param>        
         /// <param name="mergeOrientation"></param>
         /// <param name="mergeNum">从插入位置开始合并单元格的数量</param>
-        /// <param name="WidthHeight">插入时的宽高，只实现了设置高度</param>
+        /// <param name="WidthHeight">插入string所在单元格的宽高，只实现了设置高度,null表示不设置宽高</param>
+        /// /// <param name="colorShort">colorShort NPOI颜色，0表示不设置颜色</param>
         private static void StringInsertWorkbook(ExcelHelper excelHelper1, string insertString, string sheetName,
-            int[] insertPoint, short colorShort, Orientation mergeOrientation,int mergeNum,int[] WidthHeight= null)
+            int[] insertPoint, Orientation mergeOrientation,int mergeNum, int[] WidthHeight, short colorShort)
         {
             IWorkbook workbook = excelHelper1.WorkBook;
             //FileStream fs = excelHelper1.FS;
@@ -294,11 +312,18 @@ namespace Exicel转换1
                 cellStyle.WrapText = true;
 
                 //设置背景
-                cellStyle.FillBackgroundColor = IndexedColors.White.Index;
-                cellStyle.FillForegroundColor = colorShort;
-                cellStyle.FillPattern = FillPattern.SolidForeground;
+                //if (colorShort == 0)
+                //{
+                //    colorShort = IndexedColors.Automatic.Index;
+                //}
+                if(colorShort!=0)
+                {
+                    cellStyle.FillBackgroundColor = IndexedColors.White.Index;
+                    cellStyle.FillForegroundColor = colorShort;
+                    cellStyle.FillPattern = FillPattern.SolidForeground;
+                }                
 
-                //设置边框在，在合并的单元格中，边框未应用到整个合并单元格
+                //设置边框，在合并的单元格中，边框未应用到整个合并单元格
                 //cellStyle.BorderBottom = NPOI.SS.UserModel.BorderStyle.Thick;
                 //cellStyle.BorderTop = NPOI.SS.UserModel.BorderStyle.Thick;
                 //cellStyle.BorderLeft = NPOI.SS.UserModel.BorderStyle.Thick;
@@ -314,6 +339,7 @@ namespace Exicel转换1
                 MessageBox.Show(ex.Message);
             }
         }
+        #endregion
 
         /// <summary>
         /// 
@@ -465,8 +491,8 @@ namespace Exicel转换1
                             cellStyle.WrapText = true;
 
                             //设置cellstyle背景
-                            cellStyle.FillBackgroundColor = IndexedColors.Black.Index;
-                            cellStyle.FillForegroundColor = IndexedColors.LightGreen.Index;
+                            //cellStyle.FillBackgroundColor = IndexedColors.Automatic.Index;
+                            //cellStyle.FillForegroundColor = IndexedColors.Automatic.Index;
 
                             //设置边框
                             cellStyle.BorderBottom = NPOI.SS.UserModel.BorderStyle.Thin;
@@ -474,10 +500,11 @@ namespace Exicel转换1
                             cellStyle.BorderLeft = NPOI.SS.UserModel.BorderStyle.Thin;
                             cellStyle.BorderRight = NPOI.SS.UserModel.BorderStyle.Thin;
 
-                            
+
                             if (i == sheet.LastRowNum)
                             {
-                                cellStyle.FillForegroundColor = IndexedColors.White.Index;
+                                //设置数据含前景色白色
+                                //cellStyle.FillForegroundColor = IndexedColors.White.Index;
                                 //最后的的remark数据行，设置字体
                                 //使用cells.Count可以进入最后一个数据
                                 if (j == row.LastCellNum-1)
@@ -588,7 +615,8 @@ namespace Exicel转换1
 
         }
 
-        private static void setSecondSheetStyle(ISheet sheet, int mergeLastCount)
+        #region 设置layout sheet的样式
+        private static void SetSecondSheetStyle(ISheet sheet, int mergeLastCount)
         {
             //应使用静态方法，可以获取不规则行列的sheet的最大与最小列
             int sheetColumns = ExcelHelper.sheetColumns(sheet);
@@ -623,8 +651,8 @@ namespace Exicel转换1
                 {
                     //设置第一次数据行的行高和和合并，在cell循环之外。
                     if (isFirstDataRow)
-                    {                        
-                        sheet.GetRow(i).HeightInPoints = 50;                        
+                    {
+                        sheet.GetRow(i).HeightInPoints = 50;
                         //第一次运行完后，变为非第一行
                         isFirstDataRow = false;
                     }
@@ -682,6 +710,8 @@ namespace Exicel转换1
             #endregion
 
         }
+        #endregion
+
 
         /// <summary>
         /// 插入图片在ExcelHelper中sheetName表中
@@ -720,19 +750,20 @@ namespace Exicel转换1
             int endRow = startRow + 1;
             int endCol = startCol + 1;
             //根据模组数量长度，变更结束单元格位置
-            
-            if (machineCount > 14)
+
+            if (machineCount > 3)
             {
-                endCol = startCol + 4;
+                endCol = startCol + 2;
             }
             if (machineCount > 7)
             {
                 endCol = startCol + 3;
             }
-            if (machineCount > 3)
+            if (machineCount > 14)
             {
-                endCol = startCol + 2;
-            }
+                startCol--;
+                endCol = startCol + 4;
+            }          
 
             //偏移依旧不起作用
             excelHelper1.pictureDataToSheet(sheet1, PictureDataByte, 50, 10, 50, 10, startRow, startCol, endRow, endCol);
@@ -741,7 +772,7 @@ namespace Exicel转换1
             if (hideborderOrientation==Orientation.Horizontal)
             {
                 IRow rowPicture = sheet1.GetRow(insertPoint[0]);
-                for (int i = 0; i < hideborderCellNum-1; i++)
+                for (int i = 1; i < hideborderCellNum-1; i++)
                 {
                     //设置单元格边框右边为空
                     ICellStyle cellStyle = workbook.CreateCellStyle();
@@ -782,7 +813,7 @@ namespace Exicel转换1
             return true;
         }
         //从BaseComprehensive列表List 按同一机种、同一配置生成Excel
-        static public void genExcelfromBaseComprehensiveList(List<BaseComprehensive> baseComprehensiveList,string excelFileName)
+        static public void GenExcelfromBaseComprehensiveList(List<BaseComprehensive> baseComprehensiveList,string excelFileName)
         {
             if (baseComprehensiveList.Count==0)
             {
@@ -951,21 +982,23 @@ namespace Exicel转换1
                 //其他job的正常处理
                 if (theOrther_Number.Count>0)
                 {
+                    ////layoutFT的插入位置，同样固定即可。为第二行2
                     //layout  插入的位置,第一个layout插入默认从2开始
-                    int layoutInsertRowNum = 2;
+                    //int layoutInsertRowNum = 2;
                     for (int j = 0; j < theOrther_Number.Count; j++)
                     {
                         //获取当前 组的 不同 baseComprehensive的sheetName
                         string sheetName = "sheet"+(j+1);
-                        //计算layoutInsertRowNum插入的位置
-                        if (j > 0)
-                        {
-                            layoutInsertRowNum += (baseComprehensiveList[theOrther_Number[j - 1]].feederNozzleDT.Rows.Count + 5);
-                        }
+                        
+                        ////计算layoutInsertRowNum插入的位置
+                        //if (j > 0)
+                        //{
+                        //    layoutInsertRowNum += (baseComprehensiveList[theOrther_Number[j - 1]].feederNozzleDT.Rows.Count + 5);
+                        //}
 
-                        //将    插入workbook
+                        //其他job的正常处理 将 BaseComprehensive对象 插入workbook，每次都是单独的sheet，插入位置固定第二行
                         InsertWorkbookfromBaseComprehensive(excelHelper1, sheetName, baseComprehensiveList[theOrther_Number[j]],
-                            2 + j * 6, layoutInsertRowNum);
+                            2 , 2);
                     }
                 }
 
@@ -977,60 +1010,66 @@ namespace Exicel转换1
 
         }
 
-        //在指定位置（行）插入baseComprehensive，解决多个baseComprehensive时插入Excel
+        #region //在指定位置（行）插入baseComprehensive，解决多个baseComprehensive时插入Excel
         //使用参数ExcelHelper类,插入成功返回true
         //summaryInfo插入的位置，LayoutDT插入的位置
-        static void InsertWorkbookfromBaseComprehensive(ExcelHelper excelHelper1,string sheetName, BaseComprehensive baseComprehensive,
-            int summaryInsertRowNum,int layoutInsertRowNum,bool isTheSameModule=false)
+        static void InsertWorkbookfromBaseComprehensive(ExcelHelper excelHelper1, string sheetName, BaseComprehensive baseComprehensive,
+            int summaryInsertRowNum, int layoutInsertRowNum, bool isTheSameModule = false)
         {
             #region 第一个sheet的获取和生成
             //第一个sheet的标题，以字符串形式插入
             string oneTitle = "FUJI Line Throughput Report " + baseComprehensive.MachineKind;
-
+                        
+            //sheetname太长时无法创建对应的sheet。截取前16长度
+            if (sheetName.Length>16)
+            {
+                sheetName = sheetName.Substring(0, 16);
+            }
             string sheet1 = sheetName;
+                       
             //判断同一机种是否是第一次插入(包含图片、title、DataTable)，是否是第二次插入
             if (isTheSameModule)
             {
-                if (excelHelper1.WorkBook.GetSheet(sheet1)==null)
+                if (excelHelper1.WorkBook.GetSheet(sheet1) == null)
                 {
                     //插入sheet对应表格的datatable
-                    DataTableToResultSheet1(excelHelper1, baseComprehensive.SummaryInfoDT, sheet1, true, 
+                    DataTableToResultSheet1(excelHelper1, baseComprehensive.SummaryInfoDT, sheet1, true,
                         new int[2] { summaryInsertRowNum + 2, 1 });
                     //插入标题
-                    StringInsertWorkbook(excelHelper1, oneTitle, sheet1, new int[2] { summaryInsertRowNum, 1 }, IndexedColors.BrightGreen.Index,
-                        Orientation.Horizontal, baseComprehensive.SummaryInfoDT.Columns.Count, new int[] { 0, 45 });
+                    StringInsertWorkbook(excelHelper1, oneTitle, sheet1, new int[2] { summaryInsertRowNum, 1 },
+                        Orientation.Horizontal, baseComprehensive.SummaryInfoDT.Columns.Count, new int[] { 0, 45 }, 0);
 
                     //插入图片位置信息
                     //StringInsertWorkbook(excelHelper1, "", sheet1, new int[2] { 2, 1 }, IndexedColors.LightGreen.Index);
                     //Line_short 需要以画布的形式写入，而不是单元格内的文字;
                     //插入图片
                     insertPictureToWorbook(excelHelper1, sheet1, new int[2] { summaryInsertRowNum+1,
-                        1 }, baseComprehensive.PictureDataByte, baseComprehensive.MachineCount,
+                        1 }, baseComprehensive.PictureDataByte, baseComprehensive.ModuleCount,
                         Orientation.Horizontal, baseComprehensive.SummaryInfoDT.Columns.Count, new int[] { 0, 80 });
                 }
                 else
                 {
                     //插入sheet对应表格的datatable
                     //插入行+1，直插入表数据，不插入column name即可
-                    DataTableToResultSheet1(excelHelper1, baseComprehensive.SummaryInfoDT, sheet1, false, 
+                    DataTableToResultSheet1(excelHelper1, baseComprehensive.SummaryInfoDT, sheet1, false,
                         new int[2] { summaryInsertRowNum, 1 });
                 }
-                
+
             }
             else
             {
                 //插入sheet对应表格的datatable
                 DataTableToResultSheet1(excelHelper1, baseComprehensive.SummaryInfoDT, sheet1, true, new int[2] { summaryInsertRowNum + 2, 1 });
                 //插入标题
-                StringInsertWorkbook(excelHelper1, oneTitle, sheet1, new int[2] { summaryInsertRowNum, 1 }, IndexedColors.BrightGreen.Index,
-                    Orientation.Horizontal, baseComprehensive.SummaryInfoDT.Columns.Count, new int[] { 0, 45 });
+                StringInsertWorkbook(excelHelper1, oneTitle, sheet1, new int[2] { summaryInsertRowNum, 1 },
+                    Orientation.Horizontal, baseComprehensive.SummaryInfoDT.Columns.Count, new int[] { 0, 45 }, 0);
 
                 //插入图片位置信息
                 //StringInsertWorkbook(excelHelper1, "", sheet1, new int[2] { 2, 1 }, IndexedColors.LightGreen.Index);
                 //Line_short 需要以画布的形式写入，而不是单元格内的文字;
                 //插入图片
                 insertPictureToWorbook(excelHelper1, sheet1, new int[2] { summaryInsertRowNum+1,
-                1 }, baseComprehensive.PictureDataByte, baseComprehensive.MachineCount,
+                1 }, baseComprehensive.PictureDataByte, baseComprehensive.ModuleCount,
                     Orientation.Horizontal, baseComprehensive.SummaryInfoDT.Columns.Count, new int[] { 0, 80 });
             }
             #endregion
@@ -1042,25 +1081,25 @@ namespace Exicel转换1
             string ProposalString = "Proposal \n Layout";
 
             //获取生成的第二个sheet对象在Excel对应的sheetname
-            string sheet2 = sheetName+"layout";
+            string sheet2 = sheetName + "layout";
 
             //插入sheet对应表格的datatable
             //插入位置
             int[] layoutInsertPoint = new int[2] { layoutInsertRowNum, 2 };
 
             //插入layoutDT
-            DataTableToResultSheet2(excelHelper1, baseComprehensive.layoutDT, sheet2, true, new int[2] { layoutInsertPoint[0] + 1, layoutInsertPoint[1] });
+            DataTableToResultSheet2(excelHelper1, baseComprehensive.layoutDT, sheet2, true,
+                new int[2] { layoutInsertPoint[0] + 1, layoutInsertPoint[1] });
             //插入feederNozzleDT
             DataTableToResultSheet2(excelHelper1, baseComprehensive.feederNozzleDT, sheet2, true,
                 new int[2] { layoutInsertPoint[0] + 1, layoutInsertPoint[1] + 10 });
             //插入标题
             StringInsertWorkbook(excelHelper1, secondTitle, sheet2, layoutInsertPoint,
-                IndexedColors.BrightGreen.Index, Orientation.Horizontal,
-                baseComprehensive.layoutDT.Columns.Count + baseComprehensive.feederNozzleDT.Columns.Count);
+                 Orientation.Horizontal, baseComprehensive.layoutDT.Columns.Count + baseComprehensive.feederNozzleDT.Columns.Count, new int[2] { 0, 50 }, 0);
 
             //插入建议
-            StringInsertWorkbook(excelHelper1, ProposalString, sheet2, new int[2] { layoutInsertPoint[0], layoutInsertPoint[1]-1 }, IndexedColors.BrightGreen.Index,
-                Orientation.Vertical, baseComprehensive.layoutDT.Rows.Count + 1, new int[2] { 0, 50 });
+            StringInsertWorkbook(excelHelper1, ProposalString, sheet2, new int[2] { layoutInsertPoint[0], layoutInsertPoint[1] - 1 },
+                Orientation.Vertical, baseComprehensive.layoutDT.Rows.Count + 1, null, 0);
             //StringInsertWorkbook(excelHelper1, ProposalString, sheet2, new int[2] { 2, 1 }, IndexedColors.BrightGreen.Index);
             #endregion
 
@@ -1091,8 +1130,9 @@ namespace Exicel转换1
             //excelHelper = null;
             //excelHelper_another = null;
         }
+        #endregion
 
-        //插入单个baseComprehensive 到Workbook
+        #region //插入单个baseComprehensive 到Workbook
         //在指定位置（行）插入baseComprehensive，解决多个baseComprehensive时插入Excel
         //使用参数ExcelHelper类
         static public void InsertWorkbookfromBaseComprehensive(ExcelHelper excelHelper1, string sheetName, BaseComprehensive baseComprehensive)
@@ -1100,6 +1140,7 @@ namespace Exicel转换1
             //不指定插入行，默认第二行插入。
             InsertWorkbookfromBaseComprehensive(excelHelper1, sheetName, baseComprehensive, 2, 2);
         }
+        #endregion
 
         #region //从生成excelFileName生成Excel，插入BaseComprehensive对应的各个信息到Excel
         static public void GenExclefromBaseComprehensive(string excelFileName, string sheetName,BaseComprehensive baseComprehensive)
@@ -1122,6 +1163,214 @@ namespace Exicel转换1
             excelHelper1.SaveWorkbook();
         }
         #endregion
+
+        #region 获取时间戳 
+        /// <summary> 
+        /// 获取时间戳 
+        /// </summary> 
+        /// <returns>时间戳字符串</returns> 
+        public static Int64 GetTimeStamp()
+        {
+            TimeSpan ts = DateTime.UtcNow - new DateTime(1970, 1, 1, 0, 0, 0, 0);
+
+            return Convert.ToInt64(ts.TotalMilliseconds);
+        }
+        #endregion
+
+        #region //获取模组的统计字典
+        /// <summary>
+        /// 获取模组的统计字典
+        /// </summary>
+        /// <param name="allModuleStrings">所有模组的字符串</param>
+        /// <returns></returns>
+        public static Dictionary<string, int> GenModuleStasticsDictFromModuleStrings(string[] allModuleStrings)
+        {
+            //模组统计
+            //字典，存放<模组类型:模组个数> //创建统计模组信息的字典
+            Dictionary<string, int> module_StatisticsDict = new Dictionary<string, int>();
+            for (int j = 0; j < allModuleStrings.Length; j++)
+            {
+                if (module_StatisticsDict.ContainsKey(allModuleStrings[j]))
+                {
+                    module_StatisticsDict[allModuleStrings[j]]++;
+                }
+                else
+                {
+                    module_StatisticsDict.Add(allModuleStrings[j], 1);
+                }
+            }
+            return module_StatisticsDict;
+        }
+        #endregion
+
+        #region // 获取Head的统计字典
+        ///// <summary>
+        ///// 获取Head的统计字典
+        ///// </summary>
+        ///// <param name="allHeadStrings">所有Head的字符串</param>
+        ///// <returns></returns>
+        //public static Dictionary<string, int> GenHeadStasticsDictFromHeadStrings(string[] allHeadStrings)
+        //{
+        //    Dictionary<string, int> Head_Statistics = new Dictionary<string, int>();
+        //    for (int j = 0; j < allHeadStrings.Length; j++)
+        //    {
+        //        // 只有两种情况，包含key和不包含key
+        //        if (Head_Statistics.ContainsKey(allHeadStrings[j]))
+        //        {
+        //            Head_Statistics[allHeadStrings[j]] += 1;
+        //        }
+        //        else //if (!Head_Statistics.ContainsKey(allHeadTypeString[j]))
+        //        {
+        //            Head_Statistics.Add(allHeadStrings[j], 1);
+        //        }
+        //    }
+        //    return Head_Statistics;
+        //}
+        #endregion
+
+        #region //获取拼接的line字符串
+        /// <summary>
+        /// 获取拼接的line字符串LineString
+        /// </summary>
+        /// <param name="module_StatisticsDict">模组统计字典</param>
+        /// <param name="base_StatisticsDict">base统计字典</param>
+        /// <param name="machineKind">机器种类</param>
+        /// <returns></returns>
+        public static string GenLineStringFromModuleStasticsBaseStastics(Dictionary<string, int> module_StatisticsDict,
+            Dictionary<string, int> base_StatisticsDict, string machineKind)
+        {
+            //"/r/n" 回车换行符
+            string Line = "";
+            string Line_short = "";
+            foreach (var item in module_StatisticsDict)
+            {
+                Line_short += item.Key + "*" + item.Value.ToString() + "+";
+            }
+            Line_short = machineKind + "-(" + Line_short.Substring(0, Line_short.Length - 1) + ")";
+
+            //判断4Mhe 2M base的数量，进行拼接
+            if (base_StatisticsDict["2MBASE"] == 0)
+            {
+                Line = Line_short + "\n" + "4MBASE III * " + base_StatisticsDict["4MBASE"];
+            }
+            if (base_StatisticsDict["2MBASE"] != 0 && base_StatisticsDict["4MBASE"] != 0)
+            {
+                Line = Line_short + "\n" + "4MBASE III * " + base_StatisticsDict["4MBASE"] + "+2MBASE III * " + base_StatisticsDict["2MBASE"];
+            }
+            if (base_StatisticsDict["4MBASE"] == 0)
+            {
+                Line = Line_short + "\n" + "2MBASE III * " + base_StatisticsDict["2MBASE"];
+            }
+            return Line;
+        }
+        #endregion
+
+        #region //获取HeadType拼接字符串
+        /// <summary>
+        /// 获取HeadType拼接字符串
+        /// </summary>
+        /// <param name="allHeadStrings">所有Head的字符串</param>
+        /// <returns></returns>
+        public static string GenHeadTypeFormHeadStrings(string[] allHeadStrings)
+        {
+            Dictionary<string, int> Head_Statistics = new Dictionary<string, int>();
+            for (int j = 0; j < allHeadStrings.Length; j++)
+            {
+                // 只有两种情况，包含key和不包含key
+                if (Head_Statistics.ContainsKey(allHeadStrings[j]))
+                {
+                    Head_Statistics[allHeadStrings[j]] += 1;
+                }
+                else //if (!Head_Statistics.ContainsKey(allHeadTypeString[j]))
+                {
+                    Head_Statistics.Add(allHeadStrings[j], 1);
+                }
+            }
+
+            //获取拼接HeadType
+            string Head_Type = string.Empty;
+            foreach (var item in Head_Statistics)
+            {
+                Head_Type += item.Key + "*" + item.Value + "+";
+            }
+            Head_Type = Head_Type.Substring(0, Head_Type.Length - 1);
+
+            return Head_Type;
+        }
+        #endregion
+
+        #region // 生成随后的Remark信息
+        /// <summary>
+        /// 生成随后的Remark信息
+        /// </summary>
+        /// <param name="module_StatisticsDict">模组统计字典</param>
+        /// <param name="base_StatisticsDict">base统计字典</param>
+        /// <returns></returns>
+        public static string GenRemarkFromModuleBaseStasticsDict(Dictionary<string, int> module_StatisticsDict,
+            Dictionary<string, int> base_StatisticsDict)
+        {
+            return GenRemarkFromModuleBaseStasticsDict( module_StatisticsDict,base_StatisticsDict,null);
+        }
+        #endregion
+
+        /// <summary>
+        /// 重载，加载计算Tray的功率。
+        /// </summary>
+        /// <param name="module_StatisticsDict"></param>
+        /// <param name="base_StatisticsDict"></param>
+        /// <param name="allTrayStrings"></param>
+        /// <returns></returns>
+        public static string GenRemarkFromModuleBaseStasticsDict(Dictionary<string, int> module_StatisticsDict,
+            Dictionary<string, int> base_StatisticsDict,string[] allTrayStrings)
+        {
+            #region //生成Remake信息
+            //
+            //使用循环获取key的方法，取值。否则有个可能没有相关的key，无法取值报错
+            double gonglv = 0.00;
+            //Tray盘功率
+            if (allTrayStrings!=null&&allTrayStrings.Length>0)
+            {
+                Dictionary<string, int> tray_StatisticsDict = new Dictionary<string, int>();
+                for (int i = 0; i < allTrayStrings.Length; i++)
+                {
+                    if (tray_StatisticsDict.ContainsKey(allTrayStrings[i]))
+                    {
+                        tray_StatisticsDict[allTrayStrings[i]]++;
+                    }
+                    else
+                    {
+                        tray_StatisticsDict.Add(allTrayStrings[i],1);
+                    }
+                }
+                //加Tray功率
+                foreach (var tray_Statistics in tray_StatisticsDict)
+                {
+                    gonglv += tray_StatisticsDict[tray_Statistics.Key] * power_Dictionary[tray_Statistics.Key];
+                }
+            }
+
+            //加模组功率
+            foreach (var module_Statistics in module_StatisticsDict)
+            {
+                gonglv += module_StatisticsDict[module_Statistics.Key] * power_Dictionary[module_Statistics.Key];
+            }
+            //加base功率
+            gonglv += base_StatisticsDict["2MBASE"] * power_Dictionary["2MBase"] +
+                base_StatisticsDict["4MBASE"] * power_Dictionary["4MBase"];
+
+            //计算base耗气量
+            int haoqiliang = base_StatisticsDict["4MBASE"] * air_Consumption_Dictionary["4MBase"] +
+                base_StatisticsDict["2MBASE"] * air_Consumption_Dictionary["2MBase"];
+            //计算需要的ip
+            int countu_ip = base_StatisticsDict["2MBASE"] + base_StatisticsDict["4MBASE"];
+            //base长度
+            double baseLength = ComprehensiveStaticClass.baseLength_Dictionary["2MBase"] * base_StatisticsDict["2MBASE"] +
+                ComprehensiveStaticClass.baseLength_Dictionary["4MBase"] * base_StatisticsDict["4MBASE"];
+            //最后拼接
+            return string.Format("功率：{0}\n耗气量：{1}\n长度：{2}\n当前IP数：{3}",
+                gonglv, haoqiliang, baseLength, countu_ip);
+            #endregion
+        }
     }
 
     #region //构造一个对象，里面存放
@@ -1129,19 +1378,31 @@ namespace Exicel转换1
     //图片信息pictureDataByte(byte[]),machineKind summaryInfo表格sheet的标题，
     //AllModuleType 所有module的信息，AllHeadType 所有Head的信息，对比是否为不同配置
     //Jobname  对比不同机种
-    class ExpressSummaryEveryInfo
+    public class ExpressSummaryEveryInfo
     {
         private string jobname;
         private string t_or_b;
         private string targetConveyor;
         private string conveyor;
-        private int machineCount;
+        private int moduleCount;
         private DataTable summaryInfoDT;
         private byte[] pictureDataByte;
         private string machineKind;
         private string[] allModuleType;
         private string[] allHeadType;
+        private string[] allTrayStrings;
 
+        public string[] AllTrayStrings
+        {
+            set
+            {
+                allTrayStrings = value;
+            }
+            get
+            {
+                return allTrayStrings;
+            }
+        }
         public string T_or_B
         {
             get
@@ -1186,15 +1447,15 @@ namespace Exicel转换1
                 return conveyor;
             }
         }
-        public int MachineCount
+        public int ModuleCount
         {
             set
             {
-                machineCount = value;
+                moduleCount = value;
             }
             get
             {
-                return machineCount;
+                return moduleCount;
             }
         }
         public DataTable SummaryInfoDT
@@ -1255,11 +1516,34 @@ namespace Exicel转换1
     }
 
     //新的类，或者construct，继承 SummaryEveryInfo, 在加上layoutExpressInfo中的信息
-    class BaseComprehensive : ExpressSummaryEveryInfo
+    /// <summary>
+    /// BaseComprehensive类，TimeStamp初始化时赋值，只读属性，不允许在其他时刻修改
+    /// </summary>
+    public class BaseComprehensive : ExpressSummaryEveryInfo
     {
+        private Int64 timeStamp;
         public DataTable layoutDT;
         public DataTable feederNozzleDT;
         public DataTable totalfeederNozzleDT;
+        private int baseCount_M_TotalM3;
+        public Dictionary<string, int> base_StatisticsDict;       
+        public Dictionary<string, int> module_StatisticsDict;       
+        
+        public List<Module_Head_Cph_Struct> module_Head_Cph_Structs_List = null;        
+
+        public Int64 TimeStamp
+        {
+            get
+            {
+                return this.timeStamp;
+            }
+        }
+
+        //timestamp唯一标识 BaseComprehensive 对象，必须要赋值
+        public BaseComprehensive(Int64 timeStamp)
+        {
+            this.timeStamp = timeStamp;
+        }
 
         //综合计算后的 最终的summaryInfoDT
         public void GetTheEndSummaryInfoDT(DataTable expressSummaryInfoDT, string cycletime, string cPH,string cphRate)
@@ -1285,10 +1569,65 @@ namespace Exicel转换1
             this.SummaryInfoDT = expressSummaryInfoDT;
         }
 
-        //综合计算后的 最终的LayoutDT
-        public void GetTheEndLayoutDT(DataTable expressLayoutDT1, DataTable expressLayoutDT2)
+        /// <summary>
+        /// 修改后更新数据的方法
+        /// </summary>
+        /// <param name="module_Head_Cph_Structs_List"></param>
+        /// <param name="base_StatisticsDict"></param>
+        /// List<Module_Head_Cph_Struct> module_Head_Cph_Structs_List, 引用类型，已更新过来
+        ///Dictionary<string, int> base_StatisticsDict
+        public void UpdateForSelfAfterModefy()
         {
+            //public Dictionary<string, int> base_StatisticsDict;
 
+            //统计所有Tray的数字，不定长
+            List<string> allTrayList = new List<string>();
+
+            //public List<Module_Head_Cph_Struct> module_Head_Cph_Structs_List = null;
+            double cphTheory =0.00;
+            //更新allmodule head cph layout
+            for (int i = 0; i < module_Head_Cph_Structs_List.Count; i++)
+            {
+                AllModuleType[i] = module_Head_Cph_Structs_List[i].moduleTrayTypestring[0];
+                AllHeadType[i] = module_Head_Cph_Structs_List[i].headTypeString_List[0];
+                layoutDT.Rows[i][2] = module_Head_Cph_Structs_List[i].moduleTrayTypestring[0];
+                layoutDT.Rows[i][3] = module_Head_Cph_Structs_List[i].headTypeString_List[0];
+
+                //提取Tray盘信息
+                if (AllModuleType[i].Split('-').Length>1)
+                {
+                    allTrayList.Add(AllModuleType[i].Split('-')[1]);
+                }
+                cphTheory += Convert.ToDouble(module_Head_Cph_Structs_List[i].CPH_strings_List[0][0].Split('-')[1]);
+            }
+            //更新所有的TrayStrings
+            AllTrayStrings = allTrayList.ToArray();
+            //更新summaryDT中的：
+            //  更新Line、HeadType、CPHRate、Remark
+            //获取Line
+            //获取moduleStasticsDict
+            //未加入统计和计算Tray的字典，暂时不更新module字典，否则报错
+            //Dictionary<string, int> moduleStasticsDict = ComprehensiveStaticClass.GenModuleStasticsDictFromModuleStrings(
+            //    this.AllModuleType);
+
+            //allmodule的字符串
+            
+
+            string Line = ComprehensiveStaticClass.GenLineStringFromModuleStasticsBaseStastics(
+                module_StatisticsDict, base_StatisticsDict, MachineKind);
+            //获取HeadType
+            string headType = ComprehensiveStaticClass.GenHeadTypeFormHeadStrings(AllHeadType);
+            //获取CPHRate
+            string cphRate = string.Format("{0:P}", Convert.ToDouble(SummaryInfoDT.Rows[0]["CPH"]) / cphTheory);
+            //获取Remark
+            string remark = ComprehensiveStaticClass.GenRemarkFromModuleBaseStasticsDict(module_StatisticsDict,
+                base_StatisticsDict, AllTrayStrings);
+
+            //更新summaryDT
+            SummaryInfoDT.Rows[0]["Line"] = Line;
+            SummaryInfoDT.Rows[0]["Head \nType"] = headType;
+            SummaryInfoDT.Rows[0]["CPH Rate"] = cphRate;
+            SummaryInfoDT.Rows[0]["Remark"] = remark;
         }
     }
 

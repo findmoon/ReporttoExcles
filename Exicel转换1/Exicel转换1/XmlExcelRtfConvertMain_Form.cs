@@ -10,24 +10,18 @@ using System.Windows.Forms;
 
 namespace Exicel转换1
 {
-    public partial class Form1 : Form
+    public partial class XmlExcelRtfConvertMain_Form : Form
     {
         public LineCfg lineCfg;
         public FlexCVReport flexCVCReport;
         public XmlReport xmlReport;
 
-        public Form1()
+        public XmlExcelRtfConvertMain_Form()
         {
             InitializeComponent();
         }
 
         
-
-        private void button3_Click(object sender, EventArgs e)
-        {
-
-        }
-
         private void Form1_Load(object sender, EventArgs e)
         {
             lineCfg = new LineCfg();//给窗体变量初始化
@@ -36,6 +30,12 @@ namespace Exicel转换1
 
             xmlReport.Show();//显示xmlreport窗体控件
             GpbWindow.Controls.Add(xmlReport);//加载xmlreport窗体控件
+
+            //禁用和隐藏两个按钮
+            FlexCVWindow.Enabled = false;
+            FlexCVWindow.Visible = false;
+            LinCfgWindow.Enabled = false;
+            LinCfgWindow.Visible = false;
         }
 
         private void XmlWindow_Click(object sender, EventArgs e)
@@ -65,11 +65,6 @@ namespace Exicel转换1
             flexCVCReport.Hide();
             GpbWindow.Controls.Clear();
             GpbWindow.Controls.Add(lineCfg);
-        }
-
-        private void GpbWindow_Enter(object sender, EventArgs e)
-        {
-
-        }
+        }       
     }
 }

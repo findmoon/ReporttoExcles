@@ -10,6 +10,7 @@ using System.Xml;
 using System.IO;
 using System.Threading;
 using System.Data.SQLite;
+using System.Text.RegularExpressions;
 
 namespace Exicel转换1
 {
@@ -28,36 +29,31 @@ namespace Exicel转换1
 
         int openFolderNum = 0;
 
-        //模组代码对应的模组类型的 字典
-        Dictionary<string, string> moduleCodeDict = new Dictionary<string, string>()
-        {
-            {"601","M3III" },
-            {"602","M6III" }
-        };
-        //Head代码对应的head类型的 字典
-        Dictionary<string, string> headCodeDict = new Dictionary<string, string>()
-        {
-            {"15","H24" },
-            {"18","H04SF" }
-        };
-
-        //存放生产模式的变量
-        string productionMode = null;
-        public string ProductionMode
-        {
-            set
-            {
-                productionMode = value;
-            }
-        }
+        ////模组代码对应的模组类型的 字典
+        //Dictionary<string, string> moduleCodeDict = new Dictionary<string, string>()
+        //{
+        //    {"601","M3III" },
+        //    {"602","M6III" }
+        //};
+        ////Head代码对应的head类型的 字典
+        //Dictionary<string, string> headCodeDict = new Dictionary<string, string>()
+        //{
+        //    {"15","H24" },
+        //    {"18","H04SF" }
+        //};
+                
+        //public string ProductionMode
+        //{
+        //    set
+        //    {
+        //        productionMode = value;
+        //    }
+        //}
 
         //最后包含summary和layout(layouInfoDT feederNozzleDT)的信息的list，实现可以打开多个export文件夹
         List<BaseComprehensive> summaryandLayout_ComprehensiveList = new List<BaseComprehensive>();
 
-        //最后包含summaryInfo和layouInfoDT feederNozzleDT的信息
-        BaseComprehensive theEndSummaryandLayout = null;
-
-
+        
         //已打开开的目录
         string pathXmlFolder = null;
 
@@ -234,10 +230,19 @@ namespace Exicel转换1
                             return;
                         }
 
-                        //创建文件流
-                        FileStream fs = new FileStream(files[i], FileMode.Open, FileAccess.Read, FileShare.Read);
-                        //读取流
-                        srRTFFile = new StreamReader(fs);
+                        try
+                        {
+                            //创建文件流
+                            FileStream fs = new FileStream(files[i], FileMode.Open, FileAccess.Read, FileShare.Read);
+                            //读取流
+                            srRTFFile = new StreamReader(fs);
+                        }
+                        catch (Exception ex)
+                        {
+                            MessageBox.Show(ex.Message);
+                        }
+                      
+                        
                     }
                 }
                 //打开的目录和目录数
@@ -249,177 +254,166 @@ namespace Exicel转换1
             {
                 return;//未选择任何
             }
-            //生成最后的BaseComprehensive，未实现生成BaseComprehensive List
-            GenBaseComprehensive(xml_TimingReportHeaderUnit,xml_TimingReportUnitNxt,xml_TimingReportHeader,
+            //判断xml文件是否缺失
+            if (xml_TimingReportHeaderUnit==null|| xml_FeederReportUnit==null || 
+                xml_NozzleChangerReportUnit==null || xml_PartReportHead==null || 
+                xml_PartReportUnit==null || xml_TimingReportHeader==null||
+                xml_TimingReportUnitNxt==null)
+            {
+                MessageBox.Show("缺少转换所需的导出的xml文件，请确认后重试！");
+                
+                return;
+            }
+            //生成最后的 BaseComprehensive List
+            //中间出问题，返回null，则不 执行下面的操作
+            //只生成 返回 BaseComprehensive
+            BaseComprehensive theEndSummaryandLayout = GenBaseComprehensive(xml_TimingReportHeaderUnit,xml_TimingReportUnitNxt,xml_TimingReportHeader,
             xml_PartReportUnit,xml_PartReportHead,xml_NozzleChangerReportUnit,xml_FeederReportUnit,srRTFFile);
+
+            if (theEndSummaryandLayout == null)
+            {
+                return;
+            }
+            
+            //添加到SummaryandLayout_ComprehensiveList列表
+            summaryandLayout_ComprehensiveList.Add(theEndSummaryandLayout);
+            //使用全局变量，因为多处需要判断全局变量的值，因此如果选择一个文件夹后处理完所有的过程后，需要重置所有变量，
+            //否则导致下一次选择判断的混乱。
+
+            //将 BaseComprehensive List中的BaseComprehensive添加到显示表格中
+            //每打开一个文件夹生成一个tabcontrol的tabpage
+            AddSingle_EvaluationToTabControl(BaseComprehensiveToSingle_EvaluationPanel(
+                summaryandLayout_ComprehensiveList[summaryandLayout_ComprehensiveList.Count - 1]), this.evaluation_TabControl);
+
         }
         #endregion
 
+        // 每次只会打开一个文件夹，生成Single_EvaluationPanel 也只有一个
+        public Single_EvaluationPanelControl BaseComprehensiveToSingle_EvaluationPanel(BaseComprehensive baseComprehensive)
+        {
+            //baseComprehensives 的layoutDT和feedernozzleDT合在一块
+            Single_EvaluationPanelControl single_EvaluationPanelControl= new Single_EvaluationPanelControl(baseComprehensive);
+            //还是有右侧的空白
+            single_EvaluationPanelControl.Anchor = (AnchorStyles.Bottom | AnchorStyles.Right | AnchorStyles.Left);
+            //single_EvaluationPanelControl.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            return single_EvaluationPanelControl;
+        }
+
+        /// <summary>
+        /// 添加单个的Single_EvaluationPanel到tabControl
+        /// </summary>
+        /// <param name="single_Evaluation">Single_EvaluationPanel对象</param>
+        /// <param name="tabControl">TabControl插入的TabControl</param>
+        /// index"插入的位置，默认最后一个
+        public void AddSingle_EvaluationToTabControl(Single_EvaluationPanelControl single_Evaluation,TabControl tabControl)
+        {
+            //插入tab，并设置key唯一标识，tab页的标题
+            tabControl.TabPages.Add(Convert.ToString(single_Evaluation.TimeStamp), single_Evaluation.JobNmae);
+            //获取tab
+            tabControl.SelectTab(tabControl.TabPages.Count - 1);
+            //tabControl.SelectedTab.Margin= 
+            tabControl.SelectedTab.Margin = new Padding(0);
+            tabControl.SelectedTab.Padding = new Padding(0);
+
+            //每次生成添加后，要重新调整Single_EvaluationPanel的宽度，否则右侧会有大量空白
+            single_Evaluation.Width = tabControl.SelectedTab.Width;
+            single_Evaluation.Height = tabControl.SelectedTab.Height;
+            single_Evaluation.Parent = tabControl.SelectedTab;
+            single_Evaluation.Show();
+            
+        }
 
         #region //生成 summaryandLayout_ComprehensiveList  theEndSummaryandLayout
         //生成所有信息 BaseComprehensive class 由summaryinfo和layoutinfo组成
-        public void GenBaseComprehensive(XmlDocument xml_TimingReportHeaderUnit,XmlDocument xml_TimingReportUnitNxt,
+        public BaseComprehensive GenBaseComprehensive(XmlDocument xml_TimingReportHeaderUnit,XmlDocument xml_TimingReportUnitNxt,
             XmlDocument xml_TimingReportHeader,XmlDocument xml_PartReportUnit,XmlDocument xml_PartReportHead,
             XmlDocument xml_NozzleChangerReportUnit,XmlDocument xml_FeederReportUnit,StreamReader srRTFFile)
         {
-            //生成综合的类，包含summary和layout及需要的验证信息。
-            BaseComprehensive baseComprehensive = new BaseComprehensive();
-
+            
             string jobName = xml_TimingReportHeader.GetElementsByTagName("JobName")[1].InnerText;
             string t_or_b = xml_TimingReportHeader.GetElementsByTagName("BoardSide")[1].InnerText;
             string machine_name = xml_TimingReportHeader.GetElementsByTagName("McName")[1].InnerText;
-
-            int MachineCount = xml_TimingReportUnitNxt.GetElementsByTagName("Module").Count - 1;
+            //模组总数
+            int ModuleCount = xml_TimingReportUnitNxt.GetElementsByTagName("Module").Count - 1;
 
             XmlNodeList boardNodeList = xml_PartReportUnit.GetElementsByTagName("seqBrdNum");
-            int boardQty = Int32.Parse(boardNodeList[1].InnerText);
-            for (int i = 1; i < boardNodeList.Count; i++)
-            {
-                if (boardQty < Int32.Parse(boardNodeList[i].InnerText))
-                {
-                    boardQty = Int32.Parse(boardNodeList[i].InnerText);
-                }
-
-            }
+            int boardQty = GetBoardQty(boardNodeList);
 
             //使用元组存放module head cycletime  Qt
             //获取 line2_module_head_cycletime_qty_TupleList 元组列表，使用sqlite
             //调用方法
             //module、head、avgCPH、prior_productionCPH	、high_precisionCPH做成一个小DataTable输出.
             //使用out参数
-            DataTable module_Head_TheoryCPH_Table = null;
+            //DataTable module_Head_TheoryCPH_Table = null;
+            //List<Tuple<string, string, string, string>> line2_module_head_cycletime_qty_TupleList =
+            //     Getline2_module_head_cycletime_qty_TupleList(xml_TimingReportUnitNxt,out module_Head_TheoryCPH_Table);
+            List<Module_Head_Cph_Struct> module_Head_TheoryCPH_Struct_List = null;
             List<Tuple<string, string, string, string>> line2_module_head_cycletime_qty_TupleList =
-                Getline2_module_head_cycletime_qty_TupleList(xml_TimingReportUnitNxt,out module_Head_TheoryCPH_Table);
+                Getline2_module_head_cycletime_qty_Tuple_StructList(xml_TimingReportUnitNxt,out module_Head_TheoryCPH_Struct_List);
 
-            if (module_Head_TheoryCPH_Table == null)
+            //if (module_Head_TheoryCPH_Table == null)
+            //{
+            //    MessageBox.Show("获取CPH出现了严重错误，请联系作者！");
+            //    return ;
+            //}
+
+            if (line2_module_head_cycletime_qty_TupleList == null)
             {
                 MessageBox.Show("获取CPH出现了严重错误，请联系作者！");
-                return ;
+                return null;
             }
-
-
-            //模组总数
-
-            //模组统计
-            //字典，存放<模组类型:模组个数>
-            Dictionary<string, int> module_Statistics;
-            //创建统计模组信息的字典
-            module_Statistics = new Dictionary<string, int>();
-            //初始化，仅记录M3III，M6III，初始为0
-
-            #region 统计模组信息
-            for (int j = 0; j < line2_module_head_cycletime_qty_TupleList.Count; j++)
+            
+            #region 统计模组信息，获取字典
+            //获取Module的字符串
+            string[] allModuleString=new string[line2_module_head_cycletime_qty_TupleList.Count];
+            for (int j = 0; j < allModuleString.Length; j++)
             {
-                if (module_Statistics.ContainsKey(line2_module_head_cycletime_qty_TupleList[j].Item1))
-                {
-                    module_Statistics[line2_module_head_cycletime_qty_TupleList[j].Item1]++;
-                }
-                else
-                {
-                    module_Statistics.Add(line2_module_head_cycletime_qty_TupleList[j].Item1, 1);
-                }
+                allModuleString[j] = line2_module_head_cycletime_qty_TupleList[j].Item1;
             }
+            //获取模组的统计字典
+            Dictionary<string, int> module_StatisticsDict =
+                ComprehensiveStaticClass.GenModuleStasticsDictFromModuleStrings(allModuleString);
+
             #endregion
 
             #region machineKid
             //依据M3III|M6III，判断是NXTIII还是其他，生成machinekind
             string machineKind = "";
-            if (module_Statistics.Keys.Contains<string>("M3III") || module_Statistics.Keys.Contains<string>("M6III"))
+            if (module_StatisticsDict.Keys.Contains<string>("M3III") || module_StatisticsDict.Keys.Contains<string>("M6III"))
             {
                 machineKind += "NXTIII";
             }
-            if (module_Statistics.Keys.Contains<string>("M3II") || module_Statistics.Keys.Contains<string>("M6II"))
+            if (module_StatisticsDict.Keys.Contains<string>("M3II") || module_StatisticsDict.Keys.Contains<string>("M6II"))
             {
                 machineKind += "NXTII";
             }
-            if (module_Statistics.Keys.Contains<string>("M3S") || module_Statistics.Keys.Contains<string>("M6S") ||
-                module_Statistics.Keys.Contains<string>("M3") || module_Statistics.Keys.Contains<string>("M6"))
+            if (module_StatisticsDict.Keys.Contains<string>("M3S") || module_StatisticsDict.Keys.Contains<string>("M6S") ||
+                module_StatisticsDict.Keys.Contains<string>("M3") || module_StatisticsDict.Keys.Contains<string>("M6"))
             {
                 machineKind += "NXT";
             }
             #endregion
 
+            #region //Base统计字典
+            //获取baseStaxticsDict字典
+            Dictionary<string, int> base_StatisticsDict = GetBaseStasticsDict(module_StatisticsDict);
+            #endregion
             #region//拼接Line字符串
-
-            //重新计算base信息
-            //存储模组对应Base的个数，1个M3 module 对应1个M的base，2个M3 module或1个M6 Module对应2Mbase，4个M3 module或2个M6 Module对应4Mbase
-            //base尽可能少的分配
-            //模组 M的数量
-            int Count_M = 0;
-            //单独统计M#、M6个数
-            int Count_M3 = 0;
-            int Count_M6 = 0;
-            foreach (var moduleKind in module_Statistics)
-            {
-                if (moduleKind.Key.Substring(0, 2) == "M3")
-                {
-                    Count_M += moduleKind.Value;
-                    Count_M3 += moduleKind.Value;
-                }
-                if (moduleKind.Key.Substring(0, 2) == "M6")
-                {
-                    Count_M += moduleKind.Value * 2;
-                    Count_M6 += moduleKind.Value;
-                }
-            }
-            int baseCount_4M = (Count_M / 4);
-            int baseCount_2M = 0;
-            if ((Count_M % 4) != 0)
-            {
-                baseCount_2M = 1;
-            }
-
-
-            //"/r/n" 回车换行符
-            string Line = "";
-            string Line_short = "";
-            foreach (var item in module_Statistics)
-            {
-                Line_short += item.Key + "*" + item.Value.ToString() + "+";
-            }
-            Line_short = machineKind + "-(" + Line_short.Substring(0, Line_short.Length - 1) + ")";
-            //判断4Mhe 2M base的数量，进行拼接
-            if (baseCount_2M == 0 && baseCount_4M != 0)
-            {
-                Line = Line_short + "\n" + "4MBASE III * " + baseCount_4M.ToString();
-            }
-            if (baseCount_2M != 0 && baseCount_4M != 0)
-            {
-                Line = Line_short + "\n" + "4MBASE III * " + baseCount_4M.ToString() + "+2MBASE III * " + baseCount_2M.ToString();
-            }
-            if (baseCount_2M != 0 && baseCount_4M == 0)
-            {
-                Line = Line_short + "\n" + "2MBASE III * " + baseCount_2M.ToString();
-            }
+            //获取拼接的Line字符串
+            string Line = ComprehensiveStaticClass.GenLineStringFromModuleStasticsBaseStastics(
+                module_StatisticsDict, base_StatisticsDict, machineKind);
             #endregion
 
             #region//获取组合"Head Type"的信息
-
-            //统计头的信息 字典
-            Dictionary<string, int> Head_Statistics;
-            Head_Statistics = new Dictionary<string, int>();
-
+            //所有头的字符串
+            string[] allHeadString = new string[line2_module_head_cycletime_qty_TupleList.Count];
             for (int j = 0; j < line2_module_head_cycletime_qty_TupleList.Count; j++)
             {
-                // 只有两种情况，包含key和不包含key
-                if (Head_Statistics.ContainsKey(line2_module_head_cycletime_qty_TupleList[j].Item2))
-                {
-                    Head_Statistics[line2_module_head_cycletime_qty_TupleList[j].Item2] += 1;
-                }
-                else //if (!Head_Statistics.ContainsKey(allHeadTypeString[j]))
-                {
-                    Head_Statistics.Add(line2_module_head_cycletime_qty_TupleList[j].Item2, 1);
-                }
-
+                allHeadString[j] = line2_module_head_cycletime_qty_TupleList[j].Item2;
             }
 
-            //拼接Head Type
-            string Head_Type = "";
-            foreach (var item in Head_Statistics)
-            {
-                Head_Type += item.Key + "*" + item.Value + "+";
-            }
-            Head_Type = Head_Type.Substring(0, Head_Type.Length - 1);
+            //获取拼接的Head_Type
+            string Head_Type = ComprehensiveStaticClass.GenHeadTypeFormHeadStrings(allHeadString);
             // MessageBox.Show(Head_Type);
             #endregion
 
@@ -437,24 +431,11 @@ namespace Exicel转换1
             #endregion
 
             #region Remark  电气功率ip等。//未加入try LTCTry
-            #region //生成Remake信息
-            //
-            double gonglv = Count_M3 * ComprehensiveStaticClass.power_Dictionary["M3III"] +
-                Count_M6 * ComprehensiveStaticClass.power_Dictionary["M6III"] +
-                baseCount_2M * ComprehensiveStaticClass.power_Dictionary["2MBase"] +
-                baseCount_4M * ComprehensiveStaticClass.power_Dictionary["4MBase"];
-            int haoqiliang = baseCount_4M * ComprehensiveStaticClass.air_Consumption_Dictionary["4MBase"] +
-                baseCount_2M * ComprehensiveStaticClass.air_Consumption_Dictionary["2MBase"];
-            int countu_ip = baseCount_2M + baseCount_4M;
-            double baseLength = ComprehensiveStaticClass.baseLength_Dictionary["2MBase"] * baseCount_2M +
-                ComprehensiveStaticClass.baseLength_Dictionary["4MBase"] * baseCount_4M;
-            //最后拼接
-            string remark = string.Format("功率：{0}\n耗气量：{1}\n长度：{2}\n最少IP数：{3}",
-                gonglv, haoqiliang, baseLength, countu_ip);
-            #endregion
+            string remark = ComprehensiveStaticClass.GenRemarkFromModuleBaseStasticsDict(
+                module_StatisticsDict, base_StatisticsDict);
             #endregion
 
-            
+
 
             #region //生成ExpressSummayDataTable
             //cPH 两个轨道综合的CPH，cycletime
@@ -476,6 +457,10 @@ namespace Exicel转换1
                 }
                 else
                 {
+                    if (feederName.InnerText=="")
+                    {
+                        continue;
+                    }
                     feeder_Statistics.Add(feederName.InnerText, 1);
                 }
             }
@@ -502,15 +487,18 @@ namespace Exicel转换1
             //Thread getProductionModelThread = new Thread(GetProductionModel);
             //getProductionModelThread.IsBackground = true;
             //getProductionModelThread.Start();
-            GetProductionModel();
+            //存放生产模式的变量
+            string productionMode = null;
+            productionMode = GetProductionModel();
 
             //获取 genLayoutEndDT，最后的cycletime cph theory_cph layoutDT、feedernozzleDT
-            Tuple<double, int, DataTable, DataTable> layoutEndInfo_tuple = genLayoutEndDT(srRTFFile,productionMode,
+            Tuple<double, int, DataTable, DataTable> theEndCycletimeCPHLayoutDTFeederNozzleDT_Tuple = 
+                GetEndCycletimeCPHLayoutDTFeederNozzleDT(srRTFFile,productionMode,
                 line2_module_head_cycletime_qty_TupleList, feeder_Statistics, nozzle_Statistics);
             //判断是否获取到 
-            if (layoutEndInfo_tuple == null)
+            if (theEndCycletimeCPHLayoutDTFeederNozzleDT_Tuple == null)
             {
-                return;
+                return null;
             }
 
             /// Output Board/hour  -----> board qty *3600/cycletime
@@ -518,28 +506,25 @@ namespace Exicel转换1
             //CPH Rate   ----> CPH/理论CPH
             // CPP  链接报价单，未实现
             //以上由函数GetTheEndSummaryInfoDT实现
-
-            //所有模组type的string。获取最后的图片 byte
-            string[] allModuleTypeString = new string[line2_module_head_cycletime_qty_TupleList.Count];
-            for (int j = 0; j < line2_module_head_cycletime_qty_TupleList.Count; j++)
-            {
-                allModuleTypeString[j] = line2_module_head_cycletime_qty_TupleList[j].Item1;
-            }
+                                    
             #region //pictureData放在前面，未生成则不进行下面对象的创建
             //判断是否获取成功图片的byte[]
-            byte[] pictureDataByte = ComprehensiveStaticClass.genJobsPicture(allModuleTypeString, module_Statistics);
+            //所有模组type的string。获取最后的图片 byte
+            byte[] pictureDataByte = ComprehensiveStaticClass.GenJobsPicture(allModuleString, module_StatisticsDict);
             if (pictureDataByte == null)
             {
-                return;
+                return null;
             }
             #endregion
 
+
             //获取最后的综合的 SummaryandLayout
-            theEndSummaryandLayout = new BaseComprehensive();
-            theEndSummaryandLayout.T_or_B = t_or_b;
-            theEndSummaryandLayout.MachineCount = MachineCount;
-            theEndSummaryandLayout.MachineKind = machineKind;
-            theEndSummaryandLayout.Jobname = jobName;
+            //最后包含summaryInfo和layouInfoDT feederNozzleDT的信息
+            BaseComprehensive theEndSummaryAndLayout = new BaseComprehensive(ComprehensiveStaticClass.GetTimeStamp());
+            theEndSummaryAndLayout.T_or_B = t_or_b;
+            theEndSummaryAndLayout.ModuleCount = ModuleCount;
+            theEndSummaryAndLayout.MachineKind = machineKind;
+            theEndSummaryAndLayout.Jobname = jobName;
             //获取CPHRate
             //dr["module"] 
             //dr["Head Type"] 
@@ -548,34 +533,56 @@ namespace Exicel转换1
             //dr["high_precisionCPH"]
             //dr["special"]
             int theoryCPH = 0;
-            for (int i = 0; i < module_Head_TheoryCPH_Table.Rows.Count; i++)
-            {
-                //判断高速生产模式cph是否为 空
-                if (!module_Head_TheoryCPH_Table.Rows[i]["prior_productionCPH"].Equals(0))
-                {
-                    theoryCPH += System.Convert.ToInt32(module_Head_TheoryCPH_Table.Rows[i]["prior_productionCPH"]);
-                }
-                else if (!module_Head_TheoryCPH_Table.Rows[i]["avgCPH"].Equals(0))
-                {
-                    theoryCPH += System.Convert.ToInt32(module_Head_TheoryCPH_Table.Rows[i]["avgCPH"]);
-                }
-                else if (!module_Head_TheoryCPH_Table.Rows[i]["high_precisionCPH"].Equals(0))
-                {
-                    theoryCPH += System.Convert.ToInt32(module_Head_TheoryCPH_Table.Rows[i]["high_precisionCPH"]);
-                }
-                
-            }
-            string cphRate = string.Format("{0:P}", System.Convert.ToDouble(layoutEndInfo_tuple.Item2) / System.Convert.ToDouble(theoryCPH));
-            // machine_name
-            //获取最后的SummaryinfoDT
-            theEndSummaryandLayout.GetTheEndSummaryInfoDT(expressSummayDataTable,
-                layoutEndInfo_tuple.Item1, layoutEndInfo_tuple.Item2,cphRate);
-                        
-            theEndSummaryandLayout.PictureDataByte = pictureDataByte;
+            //for (int i = 0; i < module_Head_TheoryCPH_Table.Rows.Count; i++)
+            //{
+            //    //判断高速生产模式cph是否为 空
 
-            theEndSummaryandLayout.layoutDT = layoutEndInfo_tuple.Item3;
-            theEndSummaryandLayout.feederNozzleDT = layoutEndInfo_tuple.Item4;
-            theEndSummaryandLayout.AllModuleType = allModuleTypeString;
+            //    if (module_Head_TheoryCPH_Table.Rows[i]["prior_productionCPH"].ToString()!="0")
+            //    {
+            //        theoryCPH += System.Convert.ToInt32(module_Head_TheoryCPH_Table.Rows[i]["prior_productionCPH"].ToString());
+            //    }
+            //    else if (module_Head_TheoryCPH_Table.Rows[i]["avgCPH"].ToString() != "0")
+            //    {
+            //        theoryCPH += System.Convert.ToInt32(module_Head_TheoryCPH_Table.Rows[i]["avgCPH"].ToString());
+            //    }
+            //    else if (module_Head_TheoryCPH_Table.Rows[i]["high_precisionCPH"].ToString() != "0")
+            //    {
+            //        theoryCPH += System.Convert.ToInt32(module_Head_TheoryCPH_Table.Rows[i]["high_precisionCPH"].ToString());
+            //    }
+
+            //}
+            //string cphRate = string.Format("{0:P}", System.Convert.ToDouble(layoutEndInfo_tuple.Item2) / System.Convert.ToDouble(theoryCPH));
+            //machine_name
+
+            /*
+             * public struct module_head_cph_struct
+        {
+            public string[] moduleTrayTypestring;
+
+            public List<string> headTypeString_List;
+            public List<string[]> CPH_strings_List;
+        }
+             */
+
+            //使用结构计算theoryCPH
+            for (int j = 0; j < module_Head_TheoryCPH_Struct_List.Count; j++)
+            {
+                //"高速生产模式-1234"需要解析
+                theoryCPH += Convert.ToInt32(module_Head_TheoryCPH_Struct_List[j].CPH_strings_List[0][0].Split('-')[1]);
+            }
+            string cphRate = string.Format("{0:P}", Convert.ToDouble(
+                theEndCycletimeCPHLayoutDTFeederNozzleDT_Tuple.Item2) / Convert.ToDouble(theoryCPH));
+
+            //获取最后的SummaryinfoDT
+            theEndSummaryAndLayout.GetTheEndSummaryInfoDT(expressSummayDataTable,theEndCycletimeCPHLayoutDTFeederNozzleDT_Tuple.Item1, 
+                theEndCycletimeCPHLayoutDTFeederNozzleDT_Tuple.Item2,cphRate);
+
+            theEndSummaryAndLayout.PictureDataByte = pictureDataByte;
+
+            theEndSummaryAndLayout.layoutDT = theEndCycletimeCPHLayoutDTFeederNozzleDT_Tuple.Item3;
+            theEndSummaryAndLayout.feederNozzleDT = theEndCycletimeCPHLayoutDTFeederNozzleDT_Tuple.Item4;
+            theEndSummaryAndLayout.AllModuleType = allModuleString;
+            theEndSummaryAndLayout.MachineKind = machineKind;
 
             //所有头Head type的string
             string[] allHeadTypeString = new string[line2_module_head_cycletime_qty_TupleList.Count];
@@ -583,16 +590,73 @@ namespace Exicel转换1
             {
                 allHeadTypeString[j] = line2_module_head_cycletime_qty_TupleList[j].Item2;
             }
-            theEndSummaryandLayout.AllHeadType = allHeadTypeString;
+            theEndSummaryAndLayout.AllHeadType = allHeadTypeString;
+            theEndSummaryAndLayout.module_Head_Cph_Structs_List = module_Head_TheoryCPH_Struct_List;
+            theEndSummaryAndLayout.base_StatisticsDict = base_StatisticsDict;
+            theEndSummaryAndLayout.module_StatisticsDict = module_StatisticsDict;
 
-            //添加到SummaryandLayout_ComprehensiveList列表
-            summaryandLayout_ComprehensiveList.Add(theEndSummaryandLayout);
-            //使用全局变量，因为多处需要判断全局变量的值，因此如果选择一个文件夹后处理完所有的过程后，需要重置所有变量，
-            //否则导致下一次选择判断的混乱。
+            return theEndSummaryAndLayout;
+            
         }
 
         #endregion
 
+        private Dictionary<string, int> GetBaseStasticsDict(Dictionary<string, int> module_Statistics)
+        {
+            //计算base信息
+            //存储模组对应Base的个数，1个M3 module 对应1个M的base，2个M3 module或1个M6 Module对应2Mbase，4个M3 module或2个M6 Module对应4Mbase
+            //base尽可能少的分配
+            //转换为单M的base 的总数
+            int baseCount_M_TotalM3 = 0;
+            //单独统计M3、M6个数
+            int Count_M3 = 0;
+            int Count_M6 = 0;
+            foreach (var moduleKind in module_Statistics)
+            {
+                if (moduleKind.Key.Substring(0, 2) == "M3")
+                {
+                    baseCount_M_TotalM3 += moduleKind.Value;
+                    Count_M3 += moduleKind.Value;
+                }
+                if (moduleKind.Key.Substring(0, 2) == "M6")
+                {
+                    baseCount_M_TotalM3 += moduleKind.Value * 2;
+                    Count_M6 += moduleKind.Value;
+                }
+            }
+            int baseCount_4M = (baseCount_M_TotalM3 / 4);
+            int baseCount_2M = 0;
+            if ((baseCount_M_TotalM3 % 4) != 0)
+            {
+                baseCount_2M = 1;
+            }
+
+            //字典，存放2MBase 4MBase 的数量
+            return new Dictionary<string, int>() {
+                {"4MBASE",baseCount_4M },
+                {"2MBASE",baseCount_2M },
+                };
+        }
+
+        /// <summary>
+        /// 获取BoardQty
+        /// </summary>
+        /// <param name="boardNodeList"></param>
+        /// <returns></returns>
+        private int GetBoardQty(XmlNodeList boardNodeList)
+        {
+            int boardQty = Int32.Parse(boardNodeList[1].InnerText);
+            for (int i = 1; i < boardNodeList.Count; i++)
+            {
+                if (boardQty < Int32.Parse(boardNodeList[i].InnerText))
+                {
+                    boardQty = Int32.Parse(boardNodeList[i].InnerText);
+                }
+            }
+            return boardQty;
+        }
+
+        #region //旧的 XmlDocument 中获取module head cycletime qty和包含module_Head_TheoryCPH的DataTable
         public List<Tuple<string, string, string, string>> Getline2_module_head_cycletime_qty_TupleList(XmlDocument xml_TimingReportUnitNxt,
             out DataTable module_Head_TheoryCPH_Table)
         {
@@ -604,7 +668,7 @@ namespace Exicel转换1
 
             //获取line对应的module\head\Qty|cycletime信息 
             XmlNodeList truUnitNode = xml_TimingReportUnitNxt.GetElementsByTagName("Unit");
-            
+
 
             //初始化module_Head_TheoryCPH_Table对象
             module_Head_TheoryCPH_Table = new DataTable();
@@ -612,7 +676,7 @@ namespace Exicel转换1
             //dc.
             module_Head_TheoryCPH_Table.Columns.Add("module");
             module_Head_TheoryCPH_Table.Columns.Add("Head Type");
-            module_Head_TheoryCPH_Table.Columns.Add("avgCPH"); 
+            module_Head_TheoryCPH_Table.Columns.Add("avgCPH");
             module_Head_TheoryCPH_Table.Columns.Add("prior_productionCPH");
             module_Head_TheoryCPH_Table.Columns.Add("high_precisionCPH");
             module_Head_TheoryCPH_Table.Columns.Add("special");
@@ -630,15 +694,15 @@ namespace Exicel转换1
             {
                 MessageBox.Show("连接失败");
             }
-           
+
             for (int i = 1; i < truUnitNode.Count; i++)//从1开始读取
-            {                
+            {
                 try
                 {
                     //
                     string moduleid = truUnitNode[i].SelectSingleNode("./cfgModuleType1").InnerText;
                     string headid = truUnitNode[i].SelectSingleNode("./cfgHeadType1_1").InnerText;
-                    
+
                     //sqlite的命令对象,查询moduleType
                     SQLiteCommand command = new SQLiteCommand(string.Format("select moduletype from ModuleTable where moduleid={0};", moduleid),
                         liteConn);
@@ -647,7 +711,7 @@ namespace Exicel转换1
                         liteConn.Open();
                     }
                     string moduleType = command.ExecuteScalar().ToString();
-                    
+
 
                     //查询headType
                     command = new SQLiteCommand(string.Format("select head from HeadTable where headid={0};", headid),
@@ -657,7 +721,8 @@ namespace Exicel转换1
                         liteConn.Open();
                     }
                     string head = command.ExecuteScalar().ToString();
-                    
+
+
 
                     //查询CPH
                     string sqlQueryCPH = string.Format(
@@ -678,7 +743,8 @@ namespace Exicel转换1
                     DataRow dr = module_Head_TheoryCPH_Table.NewRow();
                     for (int j = 0; j < ds.Tables[0].Rows.Count; j++)
                     {
-                        if (j>0)//先跳过H24 S G head 的处理
+                        //此处错误，ds.Tables[0] select查询出来的结果是无顺序的，第一个并不一定是非特殊头
+                        if (j > 0)//先跳过H24 S G head 的处理
                         {
                             continue;
                         }
@@ -694,7 +760,7 @@ namespace Exicel转换1
 
                     da.Dispose();
                     command.Dispose();
-                    
+
 
                     //得到的module_head_TupleList是代号，需要进行处理
                     line2_module_head_cycletime_qty_TupleList.Add(new Tuple<string, string, string, string>(
@@ -716,10 +782,223 @@ namespace Exicel转换1
             return line2_module_head_cycletime_qty_TupleList;
         }
 
+        #endregion
+
+        #region //XmlDocument 中获取module head cycletime qty
+        //和包含module_Head_TheoryCPH所有可能性的List<module_head_cph_struct>
+        public List<Tuple<string, string, string, string>> Getline2_module_head_cycletime_qty_Tuple_StructList(XmlDocument xml_TimingReportUnitNxt,
+            out List<Module_Head_Cph_Struct> module_Head_TheoryCPH_Struct_List)
+        {
+            //使用元组存放module head cycletime  Qty
+            //获取 line2_module_head_cycletime_qty_TupleList 元组列表，使用sqlite
+            //调用方法
+            List<Tuple<string, string, string, string>> line2_module_head_cycletime_qty_TupleList =
+                new List<Tuple<string, string, string, string>>();
+
+            //获取line对应的module\head\Qty|cycletime信息 
+            XmlNodeList truUnitNode = xml_TimingReportUnitNxt.GetElementsByTagName("Unit");
+
+
+            //初始化 module_Head_TheoryCPH_listTuple_List
+            module_Head_TheoryCPH_Struct_List = new List<Module_Head_Cph_Struct>();
+
+            //定义dqlite的数据库连接对象
+
+            string connString = string.Format("Data Source={0};Version=3;", @".\convertDB.db");
+            SQLiteConnection liteConn = new SQLiteConnection();//创建数据库连接实例
+            liteConn.ConnectionString = connString;
+            try
+            {
+                liteConn.Open();
+            }
+            catch (Exception)
+            {
+                MessageBox.Show("连接失败");
+            }
+
+            for (int i = 1; i < truUnitNode.Count; i++)//从1开始读取
+            {
+                try
+                {
+                    #region //moduleType Head
+                    string moduleid = truUnitNode[i].SelectSingleNode("./cfgModuleType1").InnerText;
+                    string headid = truUnitNode[i].SelectSingleNode("./cfgHeadType1_1").InnerText;
+
+                    //sqlite的命令对象,查询moduleType
+                    SQLiteCommand command = new SQLiteCommand(string.Format("select moduletype,trayinfostring from ModuleTable where moduleid={0};", moduleid),
+                        liteConn);
+                    if (liteConn.State == ConnectionState.Closed)
+                    {
+                        liteConn.Open();
+                    }
+                    SQLiteDataReader dataRead = command.ExecuteReader();
+                    //string moduleType = dataRead["moduletype"].ToString();
+
+                    //获取所有的 module /+try 类型
+                    List<string> moduleTrayTypeList = new List<string>();
+                    while (dataRead.Read())
+                    {
+                        moduleTrayTypeList.Add(dataRead["moduletype"].ToString());
+                        if (!dataRead["trayinfostring"].Equals(DBNull.Value))
+                        {
+                            string[] moduleTrayType = dataRead["trayinfostring"].ToString().Split('-');
+                            for (int j = 0; j < moduleTrayType.Length; j++)
+                            {
+                                moduleTrayTypeList.Add(moduleTrayTypeList[0]+"-"+moduleTrayType[j]);
+                            }
+                        }
+                    }
+
+
+                    List<string> headTypeList = new List<string>();
+                    //查询headType
+                    command = new SQLiteCommand(string.Format("select head from HeadTable where headid={0};", headid),
+                        liteConn);
+                    if (liteConn.State == ConnectionState.Closed)
+                    {
+                        liteConn.Open();
+                    }
+
+                    headTypeList.Add(command.ExecuteScalar().ToString());
+                    #endregion
+
+                    #region //查询CPH
+                    string sqlQueryCPH = string.Format(
+                        "select a.moduletype,b.head,c.avgCPH,c.prior_productionCPH,c.high_precisionCPH,c.special from " +
+                        "ModuleTable a,HeadTable b ,CPHTable c where a.moduleid=c.moduleid and b.headid=c.headid and" +
+                        " c.headid={0} and c.moduleid={1};",
+                        headid, moduleid);
+                    command = new SQLiteCommand(sqlQueryCPH, liteConn);
+                    DataSet ds = new DataSet();
+                    if (liteConn.State == ConnectionState.Closed)
+                    {
+                        liteConn.Open();
+                    }
+                    SQLiteDataAdapter da = new SQLiteDataAdapter(command);
+                    da.Fill(ds);
+
+                    //判断下dataset
+                    if (ds.Tables[0].Rows.Count == 0)
+                    {
+                        MessageBox.Show(string.Format("未找到{0}和{1}对应的理论CPH",
+                            moduleTrayTypeList[0], headTypeList[0]));
+                        return null;
+                    }
+
+                    //datarow module_Head_TheoryCPH_Table
+                    //DataRow dr = module_Head_TheoryCPH_Table.NewRow();
+
+                    //当前cph module对应的CPH的List
+                    List<string[]> CPH_List = new List<string[]>();
+
+                    //存放当前 head module的的三个或2个CPH
+                    List<string> cph_string = new List<string>();
+
+                    //模组+tray的变换不是联动
+                    //head和CPH的数值 是联动的，同一个head下对应三个cph取值，这个由List<string[]> list下标对应
+
+                    //处理special = null时的数据
+                    for (int j = 0; j < ds.Tables[0].Rows.Count; j++)
+                    {
+                        //处理逻辑不是为null的时候插入，而是为null的时候必须插入第一个。
+                        //select获取的数据时无需要，因此要先选出为null赋值
+                        //原值为null，获取后为字符串"null",因此判断
+                        if (ds.Tables[0].Rows[j]["special"].ToString() == "null")
+                        {
+                            //判断高速生产模式cph是否为 空
+                            //将非 H24G、H24S 头的 对应的 高速、正常、高精度模式记录
+                            if (ds.Tables[0].Rows[j]["avgCPH"].ToString() != "0")
+                            {
+                                cph_string.Add("正常模式-" + ds.Tables[0].Rows[j]["avgCPH"].ToString());
+                            }
+
+                            if (ds.Tables[0].Rows[j]["prior_productionCPH"].ToString() != "0")
+                            {
+                                cph_string.Add("高速生产模式-" + ds.Tables[0].Rows[j]["prior_productionCPH"].ToString());
+                            }
+
+                            if (ds.Tables[0].Rows[j]["high_precisionCPH"].ToString() != "0")
+                            {
+                                cph_string.Add("高精度模式-" + ds.Tables[0].Rows[j]["high_precisionCPH"].ToString());
+                            }
+                            CPH_List.Add(cph_string.ToArray());
+                            cph_string.Clear();
+                        }
+                    }
+
+                    //处理其他 H24G H24S 的数据：
+                    for (int j = 0; j < ds.Tables[0].Rows.Count; j++)
+                    {
+                        //处理逻辑不是未null的时候插入，而是为null的时候必须插入第一个。
+                        //select获取的数据时无需要，因此要先选出为null赋值
+                        if (ds.Tables[0].Rows[j]["special"].ToString() != "null")
+                        {
+                            //添加特殊head
+                            headTypeList.Add(ds.Tables[0].Rows[j]["special"].ToString());
+                            //判断高速生产模式cph是否为 空
+                            //将  头的 对应的 高速、正常、高精度模式记录
+                            if (ds.Tables[0].Rows[j]["avgCPH"].ToString() != "0")
+                            {
+                                cph_string.Add("正常模式-" + ds.Tables[0].Rows[j]["avgCPH"].ToString());
+                            }
+
+                            if (ds.Tables[0].Rows[j]["prior_productionCPH"].ToString() != "0")
+                            {
+                                cph_string.Add("高速生产模式-" + ds.Tables[0].Rows[j]["prior_productionCPH"].ToString());
+                            }
+
+                            if (ds.Tables[0].Rows[j]["high_precisionCPH"].ToString() != "0")
+                            {
+                                cph_string.Add("高精度模式-" + ds.Tables[0].Rows[j]["high_precisionCPH"].ToString());
+                            }
+                            CPH_List.Add(cph_string.ToArray());
+                            cph_string.Clear();
+                        }
+                    }
+
+                    da.Dispose();
+                    command.Dispose();
+                    #endregion
+                    //判断当前module head对应的 的specia head 和 cph的个数是否对应
+                    if (headTypeList.Count != CPH_List.Count)
+                    {
+                        MessageBox.Show("出现了意外，请暂停使用！");
+                        return null;
+                    }
+                    //当前module head对应的 module_head_cph_struct结构
+                    Module_Head_Cph_Struct module_Head_Cph_Struct = new Module_Head_Cph_Struct()
+                    {
+                        moduleTrayTypestring = moduleTrayTypeList.ToArray(),
+                        headTypeString_List = headTypeList,
+                        CPH_strings_List = CPH_List
+                    };
+                    module_Head_TheoryCPH_Struct_List.Add(module_Head_Cph_Struct);
+
+
+                    //module_head_cycletime_qty  module_head 取值第一个
+                    line2_module_head_cycletime_qty_TupleList.Add(new Tuple<string, string, string, string>(
+                        module_Head_Cph_Struct.moduleTrayTypestring[0],
+                        module_Head_Cph_Struct.headTypeString_List[0],
+                        truUnitNode[i].SelectSingleNode("./CycleTime").InnerText,
+                        truUnitNode[i].SelectSingleNode("./Qty").InnerText
+                        )
+                        );
+
+                }
+                catch (Exception ex)
+                {
+                    throw ex;
+                }
+            }
+
+            liteConn.Close();
+            return line2_module_head_cycletime_qty_TupleList;
+        }
+        #endregion
 
         #region //生成layoutDataTable
         /// <summary>
-        /// 获取cycletime\CPH\LayouDT\FeederNozzleDT
+        /// 获取计算后的cycletime\CPH\LayouDT\FeederNozzleDT
         /// </summary>
         /// <param name="productionMode">生产模式</param>
         /// <param name="line2_module_head_cycletime_qty_TupleList">lin2的统计的tuple</param>
@@ -728,22 +1007,39 @@ namespace Exicel转换1
         /// <returns>
         /// cycletime\CPH\LayouDT\FeederNozzleDT
         /// </returns>
-        public Tuple<double, int, DataTable, DataTable> genLayoutEndDT(StreamReader srRTFFile,string productionMode, 
+        public Tuple<double, int, DataTable, DataTable> GetEndCycletimeCPHLayoutDTFeederNozzleDT(StreamReader srRTFFile,string productionMode, 
             List<Tuple<string, string, string, string>> line2_module_head_cycletime_qty_TupleList,
             Dictionary<string, int> feeder_Statistics, Dictionary<string, int> nozzle_Statistics)
         {
-            string[] line1_cycletimes = null;//一轨cycletime
+            Tuple<string[],string[]> lane1_lane2_cycletimeStrings_Tuple = null;//一轨cycletime
             if (srRTFFile != null)//有一轨数据//Line1线的cycletime从 生成报告的rtf文件中获取
             {
                 #region //解析rtf文件，获取line1的cycletime列表
-                line1_cycletimes = ParseRTFCycletime(srRTFFile);
-                //判断返回值，如果length为0，则代表rtf有问题
-                if (line1_cycletimes == null)
+                lane1_lane2_cycletimeStrings_Tuple = ParseRTFCycletime(srRTFFile);
+                //判断返回值，为null，则代表没有获取到解析的cycletime
+                if (lane1_lane2_cycletimeStrings_Tuple == null)
                 {
                     return null;
                 }
                 #endregion
             }
+
+            //根绝productionMode 判断使用获取到的哪个轨道的cycyletime（获取单双轨道的cycletime）
+            //if (productionMode == "Dual-DoubleLane")
+            //{
+
+            //}
+            ////获取Lane1的cycyletime
+            //if (productionMode == "Single-Lane 1")
+            //{
+
+            //}
+            ////获取lane2的cycletime
+            //if (productionMode == "Single-Lane 2")
+            //{
+
+            //}
+            
 
             #region 获取生成 layoutDT和feederNozzleDT的数据，totalfeederNozzleDT无
             //获取，最终生成表的数据
@@ -794,21 +1090,31 @@ namespace Exicel转换1
                 DataRow dr = layoutDT.NewRow();
                 if (j < Module_count)//模组的layout
                 {
-                    dr["Prouction \n Mode"] = productionMode;
-                    dr["Module \n No."] = j;
+                    dr["Prouction \n Mode"] = productionMode.Split('-')[0];
+                    dr["Module \n No."] = j+1;//模组从1开始
                     dr["Module"] = line2_module_head_cycletime_qty_TupleList[j].Item1;
                     dr["Head Type"] = line2_module_head_cycletime_qty_TupleList[j].Item2;
-                    dr["Lane2 \nCycle \nTime"] = line2_module_head_cycletime_qty_TupleList[j].Item3;
-                    if (line1_cycletimes != null)
+                    if (productionMode == "Dual-DoubleLane")
                     {
-                        dr["Lane1 \nCycle \nTime"] = line1_cycletimes[j];
-                        dr["Cycle \nTime"] = string.Format("{0:0.00}", (System.Convert.ToDouble(line2_module_head_cycletime_qty_TupleList[j].Item3) +
-                            System.Convert.ToDouble(line1_cycletimes[j])) / 2);
+                        dr["Lane1 \nCycle \nTime"] = lane1_lane2_cycletimeStrings_Tuple.Item1[j];
+                        dr["Lane2 \nCycle \nTime"] = lane1_lane2_cycletimeStrings_Tuple.Item2[j];
+                        
+                        dr["Cycle \nTime"] = string.Format("{0:0.00}", (Convert.ToDouble(lane1_lane2_cycletimeStrings_Tuple.Item1[j]) +
+                            Convert.ToDouble(lane1_lane2_cycletimeStrings_Tuple.Item2[j])) / 2);
                     }
-                    else
+                    //获取Lane1的cycyletime
+                    if (productionMode == "Single-Lane 1")
                     {
-                        dr["Cycle \nTime"] = line2_module_head_cycletime_qty_TupleList[j].Item3;
+                        dr["Lane1 \nCycle \nTime"] = lane1_lane2_cycletimeStrings_Tuple.Item1[j];                        
+                        dr["Cycle \nTime"] = lane1_lane2_cycletimeStrings_Tuple.Item1[j];
                     }
+                    //获取lane2的cycletime
+                    if (productionMode == "Single-Lane 2")
+                    {
+                        dr["Lane2 \nCycle \nTime"] = lane1_lane2_cycletimeStrings_Tuple.Item2[j];
+                        dr["Cycle \nTime"] = lane1_lane2_cycletimeStrings_Tuple.Item2[j];
+                    }
+                    
                     dr["Qty"] = line2_module_head_cycletime_qty_TupleList[j].Item4;
                     //line2 每个模组的module head cycletime、Qty--->Avg(cycletime/Qty)、CPH(Qty*3600/cyctime)
                     //计算avg
@@ -840,19 +1146,35 @@ namespace Exicel转换1
                     continue;
                 }
 
-                if (line1_cycletimes != null)
+                if (productionMode == "Dual-DoubleLane")
                 {
-                    if (Convert.ToDouble(dr[4]) > Line1Cycletime_temp)
+                    if (Convert.ToDouble(dr["Lane1 \nCycle \nTime"]) > Line1Cycletime_temp)
                     {
-                        Line1Cycletime_temp = Convert.ToDouble(dr[4]);
+                        Line1Cycletime_temp = Convert.ToDouble(dr["Lane1 \nCycle \nTime"]);
+                    }
+                    if (Convert.ToDouble(dr["Lane2 \nCycle \nTime"]) > Line2Cycletime_temp)
+                    {
+                        Line2Cycletime_temp = Convert.ToDouble(dr["Lane2 \nCycle \nTime"]);
+                    }
+                    
+                }
+                //获取Lane1的cycyletime
+                if (productionMode == "Single-Lane 1")
+                {
+                    if (Convert.ToDouble(dr["Lane1 \nCycle \nTime"]) > Line1Cycletime_temp)
+                    {
+                        Line1Cycletime_temp = Convert.ToDouble(dr["Lane1 \nCycle \nTime"]);
                     }
                 }
-                if (Convert.ToDouble(dr[5]) > Line2Cycletime_temp)
+                //获取lane2的cycletime
+                if (productionMode == "Single-Lane 2")
                 {
-                    Line2Cycletime_temp = Convert.ToDouble(dr[5]);
+                    if (Convert.ToDouble(dr["Lane2 \nCycle \nTime"]) > Line2Cycletime_temp)
+                    {
+                        Line2Cycletime_temp = Convert.ToDouble(dr["Lane2 \nCycle \nTime"]);
+                    }
                 }
-
-
+                
                 if (Convert.ToDouble(dr[6]) > cycletime_temp)
                 {
                     cycletime_temp = Convert.ToDouble(dr[6]);
@@ -861,11 +1183,24 @@ namespace Exicel转换1
                 qty_temp += Convert.ToInt32(dr[7]);
             }
             dr2[0] = "Total";
-            if (line1_cycletimes != null)
+            
+            //一二轨赋值
+            if (productionMode == "Dual-DoubleLane")
+            {
+                dr2[4] = Line1Cycletime_temp;
+                dr2[5] = Line2Cycletime_temp;
+            }
+            //一轨
+            if (productionMode == "Single-Lane 1")
             {
                 dr2[4] = Line1Cycletime_temp;
             }
-            dr2[5] = Line2Cycletime_temp;
+            //二轨
+            if (productionMode == "Single-Lane 2")
+            {
+                dr2[5] = Line2Cycletime_temp;
+            }
+            
             dr2[6] = cycletime_temp;
             dr2[7] = qty_temp; ;
             dr2[8] = string.Format("{0:0.00}", cycletime_temp * Module_count / qty_temp);
@@ -904,9 +1239,143 @@ namespace Exicel转换1
         }
         #endregion
 
+        #region //解析rtf文件，获取line1的cyctime 字符串数组
+        public Tuple<string[],string[]> ParseRTFCycletime(StreamReader srRTFFile)
+        {
+            if (srRTFFile == null)
+            {
+                return null;
+            }
+            //创建读取流
+            //StreamReader sr = new StreamReader(fs, Encoding.Default);
+
+            //最后lane1、lane2对应的cycle列表
+            List<string> lane1_Cycletime_list = new List<string>();//存放lane1 cycletime的list
+            List<string> lane2_Cycletime_list = new List<string>();//存放lane2 cycletime的list
+            //获取文件 所有的内容
+            string rtfText = srRTFFile.ReadToEnd();
+
+            //Lane 1 \ 2 最后匹配拆分的 包含cycletime的集合
+            MatchCollection lane1CycleMatchCollection = null;
+            MatchCollection lane2CycleMatchCollection = null;
+
+            //写入文件无法显示中文。原字符创中也无法显示中文。
+            //using (StreamWriter fileWriter = new StreamWriter("./filWriter.txt", true, Encoding.GetEncoding("gb2312")))
+            //{
+            //    fileWriter.Write(line);
+            //}
+
+            
+            //获取lane 1的报告部分
+            //. 匹配换行符
+            MatchCollection lane1matchCollection = Regex.Matches(rtfText, "Lane 1(.*?)MAX", RegexOptions.Singleline);
+            MatchCollection lane2matchCollection = Regex.Matches(rtfText, "Lane 2(.*?)MAX", RegexOptions.Singleline);
+            string lane1AllString = lane1matchCollection[0].Groups[1].Value;
+            string lane2AllString = lane2matchCollection[0].Groups[1].Value;
+            //textBox1.Text = lane1AllString;
+
+            #region //获取Lane 1
+            if (lane1AllString.Split('\n').Length > 1)//可以读取多行时，或存在多行时
+            {
+                //匹配lian 的包含数字，姐cycletime部分
+                string regPattrenString = @"\\par(.*?\d+?.*?)\n";
+                lane1CycleMatchCollection = Regex.Matches(lane1AllString, regPattrenString, RegexOptions.Singleline);
+
+            }
+            else
+            {
+                //匹配lian 的包含数字，即cycletime部分
+                string lane1regPattrenString = @"{\\fs18 \\kerning2 \\loch \\af1 \\hich \\af1 \\dbch \\f1 \\lang2052 \\langnp2052 \\cf1(.*?\d*?.*?)}";
+                lane1CycleMatchCollection = Regex.Matches(lane1AllString, lane1regPattrenString, RegexOptions.Singleline);
+
+            }
+            //匹配获取成功，匹配项数目至少为1
+            if (lane1CycleMatchCollection.Count>0)
+            {
+                //解析获取的每一组，以数字开头的为模组数 对应的数据
+                string lane1moduleRegPatternString = @"^\d.*";
+                for (int i = 0; i < lane1CycleMatchCollection.Count; i++)
+                {
+                    //逐个解析正则出来的每一组，包含
+
+                    //当前组的内容
+                    string line = lane1CycleMatchCollection[i].Groups[1].Value.Trim();
+
+                    Match moduleMatch = Regex.Match(line, lane1moduleRegPatternString);
+                    //匹配成功
+                    if (moduleMatch.Success)
+                    {
+                        string[] moduleInfo = line.Split('|');
+
+                        lane1_Cycletime_list.Add(moduleInfo[1].Trim());
+                    }
+
+                }
+            }
+            
+            #endregion
+
+            #region //获取Lane 2
+            if (lane2AllString.Split('\n').Length > 1)//可以读取多行时，或存在多行时
+            {
+                //匹配lian 的包含数字，姐cycletime部分
+                string lane2regPattrenString = @"\\par(.*?\d+?.*?)\n";
+                lane2CycleMatchCollection = Regex.Matches(lane2AllString, lane2regPattrenString, RegexOptions.Singleline);
+
+            }
+            else
+            {
+                //匹配lian 的包含数字，即cycletime部分
+                string lane2regPattrenString = @"{\\fs18 \\kerning2 \\loch \\af1 \\hich \\af1 \\dbch \\f1 \\lang2052 \\langnp2052 \\cf1(.*?\d*?.*?)}";
+                lane2CycleMatchCollection = Regex.Matches(lane2AllString, lane2regPattrenString, RegexOptions.Singleline);
+
+            }
+            //匹配获取成功，匹配项数目至少为1
+            if (lane2CycleMatchCollection.Count > 0)
+            {
+                //解析获取的每一组，以数字开头的为模组数 对应的数据
+                string lane2moduleRegPatternString = @"^\d.*";
+                for (int i = 0; i < lane2CycleMatchCollection.Count; i++)
+                {
+                    //逐个解析正则出来的每一组，包含
+
+                    //当前组的内容
+                    string line = lane2CycleMatchCollection[i].Groups[1].Value.Trim();
+
+                    Match moduleMatch = Regex.Match(line, lane2moduleRegPatternString);
+                    //匹配成功
+                    if (moduleMatch.Success)
+                    {
+                        string[] moduleInfo = line.Split('|');
+
+                        lane2_Cycletime_list.Add(moduleInfo[1].Trim());
+                    }
+
+                }
+            }
+            #endregion
+            if (lane1_Cycletime_list.Count == 0&&lane2_Cycletime_list.Count==0)
+            {
+                MessageBox.Show("出现了意外，无法解析rtf文件，或rtf文件中没有Lane1和Lane2的数据");
+                //出现问题重置所有情况
+                //释放资源
+                srRTFFile.Dispose();
+                //重置srRTFFile
+                srRTFFile = null;
+                return null;
+            }
+            //区分是Single-Lane 1\Single-Lane 2\Dual-DuobleLane
+            
+            srRTFFile.Dispose();//释放占用的rtf文件
+            //重置srRTFFile
+            srRTFFile = null;
+            return new Tuple<string[], string[]>(lane1_Cycletime_list.ToArray(), lane2_Cycletime_list.ToArray());
+                
+        }
+        #endregion
 
         #region //解析rtf文件，获取line1的cycletime列表
-        public string[] ParseRTFCycletime(StreamReader srRTFFile)
+        public string[] ParseRTFCycletime_Old(StreamReader srRTFFile)
         {
             if (srRTFFile==null)
             {
@@ -945,15 +1414,22 @@ namespace Exicel转换1
             }
             if (line1_Cycletime_list.Count == 0)
             {
+
                 MessageBox.Show("请确认生产报告的rtf文档正确且为被修改！");
+                //出现问题重置所有情况
+                //释放资源
+                srRTFFile.Dispose();
+                //重置srRTFFile
+                srRTFFile = null;
                 return null;
             }
+            srRTFFile.Dispose();//释放占用的rtf文件
             return line1_Cycletime_list.ToArray();
         }
         #endregion
 
         #region //窗体传值，获取ProductionModel---Dual，Single、double
-        public void GetProductionModel()
+        public string GetProductionModel()
         {
             ////获取productionModel
             ////productionModleFrom pMFrom = new productionModleFrom(SelectProductionMode);
@@ -968,11 +1444,14 @@ namespace Exicel转换1
             ////        break;
             ////    }
             ////}
+            string productionMode=null;
             productionModleFrom pMFrom = new productionModleFrom();
             if (pMFrom.ShowDialog() == DialogResult.OK)//这样的语句是合法的：DialogResult f = pMFrom.ShowDialog();
             {
                 productionMode = pMFrom.production;
             }
+
+            return productionMode;
         }
         #endregion
 
@@ -990,6 +1469,19 @@ namespace Exicel转换1
         //    //}
         //    productionMode = production;
         //}
+        #endregion
+
+        #region /// <summary>
+        /// module head CPH最后的对应关系设计为一个字段
+        /// </summary>
+        //public struct module_head_cph_struct
+        //{
+        //    public string[] moduleTrayTypestring;
+
+        //    public List<string> headTypeString_List;
+        //    public List<string[]> CPH_strings_List;
+        //}
+
         #endregion
 
 
@@ -1011,7 +1503,7 @@ namespace Exicel转换1
                 {
                     return;
                 }
-                ComprehensiveStaticClass.genExcelfromBaseComprehensiveList(summaryandLayout_ComprehensiveList, excelFileName);
+                ComprehensiveStaticClass.GenExcelfromBaseComprehensiveList(summaryandLayout_ComprehensiveList, excelFileName);
 
                 //保存完后清空列表 summaryandLayout_ComprehensiveList
                 //不能设置为null，导出后，再次打开目录 生成处理时summaryandLayout_ComprehensiveList.add添加报 null【未将对象引用设置到对象的实例】
@@ -1033,9 +1525,20 @@ namespace Exicel转换1
 
         }
 
+
         private void XmlReport_Load(object sender, EventArgs e)
         {
             //groupBox1.Hide();
+        }
+
+        private void latestBaseComprehensive_treeView_AfterSelect(object sender, TreeViewEventArgs e)
+        {
+
+        }
+
+        private void splitContainer1_Panel2_Paint(object sender, PaintEventArgs e)
+        {
+
         }
     }
 }

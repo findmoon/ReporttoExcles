@@ -10,7 +10,7 @@ using System.Windows.Forms;
 namespace Exicel转换1
 {
     //综合的summaryinfo和layoutinfo的类，获取的是完全计算好的两个表和图片、线体信息
-    class BaseComprehensiveList
+    class FlexCVBaseComprehensive
     {
         private SummaryInfoList summaryInfoList_File;
         private layoutInfoList layoutInfoList_File;
@@ -27,7 +27,7 @@ namespace Exicel转换1
         //使用新的类，或者construct，继承 SummaryEveryInfo layoutExpressEveryInfo
 
 
-        public BaseComprehensiveList(ExcelHelper excelHelper)
+        public FlexCVBaseComprehensive(ExcelHelper excelHelper)
         {
             //const string summaryInfoList_File = "summaryInfoList_File" + hadOpenFileNum;
             summaryInfoList_File = new SummaryInfoList(excelHelper);
@@ -64,12 +64,12 @@ namespace Exicel转换1
                 {
                     //resultInfoTable_tuple_list.Add(new Tuple<SummaryEveryInfo, layoutExpressEveryInfo>(
                     // summaryInfoList_File.SummaryEveryInfo_list[i], layoutInfoList_File.layoutExpressEveryInfo_list[i]));
-                    BaseComprehensive baseComprehensive = new BaseComprehensive();
+                    BaseComprehensive baseComprehensive = new BaseComprehensive(ComprehensiveStaticClass.GetTimeStamp());
                     baseComprehensive.Jobname = summaryInfoList_File.expressSummaryEveryInfo_list[i].Jobname;
                     baseComprehensive.T_or_B = summaryInfoList_File.expressSummaryEveryInfo_list[i].T_or_B;
                     baseComprehensive.TargetConveyor = summaryInfoList_File.expressSummaryEveryInfo_list[i].TargetConveyor;
                     baseComprehensive.Conveyor = summaryInfoList_File.expressSummaryEveryInfo_list[i].Conveyor;
-                    baseComprehensive.MachineCount = summaryInfoList_File.expressSummaryEveryInfo_list[i].MachineCount;
+                    baseComprehensive.ModuleCount = summaryInfoList_File.expressSummaryEveryInfo_list[i].ModuleCount;
                     baseComprehensive.SummaryInfoDT = summaryInfoList_File.expressSummaryEveryInfo_list[i].SummaryInfoDT;
                     baseComprehensive.PictureDataByte = summaryInfoList_File.expressSummaryEveryInfo_list[i].PictureDataByte;
                     

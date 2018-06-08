@@ -4,10 +4,8 @@ D:\工作\新建文件夹 (2)\新建文件夹\C#\Exicel转换\Exicel转换1\Exic
 D:\工作\新建文件夹 (2)\新建文件夹\C#\Exicel转换\Exicel转换1\Exicel转换1\bin\Release\NPOI.OpenXml4Net.dll
 D:\工作\新建文件夹 (2)\新建文件夹\C#\Exicel转换\Exicel转换1\Exicel转换1\bin\Release\NPOI.OpenXmlFormats.dll
 D:\工作\新建文件夹 (2)\新建文件夹\C#\Exicel转换\Exicel转换1\Exicel转换1\bin\Release\NPOI.xml
-D:\工作\新建文件夹 (2)\新建文件夹\C#\Exicel转换\Exicel转换1\Exicel转换1\obj\Release\Exicel转换1.Form1.resources
 D:\工作\新建文件夹 (2)\新建文件夹\C#\Exicel转换\Exicel转换1\Exicel转换1\obj\Release\Exicel转换1.Properties.Resources.resources
 D:\工作\新建文件夹 (2)\新建文件夹\C#\Exicel转换\Exicel转换1\Exicel转换1\obj\Release\Exicel转换1.csproj.GenerateResource.Cache
-D:\工作\新建文件夹 (2)\新建文件夹\C#\Exicel转换\Exicel转换1\Exicel转换1\obj\Release\Exicel转换1.csprojResolveAssemblyReference.cache
 D:\工作\新建文件夹 (2)\新建文件夹\C#\Exicel转换\Exicel转换1\Exicel转换1\bin\Release\Exicel转换Job Report.exe
 D:\工作\新建文件夹 (2)\新建文件夹\C#\Exicel转换\Exicel转换1\Exicel转换1\bin\Release\Exicel转换Job Report.pdb
 D:\工作\新建文件夹 (2)\新建文件夹\C#\Exicel转换\Exicel转换1\Exicel转换1\obj\Release\Exicel转换Job Report.exe
@@ -28,3 +26,6 @@ D:\工作\新建文件夹 (2)\新建文件夹\C#\Exicel转换\Exicel转换1\Exic
 D:\工作\新建文件夹 (2)\新建文件夹\C#\Exicel转换\Exicel转换1\Exicel转换1\bin\Release\EntityFramework.SqlServer.xml
 D:\工作\新建文件夹 (2)\新建文件夹\C#\Exicel转换\Exicel转换1\Exicel转换1\bin\Release\System.Data.SQLite.xml
 D:\工作\新建文件夹 (2)\新建文件夹\C#\Exicel转换\Exicel转换1\Exicel转换1\bin\Release\System.Data.SQLite.dll.config
+D:\工作\新建文件夹 (2)\新建文件夹\C#\Exicel转换\Exicel转换1\Exicel转换1\obj\Release\Exicel转换1.ModefyModuleHeadCPHForm.resources
+D:\工作\新建文件夹 (2)\新建文件夹\C#\Exicel转换\Exicel转换1\Exicel转换1\obj\Release\Exicel转换1.Single_EvaluationPanelControl.resources
+D:\工作\新建文件夹 (2)\新建文件夹\C#\Exicel转换\Exicel转换1\Exicel转换1\obj\Release\Exicel转换1.XmlExcelRtfConvertMain_Form.resources

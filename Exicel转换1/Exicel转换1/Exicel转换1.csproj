@@ -101,14 +101,14 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="BaseComprehensiveList.cs" />
+    <Compile Include="FlexCVBaseComprehensive.cs" />
     <Compile Include="ComprehensiveStaticClass.cs" />
-    <Compile Include="ConvertExcStasticClass.cs" />
-    <Compile Include="Form1.cs">
+    <Compile Include="ConvertStasticClass.cs" />
+    <Compile Include="XmlExcelRtfConvertMain_Form.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="Form1.Designer.cs">
-      <DependentUpon>Form1.cs</DependentUpon>
+    <Compile Include="XmlExcelRtfConvertMain_Form.Designer.cs">
+      <DependentUpon>XmlExcelRtfConvertMain_Form.cs</DependentUpon>
     </Compile>
     <Compile Include="GetCellsDefined.cs" />
     <Compile Include="getDataTablePointsInfo.cs" />
@@ -126,11 +126,23 @@
     <Compile Include="LineCfg.Designer.cs">
       <DependentUpon>LineCfg.cs</DependentUpon>
     </Compile>
+    <Compile Include="ModefyModuleHeadCPHForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="ModefyModuleHeadCPHForm.Designer.cs">
+      <DependentUpon>ModefyModuleHeadCPHForm.cs</DependentUpon>
+    </Compile>
     <Compile Include="productionModle.cs">
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="productionModle.Designer.cs">
       <DependentUpon>productionModle.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Single_EvaluationPanel.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="Single_EvaluationPanel.Designer.cs">
+      <DependentUpon>Single_EvaluationPanel.cs</DependentUpon>
     </Compile>
     <Compile Include="SummaryInfoList.cs" />
     <Compile Include="NpoiOperatePicture.cs" />
@@ -143,14 +155,17 @@
     <Compile Include="XmlReport.Designer.cs">
       <DependentUpon>XmlReport.cs</DependentUpon>
     </Compile>
-    <EmbeddedResource Include="Form1.resx">
-      <DependentUpon>Form1.cs</DependentUpon>
+    <EmbeddedResource Include="XmlExcelRtfConvertMain_Form.resx">
+      <DependentUpon>XmlExcelRtfConvertMain_Form.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="FlexCVReport.resx">
       <DependentUpon>FlexCVReport.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="LineCfg.resx">
       <DependentUpon>LineCfg.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="ModefyModuleHeadCPHForm.resx">
+      <DependentUpon>ModefyModuleHeadCPHForm.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="productionModle.resx">
       <DependentUpon>productionModle.cs</DependentUpon>
@@ -164,6 +179,9 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
+    <EmbeddedResource Include="Single_EvaluationPanel.resx">
+      <DependentUpon>Single_EvaluationPanel.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="XmlReport.resx">
       <DependentUpon>XmlReport.cs</DependentUpon>
     </EmbeddedResource>

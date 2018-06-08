@@ -5,7 +5,7 @@ using System.Text;
 
 namespace Exicel转换1
 {
-    static class ConvertExcStasticClass
+    static class ConvertStasticClass
     {
         //静态方法，获取拼接的line
         public static string GetJointLine(Dictionary<string, int> module_Statistics, string machineKind,

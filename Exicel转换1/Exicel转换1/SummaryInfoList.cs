@@ -398,8 +398,6 @@ namespace Exicel转换1
             }
             */
 
-
-
             //读取machineconf Patterns,及其下的 machine count
             //for (int i = 0; i < machineconf_Pattern_POints.Rank; i++),若真循环会不断覆盖值，多个job时需要做到动态添加，或者没获取一个信息则处理一个信心。
             //.Rank获取的数据也不对，.Rank获取的是维数，不是第一维的个数
@@ -928,10 +926,10 @@ namespace Exicel转换1
                 expressSummaryEveryInfo.Jobname = jobName;
                 expressSummaryEveryInfo.TargetConveyor = TargetConveyor;
                 expressSummaryEveryInfo.Conveyor = conveyor;
-                expressSummaryEveryInfo.MachineCount = machineCount;
+                expressSummaryEveryInfo.ModuleCount = machineCount;
                 //, cPH 两个轨道综合的CPH，由Layoutinfo获取
                 expressSummaryEveryInfo.SummaryInfoDT = ComprehensiveStaticClass.getExpressSummayDataTable(boardQty, Line, Head_Type, jobName, Pannelsize, placementNumber, remark);
-                expressSummaryEveryInfo.PictureDataByte = ComprehensiveStaticClass.genJobsPicture(allModuleTypeString, module_Statistics);
+                expressSummaryEveryInfo.PictureDataByte = ComprehensiveStaticClass.GenJobsPicture(allModuleTypeString, module_Statistics);
                 expressSummaryEveryInfo.AllModuleType = allModuleTypeString;
                 expressSummaryEveryInfo.AllHeadType = allHeadTypeString;
 

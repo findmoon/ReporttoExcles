@@ -100,6 +100,7 @@ namespace Exicel转换1
                 newDT.Rows.Add(newDR);
             }
 
+            this._dt = newDT;
             return newDT;
         }
 

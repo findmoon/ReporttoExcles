@@ -68,7 +68,7 @@ namespace Exicel转换1
                             excelHelper = null;
                             return;
                         }
-                        BaseComprehensiveList baseComprehensiveList = new BaseComprehensiveList(excelHelper);
+                        FlexCVBaseComprehensive baseComprehensiveList = new FlexCVBaseComprehensive(excelHelper);
                         baseComprehensiveList.getBaseComprehensiveList();
                         for (int i = 0; i < baseComprehensiveList.baseComprehensive_list.Count; i++)
                         {

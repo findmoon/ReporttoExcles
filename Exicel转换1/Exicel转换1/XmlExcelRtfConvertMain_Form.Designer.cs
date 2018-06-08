@@ -1,6 +1,6 @@
 ﻿namespace Exicel转换1
 {
-    partial class Form1
+    partial class XmlExcelRtfConvertMain_Form
     {
         /// <summary>
         /// 必需的设计器变量。
@@ -28,9 +28,8 @@
         /// </summary>
         private void InitializeComponent()
         {
-            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form1));
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(XmlExcelRtfConvertMain_Form));
             this.GpbWindow = new System.Windows.Forms.GroupBox();
-            this.textLog = new System.Windows.Forms.TextBox();
             this.FlexCVWindow = new System.Windows.Forms.Button();
             this.XmlWindow = new System.Windows.Forms.Button();
             this.LinCfgWindow = new System.Windows.Forms.Button();
@@ -42,21 +41,11 @@
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this.GpbWindow.AutoSize = true;
-            this.GpbWindow.Location = new System.Drawing.Point(12, 78);
+            this.GpbWindow.Location = new System.Drawing.Point(2, 55);
             this.GpbWindow.Name = "GpbWindow";
-            this.GpbWindow.Size = new System.Drawing.Size(460, 275);
+            this.GpbWindow.Size = new System.Drawing.Size(471, 366);
             this.GpbWindow.TabIndex = 3;
             this.GpbWindow.TabStop = false;
-            this.GpbWindow.Enter += new System.EventHandler(this.GpbWindow_Enter);
-            // 
-            // textLog
-            // 
-            this.textLog.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.textLog.Location = new System.Drawing.Point(3, 409);
-            this.textLog.Name = "textLog";
-            this.textLog.Size = new System.Drawing.Size(460, 21);
-            this.textLog.TabIndex = 0;
             // 
             // FlexCVWindow
             // 
@@ -88,19 +77,18 @@
             this.LinCfgWindow.UseVisualStyleBackColor = true;
             this.LinCfgWindow.Click += new System.EventHandler(this.LinCfgWindow_Click);
             // 
-            // Form1
+            // XmlExcelRtfConvertMain_Form
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.AutoSize = true;
-            this.ClientSize = new System.Drawing.Size(475, 423);
-            this.Controls.Add(this.textLog);
+            this.ClientSize = new System.Drawing.Size(474, 422);
             this.Controls.Add(this.LinCfgWindow);
             this.Controls.Add(this.FlexCVWindow);
             this.Controls.Add(this.XmlWindow);
             this.Controls.Add(this.GpbWindow);
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
-            this.Name = "Form1";
+            this.Name = "XmlExcelRtfConvertMain_Form";
             this.Text = "转换导出job report";
             this.Load += new System.EventHandler(this.Form1_Load);
             this.ResumeLayout(false);
@@ -113,7 +101,6 @@
         private System.Windows.Forms.Button FlexCVWindow;
         private System.Windows.Forms.Button XmlWindow;
         private System.Windows.Forms.GroupBox GpbWindow;
-        private System.Windows.Forms.TextBox textLog;
     }
 }
 
