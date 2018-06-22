@@ -188,7 +188,7 @@ namespace Exicel转换1
                 int rtfNum = 0;//记录rtf文件个数
                 for (int i = 0; i < files.Length; i++)
                 {
-                    if (files[i].IndexOf(".xml") > 0)
+                    if (files[i].ToLower().IndexOf(".xml") > 0)
                     {
                         XmlDocument xmlDocument = new XmlDocument();
                         xmlDocument.Load(files[i]);
@@ -213,37 +213,46 @@ namespace Exicel转换1
                                 break;
                         }
                     }
-                    else//加载其他文件
+                    else
                     {
-                        //存在多个rtf时终止运行
-                        if (++rtfNum > 1)
+                        if (files[i].ToLower().IndexOf(".rtf") > 0)//cycyletime由rtf文件获取，所以必须要有rtf
                         {
-                            MessageBox.Show("存在多个rtf文件，请确认与当前报告相对应的rtf文件！\n然后重新选择！");
-                            if (srRTFFile != null)
+                            //存在多个rtf时终止运行
+                            if (++rtfNum > 1)
                             {
-                                srRTFFile.Dispose();
+                                MessageBox.Show("存在多个rtf文件，请确认与当前报告相对应的rtf文件！\n然后重新选择！");
+                                if (srRTFFile != null)
+                                {
+                                    srRTFFile.Dispose();
+                                }
+                                if (xml_TimingReportHeaderUnit != null)
+                                {
+                                    //xml已经存在时的销毁
+                                }
+                                return;
                             }
-                            if (xml_TimingReportHeaderUnit != null)
+
+                            try
                             {
-                                //xml已经存在时的销毁
+                                //创建文件流
+                                FileStream fs = new FileStream(files[i], FileMode.Open, FileAccess.Read, FileShare.Read);
+                                //读取流
+                                srRTFFile = new StreamReader(fs);
                             }
-                            return;
+                            catch (Exception ex)
+                            {
+                                MessageBox.Show(ex.Message);
+                            }
                         }
 
-                        try
-                        {
-                            //创建文件流
-                            FileStream fs = new FileStream(files[i], FileMode.Open, FileAccess.Read, FileShare.Read);
-                            //读取流
-                            srRTFFile = new StreamReader(fs);
-                        }
-                        catch (Exception ex)
-                        {
-                            MessageBox.Show(ex.Message);
-                        }
-                      
-                        
                     }
+
+                    if (rtfNum==0)
+                    {
+                        MessageBox.Show("没有rtf文件，请确认后重试！");
+                        return;
+                    }
+                    
                 }
                 //打开的目录和目录数
                 openFolderNum++;
@@ -283,8 +292,8 @@ namespace Exicel转换1
             //将 BaseComprehensive List中的BaseComprehensive添加到显示表格中
             //每打开一个文件夹生成一个tabcontrol的tabpage
             AddSingle_EvaluationToTabControl(BaseComprehensiveToSingle_EvaluationPanel(
-                summaryandLayout_ComprehensiveList[summaryandLayout_ComprehensiveList.Count - 1]), this.evaluation_TabControl);
-
+                theEndSummaryandLayout), evaluation_TabControl);
+                        
         }
         #endregion
 
@@ -329,7 +338,6 @@ namespace Exicel转换1
             XmlDocument xml_TimingReportHeader,XmlDocument xml_PartReportUnit,XmlDocument xml_PartReportHead,
             XmlDocument xml_NozzleChangerReportUnit,XmlDocument xml_FeederReportUnit,StreamReader srRTFFile)
         {
-            
             string jobName = xml_TimingReportHeader.GetElementsByTagName("JobName")[1].InnerText;
             string t_or_b = xml_TimingReportHeader.GetElementsByTagName("BoardSide")[1].InnerText;
             string machine_name = xml_TimingReportHeader.GetElementsByTagName("McName")[1].InnerText;
@@ -376,22 +384,22 @@ namespace Exicel转换1
 
             #endregion
 
-            #region machineKid
+            #region machineKind
             //依据M3III|M6III，判断是NXTIII还是其他，生成machinekind
             string machineKind = "";
-            if (module_StatisticsDict.Keys.Contains<string>("M3III") || module_StatisticsDict.Keys.Contains<string>("M6III"))
-            {
-                machineKind += "NXTIII";
-            }
-            if (module_StatisticsDict.Keys.Contains<string>("M3II") || module_StatisticsDict.Keys.Contains<string>("M6II"))
-            {
-                machineKind += "NXTII";
-            }
             if (module_StatisticsDict.Keys.Contains<string>("M3S") || module_StatisticsDict.Keys.Contains<string>("M6S") ||
                 module_StatisticsDict.Keys.Contains<string>("M3") || module_StatisticsDict.Keys.Contains<string>("M6"))
             {
                 machineKind += "NXT";
             }
+            if (module_StatisticsDict.Keys.Contains<string>("M3II") || module_StatisticsDict.Keys.Contains<string>("M6II"))
+            {
+                machineKind += "NXTII";
+            }
+            if (module_StatisticsDict.Keys.Contains<string>("M3III") || module_StatisticsDict.Keys.Contains<string>("M6III"))
+            {
+                machineKind += "NXTIII";
+            }           
             #endregion
 
             #region //Base统计字典
@@ -442,7 +450,7 @@ namespace Exicel转换1
             DataTable expressSummayDataTable = ComprehensiveStaticClass.getExpressSummayDataTable(boardQty, Line,
                 Head_Type, jobName, Pannelsize, placementNumber, remark);
             //baseComprehensive.GetTheEndInfoDT()
-            //SummaryEveryInfo.PictureDataByte = genJobsPicture(allModuleTypeString, module_Statistics);
+            //SummaryEveryInfo.PictureDataByte = GenModulesPicture(allModuleTypeString, module_Statistics);
             #endregion
 
             #region //获取Feeder type、feederQty
@@ -510,7 +518,7 @@ namespace Exicel转换1
             #region //pictureData放在前面，未生成则不进行下面对象的创建
             //判断是否获取成功图片的byte[]
             //所有模组type的string。获取最后的图片 byte
-            byte[] pictureDataByte = ComprehensiveStaticClass.GenJobsPicture(allModuleString, module_StatisticsDict);
+            byte[] pictureDataByte = ComprehensiveStaticClass.GenModulesPicture(allModuleString, module_StatisticsDict);
             if (pictureDataByte == null)
             {
                 return null;
@@ -524,6 +532,7 @@ namespace Exicel转换1
             theEndSummaryAndLayout.T_or_B = t_or_b;
             theEndSummaryAndLayout.ModuleCount = ModuleCount;
             theEndSummaryAndLayout.MachineKind = machineKind;
+            theEndSummaryAndLayout.MachineName = machine_name;
             theEndSummaryAndLayout.Jobname = jobName;
             //获取CPHRate
             //dr["module"] 
@@ -577,6 +586,8 @@ namespace Exicel转换1
             theEndSummaryAndLayout.GetTheEndSummaryInfoDT(expressSummayDataTable,theEndCycletimeCPHLayoutDTFeederNozzleDT_Tuple.Item1, 
                 theEndCycletimeCPHLayoutDTFeederNozzleDT_Tuple.Item2,cphRate);
 
+            //
+            theEndSummaryAndLayout.CPHRate = cphRate;
             theEndSummaryAndLayout.PictureDataByte = pictureDataByte;
 
             theEndSummaryAndLayout.layoutDT = theEndCycletimeCPHLayoutDTFeederNozzleDT_Tuple.Item3;
@@ -1015,7 +1026,7 @@ namespace Exicel转换1
             if (srRTFFile != null)//有一轨数据//Line1线的cycletime从 生成报告的rtf文件中获取
             {
                 #region //解析rtf文件，获取line1的cycletime列表
-                lane1_lane2_cycletimeStrings_Tuple = ParseRTFCycletime(srRTFFile);
+                lane1_lane2_cycletimeStrings_Tuple = ParseRTFCycletime(srRTFFile, productionMode);
                 //判断返回值，为null，则代表没有获取到解析的cycletime
                 if (lane1_lane2_cycletimeStrings_Tuple == null)
                 {
@@ -1240,7 +1251,13 @@ namespace Exicel转换1
         #endregion
 
         #region //解析rtf文件，获取line1的cyctime 字符串数组
-        public Tuple<string[],string[]> ParseRTFCycletime(StreamReader srRTFFile)
+        /// <summary>
+        /// 获取rtf中的cycletime
+        /// </summary>
+        /// <param name="srRTFFile">rtf文件的StreamReader</param>
+        /// <param name="productionMode">根据生产模式判断是否有该轨道的cycyletime，默认为双轨</param>
+        /// <returns></returns>
+        public Tuple<string[],string[]> ParseRTFCycletime(StreamReader srRTFFile,string productionMode= "Dual-DuobleLane")
         {
             if (srRTFFile == null)
             {
@@ -1365,7 +1382,48 @@ namespace Exicel转换1
                 return null;
             }
             //区分是Single-Lane 1\Single-Lane 2\Dual-DuobleLane
-            
+
+            if (productionMode== "Dual-DuobleLane")
+            {
+                if (lane1_Cycletime_list.Count == 0 || lane2_Cycletime_list.Count == 0)
+                {
+                    MessageBox.Show("rtf文件中没有发现Lane1和Lane2双轨的数据，请确认！");
+                    //出现问题重置所有情况
+                    //释放资源
+                    srRTFFile.Dispose();
+                    //重置srRTFFile
+                    srRTFFile = null;
+                    return null;
+                }
+            }
+            if (productionMode == "Single-Lane 2")
+            {
+                if (lane2_Cycletime_list.Count == 0)
+                {
+                    MessageBox.Show("rtf文件中没有发现Lane2的数据，请确认！");
+                    //出现问题重置所有情况
+                    //释放资源
+                    srRTFFile.Dispose();
+                    //重置srRTFFile
+                    srRTFFile = null;
+                    return null;
+                }
+            }
+
+            if (productionMode == "Single-Lane 1")
+            {
+                if (lane1_Cycletime_list.Count == 0)
+                {
+                    MessageBox.Show("rtf文件中没有发现Lane1的数据，请确认！");
+                    //出现问题重置所有情况
+                    //释放资源
+                    srRTFFile.Dispose();
+                    //重置srRTFFile
+                    srRTFFile = null;
+                    return null;
+                }
+            }
+
             srRTFFile.Dispose();//释放占用的rtf文件
             //重置srRTFFile
             srRTFFile = null;
@@ -1503,6 +1561,8 @@ namespace Exicel转换1
                 {
                     return;
                 }
+                //使用子线程执行报存
+                //Thread thread_ExportExcel = new Thread(new ParameterizedThreadStart(ComprehensiveStaticClass.GenExcelfromBaseComprehensiveList));
                 ComprehensiveStaticClass.GenExcelfromBaseComprehensiveList(summaryandLayout_ComprehensiveList, excelFileName);
 
                 //保存完后清空列表 summaryandLayout_ComprehensiveList

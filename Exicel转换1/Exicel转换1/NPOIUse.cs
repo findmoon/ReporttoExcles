@@ -8,7 +8,6 @@ using NPOI.HSSF.UserModel;
 using System.IO;
 using System.Data;
 using System.Windows.Forms;
-using NpoiOperatePicture;
 
 namespace NPOIUse
 {
@@ -201,18 +200,23 @@ namespace NPOIUse
 
 
             sheet = this.ExcelToIsheet(sheetName);
-
-            //sheet没有任何数据时返回null
-            if (sheet.PhysicalNumberOfRows == 0)
-            {
-                return null;
-            }
+            ////sheet获取失败
+            //if (sheet==null)
+            //{
+            //    return null;
+            //}                    
 
             try
             {
 
                 if (sheet != null)
                 {
+                    //sheet没有任何数据时返回null
+                    if (sheet.PhysicalNumberOfRows == 0)
+                    {
+                        MessageBox.Show(string.Format("没有“{0}”sheet或者其为空！", sheetName));
+                        return null;
+                    }
                     IRow firstRow = sheet.GetRow(0);
                     int firstCellCount = firstRow.LastCellNum;
 
@@ -235,27 +239,37 @@ namespace NPOIUse
                     {
                         //使用行的列数不等的情况
                         //for (int i = firstRow.FirstCellNum; i < cellCount; ++i)
-                        for (int i = 0; i < cellCount; ++i)
+                        for (int i = 0; i < cellCount; i++)
                         {
                             ICell cell;
                             if (i < firstCellCount)
                             {
                                 cell = firstRow.GetCell(i);
+                                //DataColumn 的添加需要和GetCell(i)对应，否则如果cell==null，有空行跳过，而Columns.Add还是的顺序添加
                                 if (cell != null)
                                 {
-                                    string cellValue = cell.StringCellValue;
+                                    //string cellValue = cell.StringCellValue;
+                                    string cellValue = cell.ToString();
                                     if (cellValue != null)
                                     {
                                         DataColumn column = new DataColumn(cellValue);
                                         data.Columns.Add(column);
                                     }
+                                    else
+                                    {
+                                        MessageBox.Show("获取cell内容失败!");
+                                        return null;
+                                    }
+                                }
+                                else
+                                {
+                                    data.Columns.Add();
                                 }
                             }
                             else
                             {
                                 //列数不等时，添加列初始化DataTable的结构
                                 // add方法column 参数为 null，会引发异常
-
                                 try
                                 {
                                     data.Columns.Add();
@@ -264,17 +278,13 @@ namespace NPOIUse
                                 {
                                     MessageBox.Show(ex.Message);
                                 }
-
                             }
-
-
-
                         }
                         startRow = sheet.FirstRowNum + 1;
                     }
                     else
                     {
-                        //第一行不是列名，但是仍要初始化DataTable的列，否则无法使用NewRow生成大DataRow[j]
+                        //第一行不是列名，但是仍要初始化DataTable的列，否则无法使用NewRow生成到DataRow[j]
                         for (int i = 0; i < cellCount; i++)
                         {
                             try
@@ -290,8 +300,8 @@ namespace NPOIUse
                         startRow = sheet.FirstRowNum;
                     }
 
-
-                    for (int i = 0; i <= rowCount; i++)
+                    //从startRow 开始转换数据到DataTable
+                    for (int i = startRow; i <= rowCount; i++)
                     {
                         IRow row = sheet.GetRow(i);
                         if (row == null) continue; //没有数据的行默认是null

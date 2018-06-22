@@ -28,29 +28,50 @@ namespace Exicel转换1
             flexCVCReport = new FlexCVReport();//窗体变量初始化
             xmlReport = new XmlReport();//窗体变量初始化
 
+            ////设置控件依靠父控件
+            //xmlReport.Anchor = (AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Top | AnchorStyles.Bottom);
+            //xmlReport.Dock = DockStyle.Fill;
+
             xmlReport.Show();//显示xmlreport窗体控件
+            XmlWindowToolBtn.BackColor = SystemColors.GradientActiveCaption;
             GpbWindow.Controls.Add(xmlReport);//加载xmlreport窗体控件
 
             //禁用和隐藏两个按钮
-            FlexCVWindow.Enabled = false;
-            FlexCVWindow.Visible = false;
-            LinCfgWindow.Enabled = false;
-            LinCfgWindow.Visible = false;
+            FlexCVWindowToolBtn.Enabled = false;
+            FlexCVWindowToolBtn.Visible = false;
+            LinCfgWindowToolBtn.Enabled = false;
+            LinCfgWindowToolBtn.Visible = false;
+        }
+        private void GpbWindow_Enter(object sender, EventArgs e)
+        {
+            //Dock 获取或设置哪些控件边框停靠到其父控件并确定控件如何随其父级一起调整大小。
+            this.GpbWindow.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            
         }
 
-        private void XmlWindow_Click(object sender, EventArgs e)
+        private void XmlWindowToolBtn_Click(object sender, EventArgs e)
         {
             xmlReport.Show();//显示xmlreport窗体控件
+            //XmlWindowToolBtn 颜色当前选中
+            //XmlWindowToolBtn.BackColor = SystemColors.GradientInactiveCaption;
+            XmlWindowToolBtn.BackColor = SystemColors.GradientActiveCaption;
+            flexCVCReport.BackColor = SystemColors.ControlLight;
+            lineCfg.BackColor = SystemColors.ControlLight;
+            //临时隐藏
             flexCVCReport.Hide();
             lineCfg.Hide();
             GpbWindow.Controls.Clear();//清空之前加载的窗体控件
             GpbWindow.Controls.Add(xmlReport);//加载xmlreport窗体控件
-            //输出日志
         }
 
-        private void FlexCVWindow_Click(object sender, EventArgs e)
+        private void FlexCVWindowToolBtn_Click(object sender, EventArgs e)
         {
             flexCVCReport.Show();
+
+            flexCVCReport.BackColor = SystemColors.GradientActiveCaption;
+            XmlWindowToolBtn.BackColor = SystemColors.ControlLight;
+            lineCfg.BackColor = SystemColors.ControlLight;
+            //临时
             xmlReport.Hide();
             lineCfg.Hide();
             GpbWindow.Controls.Clear();
@@ -58,13 +79,17 @@ namespace Exicel转换1
             //输出日志
         }
 
-        private void LinCfgWindow_Click(object sender, EventArgs e)
+        private void LinCfgWindowToolBtn_Click(object sender, EventArgs e)
         {
             lineCfg.Show();
+            lineCfg.BackColor = SystemColors.GradientActiveCaption;
+            XmlWindowToolBtn.BackColor = SystemColors.ControlLight;
+            flexCVCReport.BackColor = SystemColors.ControlLight;
+            //临时
             xmlReport.Hide();
             flexCVCReport.Hide();
             GpbWindow.Controls.Clear();
             GpbWindow.Controls.Add(lineCfg);
-        }       
+        }
     }
 }

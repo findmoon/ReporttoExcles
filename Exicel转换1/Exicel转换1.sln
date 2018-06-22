@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.26430.16
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Exicel转换1", "Exicel转换1\Exicel转换1.csproj", "{00F7C266-4CD6-4BCE-A52F-DEC564990221}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Excel评估报告转换", "Exicel转换1\Excel评估报告转换.csproj", "{00F7C266-4CD6-4BCE-A52F-DEC564990221}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -18,5 +18,8 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {274B8723-4F58-42FE-B269-AA40689272F9}
 	EndGlobalSection
 EndGlobal

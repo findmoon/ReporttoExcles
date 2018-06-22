@@ -28,7 +28,7 @@
         /// </summary>
         private void InitializeComponent()
         {
-            System.Windows.Forms.TreeNode treeNode2 = new System.Windows.Forms.TreeNode("最近转换的Job Report");
+            System.Windows.Forms.TreeNode treeNode1 = new System.Windows.Forms.TreeNode("最近转换的Job Report");
             this.label1 = new System.Windows.Forms.Label();
             this.OpenXmlFolder_Btn = new System.Windows.Forms.Button();
             this.GenExcleReport_Btn = new System.Windows.Forms.Button();
@@ -94,7 +94,10 @@
             // 
             // splitContainer2
             // 
-            this.splitContainer2.Location = new System.Drawing.Point(21, 19);
+            this.splitContainer2.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.splitContainer2.Location = new System.Drawing.Point(13, 19);
             this.splitContainer2.Name = "splitContainer2";
             // 
             // splitContainer2.Panel1
@@ -108,21 +111,24 @@
             this.splitContainer2.Panel2.Controls.Add(this.GenExcleReport_Btn);
             this.splitContainer2.Panel2.Controls.Add(this.label1);
             this.splitContainer2.Panel2.Controls.Add(this.label2);
-            this.splitContainer2.Size = new System.Drawing.Size(1133, 478);
-            this.splitContainer2.SplitterDistance = 34;
+            this.splitContainer2.Size = new System.Drawing.Size(967, 478);
+            this.splitContainer2.SplitterDistance = 25;
+            this.splitContainer2.SplitterWidth = 1;
             this.splitContainer2.TabIndex = 6;
             // 
             // latestBaseComprehensive_treeView
             // 
+            this.latestBaseComprehensive_treeView.Dock = System.Windows.Forms.DockStyle.Fill;
             this.latestBaseComprehensive_treeView.Enabled = false;
             this.latestBaseComprehensive_treeView.Location = new System.Drawing.Point(0, 0);
             this.latestBaseComprehensive_treeView.Name = "latestBaseComprehensive_treeView";
-            treeNode2.Name = "latestReport";
-            treeNode2.Text = "最近转换的Job Report";
+            treeNode1.Name = "latestReport";
+            treeNode1.Text = "最近转换的Job Report";
             this.latestBaseComprehensive_treeView.Nodes.AddRange(new System.Windows.Forms.TreeNode[] {
-            treeNode2});
-            this.latestBaseComprehensive_treeView.Size = new System.Drawing.Size(26, 478);
+            treeNode1});
+            this.latestBaseComprehensive_treeView.Size = new System.Drawing.Size(25, 478);
             this.latestBaseComprehensive_treeView.TabIndex = 2;
+            this.latestBaseComprehensive_treeView.Visible = false;
             // 
             // evaluation_TabControl
             // 
@@ -134,7 +140,7 @@
             this.evaluation_TabControl.Name = "evaluation_TabControl";
             this.evaluation_TabControl.Padding = new System.Drawing.Point(1, 1);
             this.evaluation_TabControl.SelectedIndex = 0;
-            this.evaluation_TabControl.Size = new System.Drawing.Size(1082, 368);
+            this.evaluation_TabControl.Size = new System.Drawing.Size(919, 375);
             this.evaluation_TabControl.TabIndex = 4;
             // 
             // XmlReport
@@ -142,10 +148,11 @@
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.AutoSize = true;
+            this.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
             this.Controls.Add(this.splitContainer2);
             this.Controls.Add(this.HasOpenFolderLbel);
             this.Name = "XmlReport";
-            this.Size = new System.Drawing.Size(1157, 503);
+            this.Size = new System.Drawing.Size(983, 500);
             this.Load += new System.EventHandler(this.XmlReport_Load);
             this.splitContainer2.Panel1.ResumeLayout(false);
             this.splitContainer2.Panel2.ResumeLayout(false);

@@ -35,7 +35,8 @@ namespace Exicel转换1
     {
         
         //电、气每种机器的值是固定的，使用字典，将字典放入结构中
-        //所有Tray：LTray-LTTray-LT2Tray-LTCTray-MTray。只在M6II\M6III上搭配Tray        
+        //所有Tray：LTray-LTTray-LT2Tray-LTCTray-MTray。只在M6II\M6III上搭配Tray
+        //功率字典
         static public Dictionary<string, double> power_Dictionary = new Dictionary<string, double>()
         {
             {"M3",0.6 },
@@ -118,7 +119,6 @@ namespace Exicel转换1
         }
         #endregion
 
-
         #region 生成summaryinfo的图片
         /// <summary>
         /// 生成图片
@@ -126,21 +126,33 @@ namespace Exicel转换1
         /// <param name="excelHelper1"></param>
         /// <param name="sheetName"></param>
         /// <param name="insertPoint"></param>
-        public static byte[] GenJobsPicture(string[] allModuleTypeString, Dictionary<string, int> module_Statistics)
+        public static byte[] GenModulesPicture(string[] allModuleTypeString, Dictionary<string, int> module_Statistics)
         {
 
             string img_M3 = @".\img\M3.png";
             string img_M6 = @".\img\M6.png";
+            string img_M6LTray = @".\img\M6-LTray.png";
+            string img_M6LTTray = @".\img\M6-LTTray.png";
+            string img_M6LT2Tray = @".\img\M6-LT2Tray.png";
+            string img_M6LTCTray = @".\img\M6-LTCTray.png";
+            string img_M6MTray = @".\img\M6-MTray.png";
 
-            if (!File.Exists(img_M3) || !File.Exists(img_M3))
+            if (!File.Exists(img_M3) || !File.Exists(img_M3)|| !File.Exists(img_M6LTray) || !File.Exists(img_M6LTTray)
+                || !File.Exists(img_M6LTCTray) || !File.Exists(img_M6MTray)|| !File.Exists(img_M6LT2Tray))
             {
-                MessageBox.Show("缺少M3或M6的图片文件，请确认后重试");
+                MessageBox.Show("缺少模组相关图片，请确认后重试");
                 return null;
             }
 
-            //获取两个文件的img
+            //获取 图片的img
             var imgM3 = Image.FromFile(img_M3);
             var imgM6 = Image.FromFile(img_M6);
+            //img_M6LTray、img_M6LTTray 、img_M6LTCTray、img_M6MTray
+            var imgM6LTray = Image.FromFile(img_M6LTray);
+            var imgM6LTTray = Image.FromFile(img_M6LTTray);
+            var imgM6LT2Tray = Image.FromFile(img_M6LT2Tray);
+            var imgM6LTCTray = Image.FromFile(img_M6LTCTray);
+            var imgM6MTray = Image.FromFile(img_M6MTray);
 
             #region//获取要生成的图片的宽高
             //生成最后图片的外边框留白,jiange间隔
@@ -150,21 +162,28 @@ namespace Exicel转换1
             //统计所需要拼接的图片数量
             int M3Image_count = 0;
             int M6Image_count = 0;
+            //模组M3或M6的个数
+            int M3_count=0, M6_count=0;
+
             foreach (var item in module_Statistics)
             {
                 //区别keyM3III\M3II\M3I
                 if (item.Key.Substring(0, 2) == "M3")
                 {
-                    M3Image_count += item.Value / 2;
+                    M3_count += item.Value;
                 }
                 if (item.Key.Substring(0, 2) == "M6")
                 {
-                    M6Image_count += item.Value;
+                    M6_count += item.Value;
                 }
             }
+            M3Image_count = M3_count / 2;
+            M6Image_count = M6_count;
             int finalWidth = imgM3.Width * M3Image_count + imgM6.Width * M6Image_count + jiange * 2;
             int finalHeight = imgM3.Height + jiange * 2;
             #endregion 
+
+           
 
             Bitmap finalImg = new Bitmap(finalWidth, finalHeight);
             Graphics graph = Graphics.FromImage(finalImg);
@@ -176,19 +195,56 @@ namespace Exicel转换1
             int pointX = jiange;
             int pointY = jiange;
 
+            ////确定最后的模组和Tray,同时画取图像
             for (int i = 0; i < allModuleTypeString.Length; i++)
             {
                 //M3模组图像
                 if (allModuleTypeString[i].Substring(0, 2) == "M3" && allModuleTypeString[i + 1].Substring(0, 2) == "M3")
                 {
-                    graph.DrawImage(imgM3, pointX, pointY);
+                    //写入文字M3或M3S
+                    graph.DrawImage(WriteTextToM3Image(allModuleTypeString[i], allModuleTypeString[i+1],imgM3), pointX, pointY);
                     pointX += imgM3.Width;
                     i++;
                 }
                 else if (allModuleTypeString[i].Substring(0, 2) == "M6")//M6模组图像
                 {
-                    graph.DrawImage(imgM6, pointX, pointY);
-                    pointX += imgM6.Width;
+                    string[] moduleTypeSplit = allModuleTypeString[i].Split('-');
+                    if (moduleTypeSplit.Length>1)//imgM6LTray\imgM6LTTray\imgM6LTCTray\imgM6MTray
+                    {
+                        switch (moduleTypeSplit[1].ToLower())
+                        {
+                            case "ltray":
+                                {
+                                    graph.DrawImage(WriteTextToM6Image(moduleTypeSplit[0],imgM6LTray), pointX, pointY);
+                                    pointX += imgM6.Width;
+                                    break;
+                                }
+                            case "mtray":
+                                graph.DrawImage(WriteTextToM6Image(moduleTypeSplit[0], imgM6MTray), pointX, pointY);
+                                pointX += imgM6.Width;
+                                break;
+                            case "lttray":
+                                graph.DrawImage(WriteTextToM6Image(moduleTypeSplit[0], imgM6LTTray), pointX, pointY);
+                                pointX += imgM6.Width;
+                                break;
+                            case "lt2tray":
+                                graph.DrawImage(WriteTextToM6Image(moduleTypeSplit[0], imgM6LT2Tray), pointX, pointY);
+                                pointX += imgM6.Width;
+                                break;
+                            case "ltctray":
+                                graph.DrawImage(WriteTextToM6Image(moduleTypeSplit[0], imgM6LTCTray), pointX, pointY);
+                                pointX += imgM6.Width;
+                                break;
+                            default:
+                                break;
+                        }
+                        
+                    }
+                    else
+                    {
+                        graph.DrawImage(WriteTextToM6Image(allModuleTypeString[i], imgM6), pointX, pointY);
+                        pointX += imgM6.Width;
+                    }
                 }
             }
             graph.Dispose();
@@ -204,9 +260,70 @@ namespace Exicel转换1
                 stream.Read(PictureDataByte, 0, Convert.ToInt32(stream.Length));
             }
             return PictureDataByte;
-            #endregion                        
+            #endregion
         }
         #endregion
+
+        private static Image WriteTextToM3Image(string str1, string str2,Image m3Image)
+        {
+            Font font = new Font("Arial", 8, FontStyle.Regular);
+            //绘笔颜色
+            SolidBrush brush = new SolidBrush(Color.Black);
+            //图画
+            Bitmap bitmap = new Bitmap(m3Image, m3Image.Width, m3Image.Height);
+            Graphics g = Graphics.FromImage(bitmap);
+            //g.Clear(Color.Empty);
+            //g.DrawImage(m3Image, 0, 0, m3Image.Width, m3Image.Height);
+            //g.Clear(Color.Empty);
+            ////定义一个矩形区域，在这个矩形上画字
+            float rectX = 10;
+            float rectY = 37;
+            //字体格式
+            //StringFormat format = new StringFormat(StringFormatFlags.NoClip);
+            SizeF sizeF = g.MeasureString(str1, font);
+            int width = (int)(sizeF.Width+1);
+            int height = (int)(sizeF.Height+1);
+            //声明矩形区域
+            RectangleF textArea = new RectangleF(rectX, rectY, width, height);
+            g.DrawString(str1, font, brush,textArea);
+
+            rectX = 50;
+            rectY = 37;
+            //字体格式
+            //StringFormat format = new StringFormat(StringFormatFlags.NoClip);
+            sizeF = g.MeasureString(str2, font);
+            width = (int)(sizeF.Width+1);
+            height = (int)(sizeF.Height+1);
+            //声明矩形区域
+            textArea = new RectangleF(rectX, rectY, width, height);
+            g.DrawString(str2, font, brush,textArea);
+            g.Dispose();
+            return bitmap;
+        }
+        private static Image WriteTextToM6Image(string str, Image m6Image)
+        {
+            Font font = new Font("Arial", 10, FontStyle.Regular);
+            //绘笔颜色
+            SolidBrush brush = new SolidBrush(Color.Black);
+            //图画
+            
+            Bitmap bitmap = new Bitmap(m6Image, m6Image.Width, m6Image.Height);
+            Graphics g = Graphics.FromImage(bitmap);
+            //g.Clear(Color.Empty);
+            //g.DrawImage(m6Image, 0, 0, m6Image.Width, m6Image.Height);
+            float rectX = 15;
+            float rectY = 37;
+            //字体格式
+            //StringFormat format = new StringFormat(StringFormatFlags.NoClip);
+            SizeF sizeF = g.MeasureString(str, font);
+            int width = (int)(sizeF.Width+1);
+            int height = (int)(sizeF.Height+1);
+            //声明矩形区域
+            RectangleF textArea = new RectangleF(rectX, rectY, width, height);
+            g.DrawString(str, font, brush, textArea);
+            g.Dispose();
+            return bitmap;
+        }
 
         #region 保存对话框的实现
         public static string SaveExcleDialogShow()
@@ -244,15 +361,30 @@ namespace Exicel转换1
         
         #region //将string插入Excel指定位置
         private static void StringInsertWorkbook(ExcelHelper excelHelper1, string insertString, string sheetName,
-            int[] insertPoint, short colorShort)
+            int[] insertPoint)
         {
-            StringInsertWorkbook(excelHelper1, insertString, sheetName, insertPoint, Orientation.Origin, 0, null, colorShort);
-        }        
+            StringInsertWorkbook(excelHelper1, insertString, sheetName, insertPoint, Orientation.Origin, 0, null, 0);
+        }
+        #endregion
+        #region //将string插入Excel指定位置
+        /// <summary>
+        /// 将字符创插入指定sheetname表单中指定的单元格
+        /// </summary>
+        /// <param name="excelHelper1"></param>
+        /// <param name="insertString"></param>
+        /// <param name="sheetName"></param>
+        /// <param name="insertPoint">插入位置</param>
+        /// <param name="hasBorder">是否设置边框，默认不设置</param>
+        private static void StringInsertWorkbook(ExcelHelper excelHelper1, string insertString, string sheetName,
+            int[] insertPoint, bool hasBorder=false)
+        {
+            StringInsertWorkbook(excelHelper1, insertString, sheetName, insertPoint, Orientation.Origin, 0, null,0, hasBorder);
+        }
 
         //重载字符串插入sheet，指定合并插入时的单元格，合并方向和单元格数量
         //MergeOrientation
         /// <summary>
-        /// 
+        /// 将字符创插入指定sheetname表单中指定的单元格，并合并指定单元格
         /// </summary>
         /// <param name="excelHelper1"></param>
         /// <param name="insertString"></param>
@@ -261,9 +393,10 @@ namespace Exicel转换1
         /// <param name="mergeOrientation"></param>
         /// <param name="mergeNum">从插入位置开始合并单元格的数量</param>
         /// <param name="WidthHeight">插入string所在单元格的宽高，只实现了设置高度,null表示不设置宽高</param>
-        /// /// <param name="colorShort">colorShort NPOI颜色，0表示不设置颜色</param>
+        /// <param name="colorShort">colorShort NPOI颜色，0表示不设置颜色</param>
+        /// <param name="hasBorder">是否显示边框，默认不显示</param>
         private static void StringInsertWorkbook(ExcelHelper excelHelper1, string insertString, string sheetName,
-            int[] insertPoint, Orientation mergeOrientation,int mergeNum, int[] WidthHeight, short colorShort)
+            int[] insertPoint, Orientation mergeOrientation,int mergeNum, int[] WidthHeight, short colorShort,bool hasBorder=true)
         {
             IWorkbook workbook = excelHelper1.WorkBook;
             //FileStream fs = excelHelper1.FS;
@@ -290,17 +423,7 @@ namespace Exicel转换1
                 }                
                 row.CreateCell(insertPoint[1]).SetCellValue(insertString);
 
-                //合并单元格
-                //mergeNum为合并的cell数量，结束位置为mergeNum-1
-                if (mergeOrientation==Orientation.Horizontal)//横向
-                {
-                    sheet.AddMergedRegion(new CellRangeAddress(insertPoint[0], insertPoint[0], insertPoint[1], insertPoint[1] + mergeNum-1));
-                }
-                if (mergeOrientation == Orientation.Vertical)
-                {
-                    sheet.AddMergedRegion(new CellRangeAddress(insertPoint[0], insertPoint[0] + mergeNum-1, insertPoint[1], insertPoint[1]));
-                }
-
+                //
                 #region 样式
                 ICellStyle cellStyle = workbook.CreateCellStyle();
                 //垂直居中
@@ -311,27 +434,58 @@ namespace Exicel转换1
                 //设置开启自动换行,在下面应用到单元格样式时，\n转义字符处理
                 cellStyle.WrapText = true;
 
-                //设置背景
-                //if (colorShort == 0)
-                //{
-                //    colorShort = IndexedColors.Automatic.Index;
-                //}
-                if(colorShort!=0)
+                //是否设置边框
+                if (hasBorder)
+                {
+                    cellStyle.BorderBottom = NPOI.SS.UserModel.BorderStyle.Thin;
+                    cellStyle.BorderTop = NPOI.SS.UserModel.BorderStyle.Thin;
+                    cellStyle.BorderLeft = NPOI.SS.UserModel.BorderStyle.Thin;
+                    cellStyle.BorderRight = NPOI.SS.UserModel.BorderStyle.Thin;
+                }
+
+                if (colorShort != 0)
                 {
                     cellStyle.FillBackgroundColor = IndexedColors.White.Index;
                     cellStyle.FillForegroundColor = colorShort;
-                    cellStyle.FillPattern = FillPattern.SolidForeground;
-                }                
+                }
 
-                //设置边框，在合并的单元格中，边框未应用到整个合并单元格
-                //cellStyle.BorderBottom = NPOI.SS.UserModel.BorderStyle.Thick;
-                //cellStyle.BorderTop = NPOI.SS.UserModel.BorderStyle.Thick;
-                //cellStyle.BorderLeft = NPOI.SS.UserModel.BorderStyle.Thick;
-                //cellStyle.BorderRight = NPOI.SS.UserModel.BorderStyle.Thick;
-
-                //应用到单元格样式
-                row.GetCell(insertPoint[1]).CellStyle = cellStyle;
+                cellStyle.FillPattern = FillPattern.SolidForeground;
                 #endregion
+                //合并单元格
+                //mergeNum为合并的cell数量，结束位置为mergeNum-1
+                if (mergeOrientation==Orientation.Horizontal)//横向
+                {                    
+                    //设置样式到单元格
+                    for (int i = insertPoint[1]; i < insertPoint[1]+ mergeNum; i++)
+                    {
+                        if (row.GetCell(i)==null)
+                        {
+                            row.CreateCell(i);
+                        }
+                        row.GetCell(i).CellStyle = cellStyle;
+                        
+                    }
+                    //合并
+                    sheet.AddMergedRegion(new CellRangeAddress(insertPoint[0], insertPoint[0], insertPoint[1], insertPoint[1] + mergeNum-1));
+                }
+                if (mergeOrientation == Orientation.Vertical)
+                {
+                    for (int i = insertPoint[0]; i < insertPoint[0]+mergeNum; i++)
+                    {
+                        if (sheet.GetRow(i)==null)
+                        {
+                            sheet.CreateRow(i);
+                        }
+                        if (sheet.GetRow(i).GetCell(insertPoint[1])==null)
+                        {
+                            sheet.GetRow(i).CreateCell(insertPoint[1]);
+                        }
+                        sheet.GetRow(i).GetCell(insertPoint[1]).CellStyle = cellStyle;
+                    }
+                    sheet.AddMergedRegion(new CellRangeAddress(insertPoint[0], insertPoint[0] + mergeNum-1, insertPoint[1], insertPoint[1]));
+                }
+
+                
 
             }
             catch (Exception ex)
@@ -342,7 +496,7 @@ namespace Exicel转换1
         #endregion
 
         /// <summary>
-        /// 
+        /// 生成sheet1 的DataTable
         /// </summary>
         /// <param name="excelHelper1">要生成的Excel对应的ExcelHelper类对象</param>
         /// <param name="dt">生成sheet的DataTable</param>
@@ -350,8 +504,9 @@ namespace Exicel转换1
         /// <param name="sheetNamet">将dt插入到指定sheet</param>
         /// <param name="isColumnWritten">是否吧列名作为单元格插入</param>
         /// <param name="insertPoint">插入的位置</param>
+        /// <param name="isDisplayGrid">插入的位置</param>
         private static void DataTableToResultSheet1(ExcelHelper excelHelper1, DataTable dt, string sheetName, 
-            bool isColumnWritten, int[] insertPoint)
+            bool isColumnWritten, int[] insertPoint,bool isDisplayGrid=false)
         {
             //生成报告的excelHelper1 excelHelper类
             IWorkbook workbook = excelHelper1.WorkBook;
@@ -403,7 +558,11 @@ namespace Exicel转换1
                     }
                     ++count;
                 }
-
+                //是否显示网格
+                if (!isDisplayGrid)
+                {
+                    sheet.DisplayGridlines = false;
+                }
                 #region sheet1的样式
                 //设置列宽
                 int commonWidth = 11;
@@ -423,7 +582,7 @@ namespace Exicel转换1
 
                 //设置行高,仅设置summaryDT两行的行高,仅仅设置 insertPoint[0] 和 count 之间的 行高
 
-                int rowNum = count - insertPoint[0];
+                //int rowNum = count - insertPoint[0];
                 IRow row1;
                 IRow row2;
 
@@ -436,10 +595,10 @@ namespace Exicel转换1
                     row1 = sheet.GetRow(insertPoint[0]);
                 }
                 row1.HeightInPoints = 50;
-
+                
                 if (isColumnWritten)
                 {
-                    
+
                     if (sheet.GetRow(insertPoint[0] + 1) == null)
                     {
                         row2 = sheet.CreateRow(insertPoint[0] + 1);
@@ -450,9 +609,6 @@ namespace Exicel转换1
                     }
                     row2.HeightInPoints = 50;
                 }
-
-
-                
 
                 //设置整列单元格样式
                 //获取列数量
@@ -545,7 +701,17 @@ namespace Exicel转换1
 
         }
 
-        private static void DataTableToResultSheet2(ExcelHelper excelHelper1, DataTable dt, string sheetNamet, bool isColumnWritten, int[] insertPoint)
+        /// <summary>
+        /// 生成sheet2
+        /// </summary>
+        /// <param name="excelHelper1"></param>
+        /// <param name="dt"></param>
+        /// <param name="sheetNamet"></param>
+        /// <param name="isColumnWritten"></param>
+        /// <param name="insertPoint"></param>
+        /// <param name="isDisplayGrid"></param>
+        private static void DataTableToResultSheet2(ExcelHelper excelHelper1, DataTable dt, string sheetNamet, 
+            bool isColumnWritten, int[] insertPoint, bool isDisplayGrid = false)
         {
             //生成报告的excelHelper1 excelHelper类
             IWorkbook workbook = excelHelper1.WorkBook;
@@ -597,6 +763,91 @@ namespace Exicel转换1
                 }
 
                 //setSecondSheetStyle(sheet, dt.Columns.Count - 1);
+
+                if (!isDisplayGrid)
+                {
+                    sheet.DisplayGridlines = false;
+                }
+
+                //设置样式
+                //设置行高,仅设置summaryDT两行的行高,仅仅设置 insertPoint[0] 和 count 之间的 行高
+
+                int rowNum = count - insertPoint[0];
+                IRow row2;
+                if (isColumnWritten)
+                {
+
+                    if (sheet.GetRow(insertPoint[0]) == null)
+                    {
+                        row2 = sheet.CreateRow(insertPoint[0] + 1);
+                    }
+                    else
+                    {
+                        row2 = sheet.GetRow(insertPoint[0]);
+                    }
+                    row2.HeightInPoints = 50;
+                }
+
+
+                //设置整列单元格样式
+                //获取列数量
+                //int column_count = ExcelHelper.sheetColumns(sheet);
+                //for (int i = 0; i < column_count; i++)
+                //{
+                //    //设置SetDefaultColumnStyle后，仅到新创建cell时，会应用这个默认设置
+                //    //sheet.SetDefaultColumnStyle(i, cellStyle);
+                //}
+                ICellStyle cellStyle;
+                for (int i = insertPoint[0]; i < count; i++)
+                {
+                    if (sheet.GetRow(i) != null)
+                    {
+                        row = sheet.GetRow(i);
+
+                        //row.LastCellNum=14，但实际有13个cell,
+                        for (int j = 0; j < row.LastCellNum; j++)
+                        {
+                            //int j = row.FirstCellNum,这个复制在第一次循环时提示cell number必须>=0，FirstCellNum怎么会<0？
+                            if (row.GetCell(j) == null)
+                            {
+                                continue;
+                            }
+
+                            //设置单元格样式,必须每一个cell对应一个样式，否则无法设置背景
+
+                            cellStyle = workbook.CreateCellStyle();
+
+                            //设置开启自动换行,在下面应用到单元格样式时，\n转义字符处理
+                            //第一行换行,且居中
+                            if (i== insertPoint[0])
+                            {
+                                cellStyle.WrapText = true;
+                                //垂直居中
+                                cellStyle.VerticalAlignment = NPOI.SS.UserModel.VerticalAlignment.Center;
+                                //水平对齐
+                                cellStyle.Alignment = NPOI.SS.UserModel.HorizontalAlignment.Center;
+                            }
+                            
+
+                            //设置cellstyle背景
+                            //cellStyle.FillBackgroundColor = IndexedColors.Automatic.Index;
+                            //cellStyle.FillForegroundColor = IndexedColors.Automatic.Index;
+
+                            //设置边框
+                            cellStyle.BorderBottom = NPOI.SS.UserModel.BorderStyle.Thin;
+                            cellStyle.BorderTop = NPOI.SS.UserModel.BorderStyle.Thin;
+                            cellStyle.BorderLeft = NPOI.SS.UserModel.BorderStyle.Thin;
+                            cellStyle.BorderRight = NPOI.SS.UserModel.BorderStyle.Thin;
+
+
+                            //填充模式
+                            cellStyle.FillPattern = FillPattern.SolidForeground;
+
+                            row.GetCell(j).CellStyle = cellStyle;
+                            //cellStyle.Dispose();
+                        }
+                    }
+                }
 
                 #region 写入流应该在方法外
                 //if (fs == null)
@@ -759,11 +1010,16 @@ namespace Exicel转换1
             {
                 endCol = startCol + 3;
             }
-            if (machineCount > 14)
+            if (machineCount > 10)
             {
                 startCol--;
                 endCol = startCol + 4;
-            }          
+            }
+            if (machineCount > 15)
+            {
+                startCol--;
+                endCol = startCol + 5;
+            }
 
             //偏移依旧不起作用
             excelHelper1.pictureDataToSheet(sheet1, PictureDataByte, 50, 10, 50, 10, startRow, startCol, endRow, endCol);
@@ -1037,7 +1293,7 @@ namespace Exicel转换1
                         new int[2] { summaryInsertRowNum + 2, 1 });
                     //插入标题
                     StringInsertWorkbook(excelHelper1, oneTitle, sheet1, new int[2] { summaryInsertRowNum, 1 },
-                        Orientation.Horizontal, baseComprehensive.SummaryInfoDT.Columns.Count, new int[] { 0, 45 }, 0);
+                        Orientation.Horizontal, baseComprehensive.SummaryInfoDT.Columns.Count, new int[] { 0, 45 },0,false);
 
                     //插入图片位置信息
                     //StringInsertWorkbook(excelHelper1, "", sheet1, new int[2] { 2, 1 }, IndexedColors.LightGreen.Index);
@@ -1062,7 +1318,7 @@ namespace Exicel转换1
                 DataTableToResultSheet1(excelHelper1, baseComprehensive.SummaryInfoDT, sheet1, true, new int[2] { summaryInsertRowNum + 2, 1 });
                 //插入标题
                 StringInsertWorkbook(excelHelper1, oneTitle, sheet1, new int[2] { summaryInsertRowNum, 1 },
-                    Orientation.Horizontal, baseComprehensive.SummaryInfoDT.Columns.Count, new int[] { 0, 45 }, 0);
+                    Orientation.Horizontal, baseComprehensive.SummaryInfoDT.Columns.Count, new int[] { 0, 45 }, 0,false);
 
                 //插入图片位置信息
                 //StringInsertWorkbook(excelHelper1, "", sheet1, new int[2] { 2, 1 }, IndexedColors.LightGreen.Index);
@@ -1099,7 +1355,7 @@ namespace Exicel转换1
 
             //插入建议
             StringInsertWorkbook(excelHelper1, ProposalString, sheet2, new int[2] { layoutInsertPoint[0], layoutInsertPoint[1] - 1 },
-                Orientation.Vertical, baseComprehensive.layoutDT.Rows.Count + 1, null, 0);
+                Orientation.Vertical, baseComprehensive.layoutDT.Rows.Count + 2, null, 0);
             //StringInsertWorkbook(excelHelper1, ProposalString, sheet2, new int[2] { 2, 1 }, IndexedColors.BrightGreen.Index);
             #endregion
 
@@ -1345,6 +1601,10 @@ namespace Exicel转换1
                 //加Tray功率
                 foreach (var tray_Statistics in tray_StatisticsDict)
                 {
+                    if (!power_Dictionary.Keys.Contains(tray_Statistics.Key))
+                    {
+                        continue;
+                    }
                     gonglv += tray_StatisticsDict[tray_Statistics.Key] * power_Dictionary[tray_Statistics.Key];
                 }
             }
@@ -1529,13 +1789,15 @@ namespace Exicel转换1
         public Dictionary<string, int> base_StatisticsDict;       
         public Dictionary<string, int> module_StatisticsDict;       
         
-        public List<Module_Head_Cph_Struct> module_Head_Cph_Structs_List = null;        
+        public List<Module_Head_Cph_Struct> module_Head_Cph_Structs_List = null;
 
+        public string MachineName { get; set; }
+        public string CPHRate { get; set; }
         public Int64 TimeStamp
         {
             get
             {
-                return this.timeStamp;
+                return timeStamp;
             }
         }
 
@@ -1602,17 +1864,20 @@ namespace Exicel转换1
             }
             //更新所有的TrayStrings
             AllTrayStrings = allTrayList.ToArray();
+
+
             //更新summaryDT中的：
             //  更新Line、HeadType、CPHRate、Remark
-            //获取Line
-            //获取moduleStasticsDict
+
+            //获取moduleStasticsDict。不更新module_StatisticsDict，因为没有变，只是增加Tray
             //未加入统计和计算Tray的字典，暂时不更新module字典，否则报错
             //Dictionary<string, int> moduleStasticsDict = ComprehensiveStaticClass.GenModuleStasticsDictFromModuleStrings(
             //    this.AllModuleType);
 
-            //allmodule的字符串
-            
+            //更新图片
+            PictureDataByte = ComprehensiveStaticClass.GenModulesPicture(AllModuleType, module_StatisticsDict);
 
+            //更新Line
             string Line = ComprehensiveStaticClass.GenLineStringFromModuleStasticsBaseStastics(
                 module_StatisticsDict, base_StatisticsDict, MachineKind);
             //获取HeadType
@@ -1622,7 +1887,8 @@ namespace Exicel转换1
             //获取Remark
             string remark = ComprehensiveStaticClass.GenRemarkFromModuleBaseStasticsDict(module_StatisticsDict,
                 base_StatisticsDict, AllTrayStrings);
-
+            //更新CPHRate
+            CPHRate = cphRate;
             //更新summaryDT
             SummaryInfoDT.Rows[0]["Line"] = Line;
             SummaryInfoDT.Rows[0]["Head \nType"] = headType;
