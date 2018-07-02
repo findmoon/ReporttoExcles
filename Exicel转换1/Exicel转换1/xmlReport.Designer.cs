@@ -140,7 +140,7 @@
             this.evaluation_TabControl.Name = "evaluation_TabControl";
             this.evaluation_TabControl.Padding = new System.Drawing.Point(1, 1);
             this.evaluation_TabControl.SelectedIndex = 0;
-            this.evaluation_TabControl.Size = new System.Drawing.Size(919, 375);
+            this.evaluation_TabControl.Size = new System.Drawing.Size(922, 375);
             this.evaluation_TabControl.TabIndex = 4;
             // 
             // XmlReport

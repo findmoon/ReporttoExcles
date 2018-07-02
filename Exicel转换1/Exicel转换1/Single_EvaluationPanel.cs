@@ -125,7 +125,7 @@ namespace Exicel转换1
         {
             //要做到 单例模式，单击 当前只产生唯一的一个
             ModefyModuleHeadCPHForm modefyModuleHeadCPHForm = ModefyModuleHeadCPHForm.Getsingle_ModefyModuleHeadCPHForm(
-                this.module_Head_Cph_Structs_List, this.base_StatisticsDict);
+                module_Head_Cph_Structs_List, base_StatisticsDict);
             modefyModuleHeadCPHForm.Show();
 
             //订阅事件，保存 子窗体的数据改变到 BaseComprehensive 对象

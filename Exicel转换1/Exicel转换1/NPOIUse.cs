@@ -514,7 +514,7 @@ namespace NPOIUse
             
             //将图片文件读入workbook，用索引指向该文件
             //int pictureIdx = workbook.AddPicture(pictureNPOI, PictureType.TIFF);
-            IShape recl;
+            //IShape recl;
 
             
 

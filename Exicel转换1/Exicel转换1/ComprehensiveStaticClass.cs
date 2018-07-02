@@ -119,6 +119,175 @@ namespace Exicel转换1
         }
         #endregion
 
+        #region 生成模组base的简笔画
+        public static byte[] GenModuleBaseStickFigure(string[] allModuleTypeString, Dictionary<string, int> module_Statistics, Dictionary<string, int> base_StatisticsDict)
+        {
+            //获取图片
+            string img_M3 = @".\img\M3figure.png";
+            string img_M6 = @".\img\M6figure.png";
+            string base_2M = @".\img\2MBase.png";
+            string base_4M = @".\img\4MBase.png";
+            string provider = @".\img\provider.png";
+            if (!File.Exists(img_M3) || !File.Exists(img_M6) || !File.Exists(base_2M) || !File.Exists(base_4M)
+                ||!File.Exists(provider))
+            {
+                MessageBox.Show("缺少电气图相关图片，请确认后重试！");
+                return null;
+            }
+            //获取 图片
+            var imgM3 = Image.FromFile(img_M3);
+            var imgM6 = Image.FromFile(img_M6);
+            var imgbase2M = Image.FromFile(base_2M);
+            var imgbase4M = Image.FromFile(base_4M);
+            var imgprovider = Image.FromFile(provider);
+            #region 合并base
+            //获取要合并的base图片的宽高
+            int base2M_Count = base_StatisticsDict["2MBASE"];
+            int base4M_Count = base_StatisticsDict["4MBASE"];
+            //2mbase和4mbase  结束时的比例
+            double base2MXian = 0.534;
+            double base4MXian = 0.536;
+            //最后base宽度，最后一个base宽度为全部宽度，默认base顺序固定不可调整
+            var base4M_Width = base4M_Count>0?Convert.ToDouble(imgbase4M.Width * (base4M_Count - 1)) * base4MXian + imgbase4M.Width : 0;
+            var base2M_width = base2M_Count >0? 
+                (base4M_Count == 0 ?Convert.ToDouble(imgbase2M.Width * (base2M_Count - 1)) * base2MXian + imgbase2M.Width : Convert.ToDouble(imgbase2M.Width * base2M_Count) * base2MXian) 
+                : 0;
+            var finalWidth = Convert.ToInt32(base2M_width + base4M_Width);
+            var finalHeight = imgbase4M.Height;
+
+            //画 Base
+            Bitmap finalBaseImg = new Bitmap(finalWidth, finalHeight);
+            Graphics graph = Graphics.FromImage(finalBaseImg);
+            //graph.Clear(SystemColors.AppWorkspace);
+            graph.Clear(Color.Empty);
+
+            #region//根据base画取img画图
+            int pointX = 0;//插入位置点
+            int pointY = 0;
+            for (int i = 0; i < base2M_Count; i++)
+            {
+                //2mBase图像
+                    graph.DrawImage(imgbase2M, pointX, pointY);
+                    pointX += Convert.ToInt32( imgbase2M.Width * base2MXian);                    
+             }
+            for (int i = 0; i < base4M_Count; i++)
+            {
+                //4MBase图像
+                graph.DrawImage(imgbase4M, pointX, pointY);
+                pointX += Convert.ToInt32(imgbase4M.Width  * base4MXian);                
+            }
+            graph.Dispose();
+            #endregion
+            #endregion
+            //finalBaseImg.Save(@"D:\a.png", System.Drawing.Imaging.ImageFormat.Png);
+
+            #region //合并模组
+            //统计所需要拼接的图片数量
+            int M3Image_count = 0;
+            int M6Image_count = 0;
+            //模组M3或M6的个数
+            int M3_count = 0, M6_count = 0;
+            //调整间隔位置
+            int jiange = 3;
+
+            foreach (var item in module_Statistics)
+            {
+                //区别keyM3III\M3II\M3I
+                if (item.Key.Substring(0, 2) == "M3")
+                {
+                    M3_count += item.Value;
+                }
+                if (item.Key.Substring(0, 2) == "M6")
+                {
+                    M6_count += item.Value;
+                }
+            }
+            M3Image_count = M3_count / 2;
+            M6Image_count = M6_count;
+            finalWidth = (imgM3.Width+ jiange) * M3Image_count + (imgM6.Width+ jiange) * M6Image_count;
+            finalHeight = imgM3.Height;
+            #endregion
+
+            Bitmap finalModuleImg = new Bitmap(finalWidth, finalHeight);
+            Graphics graph1 = Graphics.FromImage(finalModuleImg);
+            //graph.Clear(SystemColors.AppWorkspace);
+            graph1.Clear(Color.Empty);
+
+            #region//循环模组并画取img画图
+            //画取的位置
+            pointX = 0;
+            pointY = 0;
+
+            ////确定最后的模组和Tray,同时画取图像
+            for (int i = 0; i < allModuleTypeString.Length; i++)
+            {
+                //M3模组图像
+                if (allModuleTypeString[i].Substring(0, 2) == "M3" && allModuleTypeString[i + 1].Substring(0, 2) == "M3")
+                {
+                    //写入文字M3或M3S
+                    graph1.DrawImage(imgM3, pointX, pointY);
+                    pointX += imgM3.Width+ jiange;
+                    i++;
+                }
+                //M3模组图像
+                if (allModuleTypeString[i].Substring(0, 2) == "M6")
+                {
+                    //写入文字M3或M3S
+                    graph1.DrawImage(imgM6, pointX, pointY);
+                    pointX += imgM6.Width+ jiange;                    
+                }
+            }
+            graph1.Dispose();
+            #endregion
+
+            #region //合并模组和base 和配电室等
+            finalWidth = finalBaseImg.Width + imgprovider.Width;
+            finalHeight = finalModuleImg.Height + finalBaseImg.Height;
+            Bitmap finalBaseModuleImg = new Bitmap(finalWidth, finalHeight);
+            Graphics graph2 = Graphics.FromImage(finalBaseModuleImg);
+            //graph.Clear(SystemColors.AppWorkspace);
+            graph2.Clear(Color.Empty);
+            pointX = 0;
+            pointY = 0;
+            //画模组
+            graph2.DrawImage(finalModuleImg, pointX, pointY);
+            //画base
+            graph2.DrawImage(finalBaseImg, pointX, pointY + finalModuleImg.Height);
+            //画provider,调整位置
+            graph2.DrawImage(imgprovider, pointX + finalBaseImg.Width, pointY+28);
+            graph2.Dispose();
+            //finalWidth = finalBaseImg.Width;
+            //finalHeight = finalModuleImg.Height + finalBaseImg.Height;
+            //Bitmap finalBaseModuleImg = new Bitmap(finalWidth, finalHeight);
+            //Graphics graph2 = Graphics.FromImage(finalBaseModuleImg);
+            ////graph.Clear(SystemColors.AppWorkspace);
+            //graph2.Clear(Color.Empty);
+            //pointX = 0;
+            //pointY = 0;
+            ////画模组
+            //graph2.DrawImage(finalModuleImg, pointX, pointY);
+            ////画base
+            //graph2.DrawImage(finalBaseImg, pointX, pointY + finalModuleImg.Height);
+
+            //graph2.Dispose();
+            #endregion
+
+            //finalModuleImg.Save(@"D:\b.png", System.Drawing.Imaging.ImageFormat.Png);
+            //finalBaseModuleImg.Save(@"D:\e.png", System.Drawing.Imaging.ImageFormat.Png);
+            #region//将bitmap转换为byte[],并返回
+            byte[] PictureDataByte;
+            using (MemoryStream stream = new MemoryStream())
+            {
+                finalBaseModuleImg.Save(stream, System.Drawing.Imaging.ImageFormat.Png);
+                PictureDataByte = new byte[stream.Length];
+                stream.Seek(0, SeekOrigin.Begin);
+                stream.Read(PictureDataByte, 0, Convert.ToInt32(stream.Length));
+            }
+            return PictureDataByte;
+            #endregion
+        }
+        #endregion
+
         #region 生成summaryinfo的图片
         /// <summary>
         /// 生成图片
@@ -137,7 +306,7 @@ namespace Exicel转换1
             string img_M6LTCTray = @".\img\M6-LTCTray.png";
             string img_M6MTray = @".\img\M6-MTray.png";
 
-            if (!File.Exists(img_M3) || !File.Exists(img_M3)|| !File.Exists(img_M6LTray) || !File.Exists(img_M6LTTray)
+            if (!File.Exists(img_M3) || !File.Exists(img_M6)|| !File.Exists(img_M6LTray) || !File.Exists(img_M6LTTray)
                 || !File.Exists(img_M6LTCTray) || !File.Exists(img_M6MTray)|| !File.Exists(img_M6LT2Tray))
             {
                 MessageBox.Show("缺少模组相关图片，请确认后重试");
@@ -264,7 +433,8 @@ namespace Exicel转换1
         }
         #endregion
 
-        private static Image WriteTextToM3Image(string str1, string str2,Image m3Image)
+        #region 将文字M3或M6写入模组图片中
+        private static Image WriteTextToM3Image(string str1, string str2, Image m3Image)
         {
             Font font = new Font("Arial", 8, FontStyle.Regular);
             //绘笔颜色
@@ -277,26 +447,32 @@ namespace Exicel转换1
             //g.Clear(Color.Empty);
             ////定义一个矩形区域，在这个矩形上画字
             float rectX = 10;
+            string p1 = string.Format("{0:p}", rectX / m3Image.Width);
             float rectY = 37;
+            string p2 = string.Format("{0:p}", rectY / m3Image.Width);
+
             //字体格式
             //StringFormat format = new StringFormat(StringFormatFlags.NoClip);
             SizeF sizeF = g.MeasureString(str1, font);
-            int width = (int)(sizeF.Width+1);
-            int height = (int)(sizeF.Height+1);
+            int width = (int)(sizeF.Width + 1);
+            int height = (int)(sizeF.Height + 1);
             //声明矩形区域
             RectangleF textArea = new RectangleF(rectX, rectY, width, height);
-            g.DrawString(str1, font, brush,textArea);
+            g.DrawString(str1, font, brush, textArea);
 
             rectX = 50;
             rectY = 37;
+            string p3 = string.Format("{0:p}", rectX / m3Image.Width);
+            string p4 = string.Format("{0:p}", rectY / m3Image.Width);
+
             //字体格式
             //StringFormat format = new StringFormat(StringFormatFlags.NoClip);
             sizeF = g.MeasureString(str2, font);
-            width = (int)(sizeF.Width+1);
-            height = (int)(sizeF.Height+1);
+            width = (int)(sizeF.Width + 1);
+            height = (int)(sizeF.Height + 1);
             //声明矩形区域
             textArea = new RectangleF(rectX, rectY, width, height);
-            g.DrawString(str2, font, brush,textArea);
+            g.DrawString(str2, font, brush, textArea);
             g.Dispose();
             return bitmap;
         }
@@ -306,24 +482,29 @@ namespace Exicel转换1
             //绘笔颜色
             SolidBrush brush = new SolidBrush(Color.Black);
             //图画
-            
+
             Bitmap bitmap = new Bitmap(m6Image, m6Image.Width, m6Image.Height);
             Graphics g = Graphics.FromImage(bitmap);
             //g.Clear(Color.Empty);
             //g.DrawImage(m6Image, 0, 0, m6Image.Width, m6Image.Height);
             float rectX = 15;
             float rectY = 37;
+            string p1 = string.Format("{0:p}", rectX / m6Image.Width);
+            string p2 = string.Format("{0:p}", rectY / m6Image.Width);
+
             //字体格式
             //StringFormat format = new StringFormat(StringFormatFlags.NoClip);
             SizeF sizeF = g.MeasureString(str, font);
-            int width = (int)(sizeF.Width+1);
-            int height = (int)(sizeF.Height+1);
+            int width = (int)(sizeF.Width + 1);
+            int height = (int)(sizeF.Height + 1);
             //声明矩形区域
             RectangleF textArea = new RectangleF(rectX, rectY, width, height);
             g.DrawString(str, font, brush, textArea);
             g.Dispose();
             return bitmap;
         }
+
+        #endregion
 
         #region 保存对话框的实现
         public static string SaveExcleDialogShow()
@@ -495,8 +676,9 @@ namespace Exicel转换1
         }
         #endregion
 
+        #region 将summaryDT插入到sheet1 summary
         /// <summary>
-        /// 生成sheet1 的DataTable
+        /// 将sheet1的DataTable插入到sheet1
         /// </summary>
         /// <param name="excelHelper1">要生成的Excel对应的ExcelHelper类对象</param>
         /// <param name="dt">生成sheet的DataTable</param>
@@ -505,8 +687,8 @@ namespace Exicel转换1
         /// <param name="isColumnWritten">是否吧列名作为单元格插入</param>
         /// <param name="insertPoint">插入的位置</param>
         /// <param name="isDisplayGrid">插入的位置</param>
-        private static void DataTableToResultSheet1(ExcelHelper excelHelper1, DataTable dt, string sheetName, 
-            bool isColumnWritten, int[] insertPoint,bool isDisplayGrid=false)
+        private static void DataTableToResultSheet1(ExcelHelper excelHelper1, DataTable dt, string sheetName,
+            bool isColumnWritten, int[] insertPoint, bool isDisplayGrid = false)
         {
             //生成报告的excelHelper1 excelHelper类
             IWorkbook workbook = excelHelper1.WorkBook;
@@ -571,7 +753,7 @@ namespace Exicel转换1
                 sheet.SetColumnWidth(2, commonWidth * 256);
                 sheet.SetColumnWidth(3, System.Convert.ToInt32(System.Convert.ToDouble(commonWidth * 256) * 3));
                 sheet.SetColumnWidth(4, commonWidth * 2 * 256);
-                sheet.SetColumnWidth(5, System.Convert.ToInt32(System.Convert.ToDouble(commonWidth  * 256) * 1.8));
+                sheet.SetColumnWidth(5, System.Convert.ToInt32(System.Convert.ToDouble(commonWidth * 256) * 1.8));
                 sheet.SetColumnWidth(6, commonWidth * 256);
                 sheet.SetColumnWidth(7, commonWidth * 256);
                 sheet.SetColumnWidth(8, commonWidth * 256);
@@ -595,7 +777,7 @@ namespace Exicel转换1
                     row1 = sheet.GetRow(insertPoint[0]);
                 }
                 row1.HeightInPoints = 50;
-                
+
                 if (isColumnWritten)
                 {
 
@@ -663,7 +845,7 @@ namespace Exicel转换1
                                 //cellStyle.FillForegroundColor = IndexedColors.White.Index;
                                 //最后的的remark数据行，设置字体
                                 //使用cells.Count可以进入最后一个数据
-                                if (j == row.LastCellNum-1)
+                                if (j == row.LastCellNum - 1)
                                 {
                                     //remark左对齐
                                     cellStyle.Alignment = NPOI.SS.UserModel.HorizontalAlignment.Left;
@@ -701,6 +883,9 @@ namespace Exicel转换1
 
         }
 
+        #endregion
+
+        #region //将DataTable插入到sheet2 即layout sheet
         /// <summary>
         /// 生成sheet2
         /// </summary>
@@ -710,7 +895,7 @@ namespace Exicel转换1
         /// <param name="isColumnWritten"></param>
         /// <param name="insertPoint"></param>
         /// <param name="isDisplayGrid"></param>
-        private static void DataTableToResultSheet2(ExcelHelper excelHelper1, DataTable dt, string sheetNamet, 
+        private static void DataTableToResultSheet2(ExcelHelper excelHelper1, DataTable dt, string sheetNamet,
             bool isColumnWritten, int[] insertPoint, bool isDisplayGrid = false)
         {
             //生成报告的excelHelper1 excelHelper类
@@ -819,7 +1004,7 @@ namespace Exicel转换1
 
                             //设置开启自动换行,在下面应用到单元格样式时，\n转义字符处理
                             //第一行换行,且居中
-                            if (i== insertPoint[0])
+                            if (i == insertPoint[0])
                             {
                                 cellStyle.WrapText = true;
                                 //垂直居中
@@ -827,7 +1012,7 @@ namespace Exicel转换1
                                 //水平对齐
                                 cellStyle.Alignment = NPOI.SS.UserModel.HorizontalAlignment.Center;
                             }
-                            
+
 
                             //设置cellstyle背景
                             //cellStyle.FillBackgroundColor = IndexedColors.Automatic.Index;
@@ -963,41 +1148,29 @@ namespace Exicel转换1
         }
         #endregion
 
+        #endregion
 
+        #region //在sheet中插入图片的实现
         /// <summary>
-        /// 插入图片在ExcelHelper中sheetName表中
+        /// 在ExcelHelper中sheetName表中插入图片
         /// </summary>
         /// <param name="excelHelper1"></param>
         /// <param name="sheetName"></param>
         /// <param name="insertPoint">插入位置</param>
         /// <param name="PictureDataByte">图片</param>
         /// <param name="machineCount">根据机器长度判定结束单元格的长短</param>
-        private static void insertPictureToWorbook(ExcelHelper excelHelper1,string sheetName,int[] insertPoint,
-            byte[] PictureDataByte,int machineCount,Orientation hideborderOrientation, int hideborderCellNum, int[] WidthHeight = null)
+        /// <param name="hideborderOrientation">插入图片隐藏sheet单元格的方向</param>
+        /// <param name="hideborderCellNum">隐藏的单元格数量</param>
+        /// <param name="WidthHeight">插入图片位置所在行的行高</param>
+        /// <param name="isDisplayGrid">是否显示单元格</param>
+        private static void insertModulePictureToWorbook(ExcelHelper excelHelper1, string sheetName, int[] pictureInsertPoint,
+            byte[] PictureDataByte, int machineCount, Orientation hideborderOrientation, int hideborderCellNum, 
+            int[] WidthHeight = null,bool isDisplayGrid=true)
         {
-            #region 将图片插入sheet的实现
-            //生成报告的excelHelper1 excelHelper类
-            IWorkbook workbook = excelHelper1.WorkBook;
-
-            ISheet sheet1 = excelHelper1.ExcelToIsheet(sheetName);
-
-            //设置行高
-            if (WidthHeight!=null)
-            {
-                IRow row = sheet1.GetRow(insertPoint[0]);
-                if (row == null)
-                {
-                    row = sheet1.CreateRow(insertPoint[0]);
-                }
-                row.HeightInPoints = WidthHeight[1];
-            }
-
-            //从指定的位置开始插入图片
-            //int count = insertPoint[0];
             //插入的位置
-            int startRow = insertPoint[0];
+            int startRow = pictureInsertPoint[0];
             //插入图片位置偏移一下，否则样式不好看
-            int startCol = insertPoint[1]+ hideborderCellNum/2-2;
+            int startCol = pictureInsertPoint[1] + hideborderCellNum / 2 - 2;
             int endRow = startRow + 1;
             int endCol = startCol + 1;
             //根据模组数量长度，变更结束单元格位置
@@ -1021,31 +1194,141 @@ namespace Exicel转换1
                 endCol = startCol + 5;
             }
 
-            //偏移依旧不起作用
-            excelHelper1.pictureDataToSheet(sheet1, PictureDataByte, 50, 10, 50, 10, startRow, startCol, endRow, endCol);
+            insertPictureToWorbook(excelHelper1, sheetName, new int[] { startRow,startCol },
+            new int[] { endRow,endCol}, PictureDataByte, WidthHeight,isDisplayGrid);
 
-            //对单元格隐藏的处理
-            if (hideborderOrientation==Orientation.Horizontal)
-            {
-                IRow rowPicture = sheet1.GetRow(insertPoint[0]);
-                for (int i = 1; i < hideborderCellNum-1; i++)
-                {
-                    //设置单元格边框右边为空
-                    ICellStyle cellStyle = workbook.CreateCellStyle();
-                    cellStyle.BorderRight = NPOI.SS.UserModel.BorderStyle.None;
-                    //填充模式
-                    cellStyle.FillPattern = FillPattern.SolidForeground;
-                    //设置样式
-                    ICell cellPicture = rowPicture.GetCell(insertPoint[1] + i);
-                    if (rowPicture.GetCell(insertPoint[1] + i)==null)
-                    {
-                        cellPicture = rowPicture.CreateCell(insertPoint[1] + i);
-                    }
-                    cellPicture.CellStyle = cellStyle;
-                }
-            }
+            #region 将图片插入sheet的实现
+            ////生成报告的excelHelper1 excelHelper类
+            //IWorkbook workbook = excelHelper1.WorkBook;
+
+            //ISheet sheet1 = excelHelper1.ExcelToIsheet(sheetName);
+
+            ////设置行高
+            //if (WidthHeight != null)
+            //{
+            //    IRow row = sheet1.GetRow(insertPoint[0]);
+            //    if (row == null)
+            //    {
+            //        row = sheet1.CreateRow(insertPoint[0]);
+            //    }
+            //    row.HeightInPoints = WidthHeight[1];
+            //}
+
+            //从指定的位置开始插入图片
+            ////int count = insertPoint[0];
+            ////插入的位置
+            //int startRow = insertPoint[0];
+            ////插入图片位置偏移一下，否则样式不好看
+            //int startCol = insertPoint[1] + hideborderCellNum / 2 - 2;
+            //int endRow = startRow + 1;
+            //int endCol = startCol + 1;
+            ////根据模组数量长度，变更结束单元格位置
+
+            //if (machineCount > 3)
+            //{
+            //    endCol = startCol + 2;
+            //}
+            //if (machineCount > 7)
+            //{
+            //    endCol = startCol + 3;
+            //}
+            //if (machineCount > 10)
+            //{
+            //    startCol--;
+            //    endCol = startCol + 4;
+            //}
+            //if (machineCount > 15)
+            //{
+            //    startCol--;
+            //    endCol = startCol + 5;
+            //}
+
+            ////偏移依旧不起作用
+            //excelHelper1.pictureDataToSheet(sheet1, PictureDataByte, 50, 10, 50, 10, startRow, startCol, endRow, endCol);
+
+            ////是否显示单元格
+            //if (!isDisplayGrid)
+            //{
+            //    sheet1.DisplayGridlines = false;
+            //}
+
+            #endregion
+
+            #region //对单元格隐藏的处理  已有属性实现
+            //if (hideborderOrientation == Orientation.Horizontal)
+            //{
+            //    IRow rowPicture = sheet1.GetRow(insertPoint[0]);
+            //    for (int i = 1; i < hideborderCellNum - 1; i++)
+            //    {
+            //        //设置单元格边框右边为空
+            //        ICellStyle cellStyle = workbook.CreateCellStyle();
+            //        cellStyle.BorderRight = NPOI.SS.UserModel.BorderStyle.None;
+            //        //填充模式
+            //        cellStyle.FillPattern = FillPattern.SolidForeground;
+            //        //设置样式
+            //        ICell cellPicture = rowPicture.GetCell(insertPoint[1] + i);
+            //        if (rowPicture.GetCell(insertPoint[1] + i) == null)
+            //        {
+            //            cellPicture = rowPicture.CreateCell(insertPoint[1] + i);
+            //        }
+            //        cellPicture.CellStyle = cellStyle;
+            //    }
+            //}
             #endregion
         }
+
+        /// <summary>
+        /// 在ExcelHelper中sheetName表中插入图片
+        /// </summary>
+        /// <param name="excelHelper1"></param>
+        /// <param name="sheetName"></param>
+        /// <param name="insertPoint">插入位置</param>
+        /// <param name="PictureDataByte">图片</param>
+        /// <param name="WidthHeight">插入图片位置所在行的行高</param>
+        /// <param name="isDisplayGrid">是否显示单元格</param>
+        private static void insertPictureToWorbook(ExcelHelper excelHelper1, string sheetName, int[] pictureInsertPoint,
+            int[] pictureEndPoint, byte[] PictureDataByte, int[] WidthHeight = null, bool isDisplayGrid = true)
+        {
+            #region 将图片插入sheet的实现
+            //生成报告的excelHelper1 excelHelper类
+            //IWorkbook workbook = excelHelper1.WorkBook;
+
+            ISheet sheet = excelHelper1.ExcelToIsheet(sheetName);
+
+            //设置行高
+            if (WidthHeight != null)
+            {
+                IRow row = sheet.GetRow(pictureInsertPoint[0]);
+                if (row == null)
+                {
+                    row = sheet.CreateRow(pictureInsertPoint[0]);
+                }
+                row.HeightInPoints = WidthHeight[1];
+            }
+
+            //从指定的位置开始插入图片
+            //int count = insertPoint[0];
+            //插入的位置
+            int startRow = pictureInsertPoint[0];
+            //插入图片位置偏移一下，否则样式不好看
+            int startCol = pictureInsertPoint[1];
+            int endRow = pictureEndPoint[0];
+            int endCol = pictureEndPoint[1];
+            //根据模组数量长度，变更结束单元格位置
+            
+            //偏移依旧不起作用
+            excelHelper1.pictureDataToSheet(sheet, PictureDataByte, 50, 10, 50, 10, startRow, startCol, endRow, endCol);
+
+            //是否显示单元格
+            if (!isDisplayGrid)
+            {
+                sheet.DisplayGridlines = false;
+            }
+           
+            #endregion
+        }
+
+        #endregion
 
         /// <summary>
         /// //比较两个string数组是否相等的
@@ -1299,8 +1582,8 @@ namespace Exicel转换1
                     //StringInsertWorkbook(excelHelper1, "", sheet1, new int[2] { 2, 1 }, IndexedColors.LightGreen.Index);
                     //Line_short 需要以画布的形式写入，而不是单元格内的文字;
                     //插入图片
-                    insertPictureToWorbook(excelHelper1, sheet1, new int[2] { summaryInsertRowNum+1,
-                        1 }, baseComprehensive.PictureDataByte, baseComprehensive.ModuleCount,
+                    insertModulePictureToWorbook(excelHelper1, sheet1, new int[2] { summaryInsertRowNum+1,
+                        1 }, baseComprehensive.ModulepictureDataByte, baseComprehensive.ModuleCount,
                         Orientation.Horizontal, baseComprehensive.SummaryInfoDT.Columns.Count, new int[] { 0, 80 });
                 }
                 else
@@ -1310,7 +1593,6 @@ namespace Exicel转换1
                     DataTableToResultSheet1(excelHelper1, baseComprehensive.SummaryInfoDT, sheet1, false,
                         new int[2] { summaryInsertRowNum, 1 });
                 }
-
             }
             else
             {
@@ -1324,8 +1606,8 @@ namespace Exicel转换1
                 //StringInsertWorkbook(excelHelper1, "", sheet1, new int[2] { 2, 1 }, IndexedColors.LightGreen.Index);
                 //Line_short 需要以画布的形式写入，而不是单元格内的文字;
                 //插入图片
-                insertPictureToWorbook(excelHelper1, sheet1, new int[2] { summaryInsertRowNum+1,
-                1 }, baseComprehensive.PictureDataByte, baseComprehensive.ModuleCount,
+                insertModulePictureToWorbook(excelHelper1, sheet1, new int[2] { summaryInsertRowNum+1,1 }, 
+                    baseComprehensive.ModulepictureDataByte, baseComprehensive.ModuleCount,
                     Orientation.Horizontal, baseComprehensive.SummaryInfoDT.Columns.Count, new int[] { 0, 80 });
             }
             #endregion
@@ -1357,6 +1639,25 @@ namespace Exicel转换1
             StringInsertWorkbook(excelHelper1, ProposalString, sheet2, new int[2] { layoutInsertPoint[0], layoutInsertPoint[1] - 1 },
                 Orientation.Vertical, baseComprehensive.layoutDT.Rows.Count + 2, null, 0);
             //StringInsertWorkbook(excelHelper1, ProposalString, sheet2, new int[2] { 2, 1 }, IndexedColors.BrightGreen.Index);
+            #endregion
+
+            #region //插入电气图sheet
+            string sheet3= sheetName+"AirPowerNet";
+            //结束位置
+            int baseCount = baseComprehensive.base_StatisticsDict["2MBASE"] + baseComprehensive.base_StatisticsDict["4MBASE"]*2;
+            int colNum = 10;
+            int dec = 0;
+            while (dec < baseCount)
+            {
+                dec += 2;
+            }
+            
+            colNum += dec;
+
+            insertPictureToWorbook(excelHelper1, sheet3, new int[2] { summaryInsertRowNum, 1 }, new int[2] { summaryInsertRowNum + 1, 1+ colNum }, 
+                baseComprehensive.ModuleBaseStickFigure,new int[] { 0, 150 },false);
+
+
             #endregion
 
             //return true;
@@ -1646,7 +1947,7 @@ namespace Exicel转换1
         private string conveyor;
         private int moduleCount;
         private DataTable summaryInfoDT;
-        private byte[] pictureDataByte;
+        private byte[] modulepictureDataByte;
         private string machineKind;
         private string[] allModuleType;
         private string[] allHeadType;
@@ -1729,15 +2030,15 @@ namespace Exicel转换1
                 return summaryInfoDT;
             }
         }
-        public byte[] PictureDataByte
+        public byte[] ModulepictureDataByte
         {
             set
             {
-                pictureDataByte = value;
+                modulepictureDataByte = value;
             }
             get
             {
-                return pictureDataByte;
+                return modulepictureDataByte;
             }
         }
         public string MachineKind
@@ -1800,12 +2101,14 @@ namespace Exicel转换1
                 return timeStamp;
             }
         }
-
+        //电气图GenModuleBaseStickFigure  ModuleBaseStickFigure
+        public byte[] ModuleBaseStickFigure { get; set; }
         //timestamp唯一标识 BaseComprehensive 对象，必须要赋值
         public BaseComprehensive(Int64 timeStamp)
         {
             this.timeStamp = timeStamp;
         }
+
 
         //综合计算后的 最终的summaryInfoDT
         public void GetTheEndSummaryInfoDT(DataTable expressSummaryInfoDT, string cycletime, string cPH,string cphRate)
@@ -1874,8 +2177,10 @@ namespace Exicel转换1
             //Dictionary<string, int> moduleStasticsDict = ComprehensiveStaticClass.GenModuleStasticsDictFromModuleStrings(
             //    this.AllModuleType);
 
-            //更新图片
-            PictureDataByte = ComprehensiveStaticClass.GenModulesPicture(AllModuleType, module_StatisticsDict);
+            //更新模组图片
+            ModulepictureDataByte = ComprehensiveStaticClass.GenModulesPicture(AllModuleType, module_StatisticsDict);
+            //更新电气图
+            ModuleBaseStickFigure = ComprehensiveStaticClass.GenModuleBaseStickFigure(AllModuleType, module_StatisticsDict, base_StatisticsDict);
 
             //更新Line
             string Line = ComprehensiveStaticClass.GenLineStringFromModuleStasticsBaseStastics(

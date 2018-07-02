@@ -13,6 +13,10 @@ namespace Exicel转换1
         [STAThread]
         static void Main()
         {
+            if (DateTime.Compare(DateTime.Now, Convert.ToDateTime("2018-9-30")) > 0)
+            {
+                return;
+            }
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
             Application.Run(new XmlExcelRtfConvertMain_Form());

@@ -60,19 +60,30 @@ namespace Exicel转换1
         //初始化更新Base的组合
         public void InitBaseCombination()
         {
+            //
+            combo_2M.Items.Clear();
+            combo_4M.Items.Clear();
+
             combo_2M.Items.Add(base_StatisticsDict["2MBASE"].ToString());
             combo_4M.Items.Add(base_StatisticsDict["4MBASE"].ToString());
             //combo_2M.Items.
 
-            //计算Base所有的组合
-            int min2MBase = base_StatisticsDict["2MBASE"];
-            int max4MBase = base_StatisticsDict["4MBASE"];
+            //计算Base所有的组合            
 
             //最大2MBase个数
             int max2MBase = baseCount_M_TotalM3 / 2;
+            //最小2MBase个数
+            int min2MBase = baseCount_M_TotalM3 % 4;
+            //最大4MBase个数
+            int max4MBase = baseCount_M_TotalM3 / 4;
             //添加其他组合项目
-            for (int i = min2MBase+1; i <= max2MBase; i++)
+            for (int i = min2MBase; i <= max2MBase; i++)
             {
+                //排除现有项添加
+                if (i== base_StatisticsDict["2MBASE"])
+                {
+                    continue;
+                }
                 //计算当前2MBase个数为i时，4M是否成立，不成立则更改
                 if ((baseCount_M_TotalM3 - i * 2) % 4!=0)
                 {
@@ -330,12 +341,18 @@ namespace Exicel转换1
             //保存2M、4M Base组合到字典
             UpadateComboBaseTobase_StatisticsDict();
 
+            //重新初始化Base的combBox控件内容
+            //实际使用中发现，选择更改后，combBox在再一次打开后没有多余选项，或者选项重复，索性一选择重新初始化
+            //并且重写InitBaseCombination，先清空在添加，然后在添加设置
+            InitBaseCombination();
+
             //可简化委托调用Update_module_Head_Cph_Base?.Invoke(this, null);
             if (Update_module_Head_Cph_Base!=null)//触发执行事件
             {
                 Update_module_Head_Cph_Base(this, null);
             }
 
+            
             //保存结束重置标志位
             isModefiedData = false;
             //关闭窗口

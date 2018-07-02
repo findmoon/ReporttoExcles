@@ -518,13 +518,18 @@ namespace Exicel转换1
             #region //pictureData放在前面，未生成则不进行下面对象的创建
             //判断是否获取成功图片的byte[]
             //所有模组type的string。获取最后的图片 byte
-            byte[] pictureDataByte = ComprehensiveStaticClass.GenModulesPicture(allModuleString, module_StatisticsDict);
-            if (pictureDataByte == null)
+            byte[] modulepictureDataByte = ComprehensiveStaticClass.GenModulesPicture(allModuleString, module_StatisticsDict);
+            if (modulepictureDataByte == null)
             {
                 return null;
             }
             #endregion
-
+            //获取电气图
+            byte[] moduleBaseStickFigure = ComprehensiveStaticClass.GenModuleBaseStickFigure(allModuleString, module_StatisticsDict,base_StatisticsDict);
+            if (moduleBaseStickFigure == null)
+            {
+                return null;
+            }
 
             //获取最后的综合的 SummaryandLayout
             //最后包含summaryInfo和layouInfoDT feederNozzleDT的信息
@@ -588,8 +593,8 @@ namespace Exicel转换1
 
             //
             theEndSummaryAndLayout.CPHRate = cphRate;
-            theEndSummaryAndLayout.PictureDataByte = pictureDataByte;
-
+            theEndSummaryAndLayout.ModulepictureDataByte = modulepictureDataByte;
+            theEndSummaryAndLayout.ModuleBaseStickFigure = moduleBaseStickFigure;
             theEndSummaryAndLayout.layoutDT = theEndCycletimeCPHLayoutDTFeederNozzleDT_Tuple.Item3;
             theEndSummaryAndLayout.feederNozzleDT = theEndCycletimeCPHLayoutDTFeederNozzleDT_Tuple.Item4;
             theEndSummaryAndLayout.AllModuleType = allModuleString;
@@ -667,136 +672,138 @@ namespace Exicel转换1
             return boardQty;
         }
 
-        #region //旧的 XmlDocument 中获取module head cycletime qty和包含module_Head_TheoryCPH的DataTable
-        public List<Tuple<string, string, string, string>> Getline2_module_head_cycletime_qty_TupleList(XmlDocument xml_TimingReportUnitNxt,
-            out DataTable module_Head_TheoryCPH_Table)
-        {
-            //使用元组存放module head cycletime  Qty
-            //获取 line2_module_head_cycletime_qty_TupleList 元组列表，使用sqlite
-            //调用方法
-            List<Tuple<string, string, string, string>> line2_module_head_cycletime_qty_TupleList =
-                new List<Tuple<string, string, string, string>>();
+        #region //旧的 已不用 XmlDocument 中获取module head cycletime qty和包含module_Head_TheoryCPH的DataTable
+        //public List<Tuple<string, string, string, string>> Getline2_module_head_cycletime_qty_TupleList(XmlDocument xml_TimingReportUnitNxt,
+        //    out DataTable module_Head_TheoryCPH_Table)
+        //{
+        //    //使用元组存放module head cycletime  Qty
+        //    //获取 line2_module_head_cycletime_qty_TupleList 元组列表，使用sqlite
+        //    //调用方法
+        //    List<Tuple<string, string, string, string>> line2_module_head_cycletime_qty_TupleList =
+        //        new List<Tuple<string, string, string, string>>();
 
-            //获取line对应的module\head\Qty|cycletime信息 
-            XmlNodeList truUnitNode = xml_TimingReportUnitNxt.GetElementsByTagName("Unit");
-
-
-            //初始化module_Head_TheoryCPH_Table对象
-            module_Head_TheoryCPH_Table = new DataTable();
-            //DataColumn dc = new DataColumn();
-            //dc.
-            module_Head_TheoryCPH_Table.Columns.Add("module");
-            module_Head_TheoryCPH_Table.Columns.Add("Head Type");
-            module_Head_TheoryCPH_Table.Columns.Add("avgCPH");
-            module_Head_TheoryCPH_Table.Columns.Add("prior_productionCPH");
-            module_Head_TheoryCPH_Table.Columns.Add("high_precisionCPH");
-            module_Head_TheoryCPH_Table.Columns.Add("special");
-
-            //定义dqlite的数据库连接对象
-
-            string connString = string.Format("Data Source={0};Version=3;", @".\convertDB.db");
-            SQLiteConnection liteConn = new SQLiteConnection();//创建数据库连接实例
-            liteConn.ConnectionString = connString;
-            try
-            {
-                liteConn.Open();
-            }
-            catch (Exception)
-            {
-                MessageBox.Show("连接失败");
-            }
-
-            for (int i = 1; i < truUnitNode.Count; i++)//从1开始读取
-            {
-                try
-                {
-                    //
-                    string moduleid = truUnitNode[i].SelectSingleNode("./cfgModuleType1").InnerText;
-                    string headid = truUnitNode[i].SelectSingleNode("./cfgHeadType1_1").InnerText;
-
-                    //sqlite的命令对象,查询moduleType
-                    SQLiteCommand command = new SQLiteCommand(string.Format("select moduletype from ModuleTable where moduleid={0};", moduleid),
-                        liteConn);
-                    if (liteConn.State == ConnectionState.Closed)
-                    {
-                        liteConn.Open();
-                    }
-                    string moduleType = command.ExecuteScalar().ToString();
+        //    //获取line对应的module\head\Qty|cycletime信息 
+        //    XmlNodeList truUnitNode = xml_TimingReportUnitNxt.GetElementsByTagName("Unit");
 
 
-                    //查询headType
-                    command = new SQLiteCommand(string.Format("select head from HeadTable where headid={0};", headid),
-                        liteConn);
-                    if (liteConn.State == ConnectionState.Closed)
-                    {
-                        liteConn.Open();
-                    }
-                    string head = command.ExecuteScalar().ToString();
+        //    //初始化module_Head_TheoryCPH_Table对象
+        //    module_Head_TheoryCPH_Table = new DataTable();
+        //    //DataColumn dc = new DataColumn();
+        //    //dc.
+        //    module_Head_TheoryCPH_Table.Columns.Add("module");
+        //    module_Head_TheoryCPH_Table.Columns.Add("Head Type");
+        //    module_Head_TheoryCPH_Table.Columns.Add("avgCPH");
+        //    module_Head_TheoryCPH_Table.Columns.Add("prior_productionCPH");
+        //    module_Head_TheoryCPH_Table.Columns.Add("high_precisionCPH");
+        //    module_Head_TheoryCPH_Table.Columns.Add("special");
+
+        //    //定义dqlite的数据库连接对象
+
+        //    string connString = string.Format("Data Source={0};Version=3;", @".\convertDB.db");
+        //    SQLiteConnection liteConn = new SQLiteConnection();//创建数据库连接实例
+        //    liteConn.ConnectionString = connString;
+        //    try
+        //    {
+        //        liteConn.Open();
+        //    }
+        //    catch (Exception)
+        //    {
+        //        MessageBox.Show("连接失败");
+        //        return null;
+        //    }
+
+        //    for (int i = 1; i < truUnitNode.Count; i++)//从1开始读取
+        //    {
+        //        try
+        //        {
+        //            //
+        //            string moduleid = truUnitNode[i].SelectSingleNode("./cfgModuleType1").InnerText;
+        //            string headid = truUnitNode[i].SelectSingleNode("./cfgHeadType1_1").InnerText;
+
+        //            //sqlite的命令对象,查询moduleType
+        //            SQLiteCommand command = new SQLiteCommand(string.Format("select moduletype from ModuleTable where moduleid={0};", moduleid),
+        //                liteConn);
+        //            if (liteConn.State == ConnectionState.Closed)
+        //            {
+        //                liteConn.Open();
+        //            }
+        //            string moduleType = command.ExecuteScalar().ToString();
+
+
+        //            //查询headType
+        //            command = new SQLiteCommand(string.Format("select head from HeadTable where headid={0};", headid),
+        //                liteConn);
+        //            if (liteConn.State == ConnectionState.Closed)
+        //            {
+        //                liteConn.Open();
+        //            }
+        //            string head = command.ExecuteScalar().ToString();
 
 
 
-                    //查询CPH
-                    string sqlQueryCPH = string.Format(
-                        "select a.moduletype,b.head,c.avgCPH,c.prior_productionCPH,c.high_precisionCPH,c.special from " +
-                        "ModuleTable a,HeadTable b ,CPHTable c where a.moduleid=c.moduleid and b.headid=c.headid and" +
-                        " c.headid={0} and c.moduleid={1};",
-                        headid, moduleid);
-                    command = new SQLiteCommand(sqlQueryCPH, liteConn);
-                    DataSet ds = new DataSet();
-                    if (liteConn.State == ConnectionState.Closed)
-                    {
-                        liteConn.Open();
-                    }
-                    SQLiteDataAdapter da = new SQLiteDataAdapter(command);
-                    da.Fill(ds);
+        //            //查询CPH
+        //            string sqlQueryCPH = string.Format(
+        //                "select a.moduletype,b.head,c.avgCPH,c.prior_productionCPH,c.high_precisionCPH,c.special from " +
+        //                "ModuleTable a,HeadTable b ,CPHTable c where a.moduleid=c.moduleid and b.headid=c.headid and" +
+        //                " c.headid={0} and c.moduleid={1};",
+        //                headid, moduleid);
+        //            command = new SQLiteCommand(sqlQueryCPH, liteConn);
+        //            DataSet ds = new DataSet();
+        //            if (liteConn.State == ConnectionState.Closed)
+        //            {
+        //                liteConn.Open();
+        //            }
+        //            SQLiteDataAdapter da = new SQLiteDataAdapter(command);
+        //            da.Fill(ds);
 
-                    //datarow module_Head_TheoryCPH_Table
-                    DataRow dr = module_Head_TheoryCPH_Table.NewRow();
-                    for (int j = 0; j < ds.Tables[0].Rows.Count; j++)
-                    {
-                        //此处错误，ds.Tables[0] select查询出来的结果是无顺序的，第一个并不一定是非特殊头
-                        if (j > 0)//先跳过H24 S G head 的处理
-                        {
-                            continue;
-                        }
-                        dr["module"] = ds.Tables[0].Rows[j]["moduletype"];
-                        dr["Head Type"] = ds.Tables[0].Rows[j]["head"];
-                        dr["avgCPH"] = ds.Tables[0].Rows[j]["avgCPH"];
-                        dr["prior_productionCPH"] = ds.Tables[0].Rows[j]["prior_productionCPH"];
-                        dr["high_precisionCPH"] = ds.Tables[0].Rows[j]["high_precisionCPH"];
-                        dr["special"] = ds.Tables[0].Rows[j]["special"];
-                    }
+        //            //datarow module_Head_TheoryCPH_Table
+        //            DataRow dr = module_Head_TheoryCPH_Table.NewRow();
+        //            for (int j = 0; j < ds.Tables[0].Rows.Count; j++)
+        //            {
+        //                //此处错误，ds.Tables[0] select查询出来的结果是无顺序的，第一个并不一定是非特殊头
+        //                if (j > 0)//先跳过H24 S G head 的处理
+        //                {
+        //                    continue;
+        //                }
+        //                dr["module"] = ds.Tables[0].Rows[j]["moduletype"];
+        //                dr["Head Type"] = ds.Tables[0].Rows[j]["head"];
+        //                dr["avgCPH"] = ds.Tables[0].Rows[j]["avgCPH"];
+        //                dr["prior_productionCPH"] = ds.Tables[0].Rows[j]["prior_productionCPH"];
+        //                dr["high_precisionCPH"] = ds.Tables[0].Rows[j]["high_precisionCPH"];
+        //                dr["special"] = ds.Tables[0].Rows[j]["special"];
+        //            }
 
-                    module_Head_TheoryCPH_Table.Rows.Add(dr);
+        //            module_Head_TheoryCPH_Table.Rows.Add(dr);
 
-                    da.Dispose();
-                    command.Dispose();
+        //            da.Dispose();
+        //            command.Dispose();
 
 
-                    //得到的module_head_TupleList是代号，需要进行处理
-                    line2_module_head_cycletime_qty_TupleList.Add(new Tuple<string, string, string, string>(
-                        moduleType,
-                        head,
-                        truUnitNode[i].SelectSingleNode("./CycleTime").InnerText,
-                        truUnitNode[i].SelectSingleNode("./Qty").InnerText
-                        )
-                        );
+        //            //得到的module_head_TupleList是代号，需要进行处理
+        //            line2_module_head_cycletime_qty_TupleList.Add(new Tuple<string, string, string, string>(
+        //                moduleType,
+        //                head,
+        //                truUnitNode[i].SelectSingleNode("./CycleTime").InnerText,
+        //                truUnitNode[i].SelectSingleNode("./Qty").InnerText
+        //                )
+        //                );
 
-                }
-                catch (Exception ex)
-                {
-                    throw ex;
-                }
-            }
+        //        }
+        //        catch (Exception ex)
+        //        {
+        //            throw ex;
+        //        }
+        //    }
 
-            liteConn.Close();
-            return line2_module_head_cycletime_qty_TupleList;
-        }
+        //    liteConn.Close();
+        //    return line2_module_head_cycletime_qty_TupleList;
+        //}
 
         #endregion
 
         #region //XmlDocument 中获取module head cycletime qty
         //和包含module_Head_TheoryCPH所有可能性的List<module_head_cph_struct>
+        
         public List<Tuple<string, string, string, string>> Getline2_module_head_cycletime_qty_Tuple_StructList(XmlDocument xml_TimingReportUnitNxt,
             out List<Module_Head_Cph_Struct> module_Head_TheoryCPH_Struct_List)
         {
@@ -808,13 +815,11 @@ namespace Exicel转换1
 
             //获取line对应的module\head\Qty|cycletime信息 
             XmlNodeList truUnitNode = xml_TimingReportUnitNxt.GetElementsByTagName("Unit");
-
-
+            
             //初始化 module_Head_TheoryCPH_listTuple_List
             module_Head_TheoryCPH_Struct_List = new List<Module_Head_Cph_Struct>();
 
             //定义dqlite的数据库连接对象
-
             string connString = string.Format("Data Source={0};Version=3;", @".\convertDB.db");
             SQLiteConnection liteConn = new SQLiteConnection();//创建数据库连接实例
             liteConn.ConnectionString = connString;
@@ -825,6 +830,7 @@ namespace Exicel转换1
             catch (Exception)
             {
                 MessageBox.Show("连接失败");
+                return null;
             }
 
             for (int i = 1; i < truUnitNode.Count; i++)//从1开始读取
@@ -845,6 +851,12 @@ namespace Exicel转换1
                     SQLiteDataReader dataRead = command.ExecuteReader();
                     //string moduleType = dataRead["moduletype"].ToString();
 
+                    //是否获取到HeadType数据，判断是否为IMAX的数据
+                    if (!dataRead.HasRows)
+                    {
+                        MessageBox.Show("无法获取当前的模组类型，请确认是否为NXT！");
+                        return null;
+                    }
                     //获取所有的 module /+try 类型
                     List<string> moduleTrayTypeList = new List<string>();
                     while (dataRead.Read())
@@ -859,7 +871,6 @@ namespace Exicel转换1
                             }
                         }
                     }
-
 
                     List<string> headTypeList = new List<string>();
                     //查询headType
@@ -912,7 +923,7 @@ namespace Exicel转换1
                     for (int j = 0; j < ds.Tables[0].Rows.Count; j++)
                     {
                         //处理逻辑不是为null的时候插入，而是为null的时候必须插入第一个。
-                        //select获取的数据时无需要，因此要先选出为null赋值
+                        //select获取的数据是无序的，因此要先选出为null赋值
                         //原值为null，获取后为字符串"null",因此判断
                         if (ds.Tables[0].Rows[j]["special"].ToString() == "null")
                         {
@@ -1257,233 +1268,355 @@ namespace Exicel转换1
         /// <param name="srRTFFile">rtf文件的StreamReader</param>
         /// <param name="productionMode">根据生产模式判断是否有该轨道的cycyletime，默认为双轨</param>
         /// <returns></returns>
-        public Tuple<string[],string[]> ParseRTFCycletime(StreamReader srRTFFile,string productionMode= "Dual-DuobleLane")
+        public Tuple<string[],string[]> ParseRTFCycletime(StreamReader srRTFFile,string productionMode= "Dual-DoubleLane")
         {
             if (srRTFFile == null)
             {
                 return null;
             }
-            //创建读取流
-            //StreamReader sr = new StreamReader(fs, Encoding.Default);
-
-            //最后lane1、lane2对应的cycle列表
-            List<string> lane1_Cycletime_list = new List<string>();//存放lane1 cycletime的list
-            List<string> lane2_Cycletime_list = new List<string>();//存放lane2 cycletime的list
-            //获取文件 所有的内容
-            string rtfText = srRTFFile.ReadToEnd();
-
-            //Lane 1 \ 2 最后匹配拆分的 包含cycletime的集合
-            MatchCollection lane1CycleMatchCollection = null;
-            MatchCollection lane2CycleMatchCollection = null;
-
-            //写入文件无法显示中文。原字符创中也无法显示中文。
-            //using (StreamWriter fileWriter = new StreamWriter("./filWriter.txt", true, Encoding.GetEncoding("gb2312")))
-            //{
-            //    fileWriter.Write(line);
-            //}
-
-            
-            //获取lane 1的报告部分
-            //. 匹配换行符
-            MatchCollection lane1matchCollection = Regex.Matches(rtfText, "Lane 1(.*?)MAX", RegexOptions.Singleline);
-            MatchCollection lane2matchCollection = Regex.Matches(rtfText, "Lane 2(.*?)MAX", RegexOptions.Singleline);
-            string lane1AllString = lane1matchCollection[0].Groups[1].Value;
-            string lane2AllString = lane2matchCollection[0].Groups[1].Value;
-            //textBox1.Text = lane1AllString;
-
-            #region //获取Lane 1
-            if (lane1AllString.Split('\n').Length > 1)//可以读取多行时，或存在多行时
+            try
             {
-                //匹配lian 的包含数字，姐cycletime部分
-                string regPattrenString = @"\\par(.*?\d+?.*?)\n";
-                lane1CycleMatchCollection = Regex.Matches(lane1AllString, regPattrenString, RegexOptions.Singleline);
+                //创建读取流
+                //StreamReader sr = new StreamReader(fs, Encoding.Default);
 
-            }
-            else
-            {
-                //匹配lian 的包含数字，即cycletime部分
-                string lane1regPattrenString = @"{\\fs18 \\kerning2 \\loch \\af1 \\hich \\af1 \\dbch \\f1 \\lang2052 \\langnp2052 \\cf1(.*?\d*?.*?)}";
-                lane1CycleMatchCollection = Regex.Matches(lane1AllString, lane1regPattrenString, RegexOptions.Singleline);
+                //最后lane1、lane2对应的cycle列表
+                List<string> lane1_Cycletime_list = new List<string>();//存放lane1 cycletime的list
+                List<string> lane2_Cycletime_list = new List<string>();//存放lane2 cycletime的list
+                                                                       //获取文件 所有的内容
+                string rtfText = srRTFFile.ReadToEnd();
 
-            }
-            //匹配获取成功，匹配项数目至少为1
-            if (lane1CycleMatchCollection.Count>0)
-            {
-                //解析获取的每一组，以数字开头的为模组数 对应的数据
-                string lane1moduleRegPatternString = @"^\d.*";
-                for (int i = 0; i < lane1CycleMatchCollection.Count; i++)
+                //Lane 1 \ 2 最后匹配拆分的 包含cycletime的集合
+                MatchCollection lane1CycleMatchCollection = null;
+                MatchCollection lane2CycleMatchCollection = null;
+
+                //写入文件无法显示中文。原字符创中也无法显示中文。
+                //using (StreamWriter fileWriter = new StreamWriter("./filWriter.txt", true, Encoding.GetEncoding("gb2312")))
+                //{
+                //    fileWriter.Write(line);
+                //}
+
+
+                //获取lane 1的报告部分
+                //. 匹配换行符
+                MatchCollection lane1matchCollection,lane2matchCollection;
+
+                string lane1AllString, lane2AllString;
+                
+                #region \\匹配成功在继续
+                //匹配成功在继续
+                if (productionMode == "Dual-DoubleLane")
                 {
-                    //逐个解析正则出来的每一组，包含
-
-                    //当前组的内容
-                    string line = lane1CycleMatchCollection[i].Groups[1].Value.Trim();
-
-                    Match moduleMatch = Regex.Match(line, lane1moduleRegPatternString);
-                    //匹配成功
-                    if (moduleMatch.Success)
+                    lane1matchCollection = Regex.Matches(rtfText, "Lane 1(.*?)MAX", RegexOptions.Singleline);
+                    lane2matchCollection = Regex.Matches(rtfText, "Lane 2(.*?)MAX", RegexOptions.Singleline);
+                    if (lane1matchCollection.Count == 0 || lane2matchCollection.Count == 0)
                     {
-                        string[] moduleInfo = line.Split('|');
+                        MessageBox.Show("无法获取或者不存在双轨的cycyletime数据!");
+                        //释放资源
+                        srRTFFile.Dispose();
+                        //重置srRTFFile
+                        srRTFFile = null;
+                        return null;
+                    }
+                    lane1AllString = lane1matchCollection[0].Groups[1].Value;
+                    lane2AllString = lane2matchCollection[0].Groups[1].Value;
+                    #region //获取Lane 1
+                    if (lane1AllString.Split('\n').Length > 1)//可以读取多行时，或存在多行时
+                    {
+                        //匹配lian 的包含数字，姐cycletime部分
+                        string regPattrenString = @"\\par(.*?\d+?.*?)\n";
+                        lane1CycleMatchCollection = Regex.Matches(lane1AllString, regPattrenString, RegexOptions.Singleline);
 
-                        lane1_Cycletime_list.Add(moduleInfo[1].Trim());
+                    }
+                    else
+                    {
+                        //匹配lian 的包含数字，即cycletime部分
+                        string lane1regPattrenString = @"{\\fs18 \\kerning2 \\loch \\af1 \\hich \\af1 \\dbch \\f1 \\lang2052 \\langnp2052 \\cf1(.*?\d*?.*?)}";
+                        lane1CycleMatchCollection = Regex.Matches(lane1AllString, lane1regPattrenString, RegexOptions.Singleline);
+
+                    }
+                    //匹配获取成功，匹配项数目至少为1
+                    if (lane1CycleMatchCollection.Count > 0)
+                    {
+                        //解析获取的每一组，以数字开头的为模组数 对应的数据
+                        string lane1moduleRegPatternString = @"^\d.*";
+                        for (int i = 0; i < lane1CycleMatchCollection.Count; i++)
+                        {
+                            //逐个解析正则出来的每一组，包含
+
+                            //当前组的内容
+                            string line = lane1CycleMatchCollection[i].Groups[1].Value.Trim();
+
+                            Match moduleMatch = Regex.Match(line, lane1moduleRegPatternString);
+                            //匹配成功
+                            if (moduleMatch.Success)
+                            {
+                                string[] moduleInfo = line.Split('|');
+
+                                lane1_Cycletime_list.Add(moduleInfo[1].Trim());
+                            }
+
+                        }
                     }
 
-                }
-            }
-            
-            #endregion
+                    #endregion
 
-            #region //获取Lane 2
-            if (lane2AllString.Split('\n').Length > 1)//可以读取多行时，或存在多行时
-            {
-                //匹配lian 的包含数字，姐cycletime部分
-                string lane2regPattrenString = @"\\par(.*?\d+?.*?)\n";
-                lane2CycleMatchCollection = Regex.Matches(lane2AllString, lane2regPattrenString, RegexOptions.Singleline);
-
-            }
-            else
-            {
-                //匹配lian 的包含数字，即cycletime部分
-                string lane2regPattrenString = @"{\\fs18 \\kerning2 \\loch \\af1 \\hich \\af1 \\dbch \\f1 \\lang2052 \\langnp2052 \\cf1(.*?\d*?.*?)}";
-                lane2CycleMatchCollection = Regex.Matches(lane2AllString, lane2regPattrenString, RegexOptions.Singleline);
-
-            }
-            //匹配获取成功，匹配项数目至少为1
-            if (lane2CycleMatchCollection.Count > 0)
-            {
-                //解析获取的每一组，以数字开头的为模组数 对应的数据
-                string lane2moduleRegPatternString = @"^\d.*";
-                for (int i = 0; i < lane2CycleMatchCollection.Count; i++)
-                {
-                    //逐个解析正则出来的每一组，包含
-
-                    //当前组的内容
-                    string line = lane2CycleMatchCollection[i].Groups[1].Value.Trim();
-
-                    Match moduleMatch = Regex.Match(line, lane2moduleRegPatternString);
-                    //匹配成功
-                    if (moduleMatch.Success)
+                    #region //获取Lane 2
+                    if (lane2AllString.Split('\n').Length > 1)//可以读取多行时，或存在多行时
                     {
-                        string[] moduleInfo = line.Split('|');
+                        //匹配lian 的包含数字，姐cycletime部分
+                        string lane2regPattrenString = @"\\par(.*?\d+?.*?)\n";
+                        lane2CycleMatchCollection = Regex.Matches(lane2AllString, lane2regPattrenString, RegexOptions.Singleline);
 
-                        lane2_Cycletime_list.Add(moduleInfo[1].Trim());
+                    }
+                    else
+                    {
+                        //匹配lian 的包含数字，即cycletime部分
+                        string lane2regPattrenString = @"{\\fs18 \\kerning2 \\loch \\af1 \\hich \\af1 \\dbch \\f1 \\lang2052 \\langnp2052 \\cf1(.*?\d*?.*?)}";
+                        lane2CycleMatchCollection = Regex.Matches(lane2AllString, lane2regPattrenString, RegexOptions.Singleline);
+
+                    }
+                    //匹配获取成功，匹配项数目至少为1
+                    if (lane2CycleMatchCollection.Count > 0)
+                    {
+                        //解析获取的每一组，以数字开头的为模组数 对应的数据
+                        string lane2moduleRegPatternString = @"^\d.*";
+                        for (int i = 0; i < lane2CycleMatchCollection.Count; i++)
+                        {
+                            //逐个解析正则出来的每一组，包含
+
+                            //当前组的内容
+                            string line = lane2CycleMatchCollection[i].Groups[1].Value.Trim();
+
+                            Match moduleMatch = Regex.Match(line, lane2moduleRegPatternString);
+                            //匹配成功
+                            if (moduleMatch.Success)
+                            {
+                                string[] moduleInfo = line.Split('|');
+
+                                lane2_Cycletime_list.Add(moduleInfo[1].Trim());
+                            }
+
+                        }
+                    }
+                    #endregion
+                    
+                    if (lane1_Cycletime_list.Count == 0 || lane2_Cycletime_list.Count == 0)
+                    {
+                        MessageBox.Show("rtf文件中没有发现Lane1或Lane2双轨的数据，请确认！");
+                        //出现问题重置所有情况
+                        //释放资源
+                        srRTFFile.Dispose();
+                        //重置srRTFFile
+                        srRTFFile = null;
+                        return null;
+                    }
+                }
+
+                if (productionMode == "Single-Lane 2")
+                {
+                    lane2matchCollection = Regex.Matches(rtfText, "Lane 2(.*?)MAX", RegexOptions.Singleline);
+                    if (lane2matchCollection.Count == 0)
+                    {
+                        MessageBox.Show("无法获取或不存在2轨的cycyletime数据!");
+                        //释放资源
+                        srRTFFile.Dispose();
+                        //重置srRTFFile
+                        srRTFFile = null;
+                        return null;
+                    }
+                    lane2AllString = lane2matchCollection[0].Groups[1].Value;
+
+                    #region //获取Lane 2
+                    if (lane2AllString.Split('\n').Length > 1)//可以读取多行时，或存在多行时
+                    {
+                        //匹配lian 的包含数字，姐cycletime部分
+                        string lane2regPattrenString = @"\\par(.*?\d+?.*?)\n";
+                        lane2CycleMatchCollection = Regex.Matches(lane2AllString, lane2regPattrenString, RegexOptions.Singleline);
+
+                    }
+                    else
+                    {
+                        //匹配lian 的包含数字，即cycletime部分
+                        string lane2regPattrenString = @"{\\fs18 \\kerning2 \\loch \\af1 \\hich \\af1 \\dbch \\f1 \\lang2052 \\langnp2052 \\cf1(.*?\d*?.*?)}";
+                        lane2CycleMatchCollection = Regex.Matches(lane2AllString, lane2regPattrenString, RegexOptions.Singleline);
+
+                    }
+                    //匹配获取成功，匹配项数目至少为1
+                    if (lane2CycleMatchCollection.Count > 0)
+                    {
+                        //解析获取的每一组，以数字开头的为模组数 对应的数据
+                        string lane2moduleRegPatternString = @"^\d.*";
+                        for (int i = 0; i < lane2CycleMatchCollection.Count; i++)
+                        {
+                            //逐个解析正则出来的每一组，包含
+
+                            //当前组的内容
+                            string line = lane2CycleMatchCollection[i].Groups[1].Value.Trim();
+
+                            Match moduleMatch = Regex.Match(line, lane2moduleRegPatternString);
+                            //匹配成功
+                            if (moduleMatch.Success)
+                            {
+                                string[] moduleInfo = line.Split('|');
+
+                                lane2_Cycletime_list.Add(moduleInfo[1].Trim());
+                            }
+
+                        }
+                    }
+                    #endregion
+
+                    if (lane2_Cycletime_list.Count == 0)
+                    {
+                        MessageBox.Show("rtf文件中没有发现Lane2的数据，请确认！");
+                        //出现问题重置所有情况
+                        //释放资源
+                        srRTFFile.Dispose();
+                        //重置srRTFFile
+                        srRTFFile = null;
+                        return null;
+                    }
+                }
+
+                if (productionMode == "Single-Lane 1")
+                {
+                    lane1matchCollection = Regex.Matches(rtfText, "Lane 1(.*?)MAX", RegexOptions.Singleline);
+                    if (lane1matchCollection.Count == 0)
+                    {
+                        MessageBox.Show("无法获取或不存在1轨的cycyletime数据!");
+                        //释放资源
+                        srRTFFile.Dispose();
+                        //重置srRTFFile
+                        srRTFFile = null;
+                        return null;
+                    }
+                    lane1AllString = lane1matchCollection[0].Groups[1].Value;
+                    #region //获取Lane 1
+                    if (lane1AllString.Split('\n').Length > 1)//可以读取多行时，或存在多行时
+                    {
+                        //匹配lian 的包含数字，姐cycletime部分
+                        string regPattrenString = @"\\par(.*?\d+?.*?)\n";
+                        lane1CycleMatchCollection = Regex.Matches(lane1AllString, regPattrenString, RegexOptions.Singleline);
+
+                    }
+                    else
+                    {
+                        //匹配lian 的包含数字，即cycletime部分
+                        string lane1regPattrenString = @"{\\fs18 \\kerning2 \\loch \\af1 \\hich \\af1 \\dbch \\f1 \\lang2052 \\langnp2052 \\cf1(.*?\d*?.*?)}";
+                        lane1CycleMatchCollection = Regex.Matches(lane1AllString, lane1regPattrenString, RegexOptions.Singleline);
+
+                    }
+                    //匹配获取成功，匹配项数目至少为1
+                    if (lane1CycleMatchCollection.Count > 0)
+                    {
+                        //解析获取的每一组，以数字开头的为模组数 对应的数据
+                        string lane1moduleRegPatternString = @"^\d.*";
+                        for (int i = 0; i < lane1CycleMatchCollection.Count; i++)
+                        {
+                            //逐个解析正则出来的每一组，包含
+
+                            //当前组的内容
+                            string line = lane1CycleMatchCollection[i].Groups[1].Value.Trim();
+
+                            Match moduleMatch = Regex.Match(line, lane1moduleRegPatternString);
+                            //匹配成功
+                            if (moduleMatch.Success)
+                            {
+                                string[] moduleInfo = line.Split('|');
+
+                                lane1_Cycletime_list.Add(moduleInfo[1].Trim());
+                            }
+
+                        }
                     }
 
+                    #endregion
+
+                    if (lane1_Cycletime_list.Count == 0)
+                    {
+                        MessageBox.Show("rtf文件中没有发现Lane1的数据，请确认！");
+                        //出现问题重置所有情况
+                        //释放资源
+                        srRTFFile.Dispose();
+                        //重置srRTFFile
+                        srRTFFile = null;
+                        return null;
+                    }
                 }
+
+                #endregion
+
+                
+                srRTFFile.Dispose();//释放占用的rtf文件
+                                    //重置srRTFFile
+                srRTFFile = null;
+                return new Tuple<string[], string[]>(lane1_Cycletime_list.ToArray(), lane2_Cycletime_list.ToArray());
+
             }
-            #endregion
-            if (lane1_Cycletime_list.Count == 0&&lane2_Cycletime_list.Count==0)
+            catch (Exception ex)
             {
-                MessageBox.Show("出现了意外，无法解析rtf文件，或rtf文件中没有Lane1和Lane2的数据");
-                //出现问题重置所有情况
+                MessageBox.Show(ex.Message);
                 //释放资源
                 srRTFFile.Dispose();
                 //重置srRTFFile
                 srRTFFile = null;
                 return null;
             }
-            //区分是Single-Lane 1\Single-Lane 2\Dual-DuobleLane
-
-            if (productionMode== "Dual-DuobleLane")
-            {
-                if (lane1_Cycletime_list.Count == 0 || lane2_Cycletime_list.Count == 0)
-                {
-                    MessageBox.Show("rtf文件中没有发现Lane1和Lane2双轨的数据，请确认！");
-                    //出现问题重置所有情况
-                    //释放资源
-                    srRTFFile.Dispose();
-                    //重置srRTFFile
-                    srRTFFile = null;
-                    return null;
-                }
-            }
-            if (productionMode == "Single-Lane 2")
-            {
-                if (lane2_Cycletime_list.Count == 0)
-                {
-                    MessageBox.Show("rtf文件中没有发现Lane2的数据，请确认！");
-                    //出现问题重置所有情况
-                    //释放资源
-                    srRTFFile.Dispose();
-                    //重置srRTFFile
-                    srRTFFile = null;
-                    return null;
-                }
-            }
-
-            if (productionMode == "Single-Lane 1")
-            {
-                if (lane1_Cycletime_list.Count == 0)
-                {
-                    MessageBox.Show("rtf文件中没有发现Lane1的数据，请确认！");
-                    //出现问题重置所有情况
-                    //释放资源
-                    srRTFFile.Dispose();
-                    //重置srRTFFile
-                    srRTFFile = null;
-                    return null;
-                }
-            }
-
-            srRTFFile.Dispose();//释放占用的rtf文件
-            //重置srRTFFile
-            srRTFFile = null;
-            return new Tuple<string[], string[]>(lane1_Cycletime_list.ToArray(), lane2_Cycletime_list.ToArray());
-                
         }
         #endregion
 
         #region //解析rtf文件，获取line1的cycletime列表
-        public string[] ParseRTFCycletime_Old(StreamReader srRTFFile)
-        {
-            if (srRTFFile==null)
-            {
-                return null;
-            }
-            string line = srRTFFile.ReadLine();
-            int lineNum = 1; //读取的line行
-            int line_CycleTime = 1000;// 读取的line1 cycletime开始的行,用以标记开始，初始设置为1000
-            List<string> line1_Cycletime_list = new List<string>();//存放line1 cycletime的list
+        //public string[] ParseRTFCycletime_Old(StreamReader srRTFFile)
+        //{
+        //    if (srRTFFile==null)
+        //    {
+        //        return null;
+        //    }
+        //    string line = srRTFFile.ReadLine();
+        //    int lineNum = 1; //读取的line行
+        //    int line_CycleTime = 1000;// 读取的line1 cycletime开始的行,用以标记开始，初始设置为1000
+        //    List<string> line1_Cycletime_list = new List<string>();//存放line1 cycletime的list
 
-            bool isCanRead = false;
-            while (srRTFFile.EndOfStream != true)
-            {
-                if (line.Contains("(Lane 1)"))
-                {
-                    isCanRead = true;
-                }
-                if (isCanRead)
-                {
-                    if (line.Contains("CycleTime"))
-                    {
-                        line_CycleTime = lineNum;
-                    }
-                    if (line_CycleTime + 2 <= lineNum)//开始解析和读取cycletime的数据
-                    {
-                        if (line.Contains("-----------"))
-                        {//到达line1结尾
-                            break;
-                        }
-                        string[] moduleInfo = line.Split('|');
-                        line1_Cycletime_list.Add(moduleInfo[1].Trim());
-                    }
-                }
-                line = srRTFFile.ReadLine();
-                lineNum++;
-            }
-            if (line1_Cycletime_list.Count == 0)
-            {
+        //    bool isCanRead = false;
+        //    while (srRTFFile.EndOfStream != true)
+        //    {
+        //        if (line.Contains("(Lane 1)"))
+        //        {
+        //            isCanRead = true;
+        //        }
+        //        if (isCanRead)
+        //        {
+        //            if (line.Contains("CycleTime"))
+        //            {
+        //                line_CycleTime = lineNum;
+        //            }
+        //            if (line_CycleTime + 2 <= lineNum)//开始解析和读取cycletime的数据
+        //            {
+        //                if (line.Contains("-----------"))
+        //                {//到达line1结尾
+        //                    break;
+        //                }
+        //                string[] moduleInfo = line.Split('|');
+        //                line1_Cycletime_list.Add(moduleInfo[1].Trim());
+        //            }
+        //        }
+        //        line = srRTFFile.ReadLine();
+        //        lineNum++;
+        //    }
+        //    if (line1_Cycletime_list.Count == 0)
+        //    {
 
-                MessageBox.Show("请确认生产报告的rtf文档正确且为被修改！");
-                //出现问题重置所有情况
-                //释放资源
-                srRTFFile.Dispose();
-                //重置srRTFFile
-                srRTFFile = null;
-                return null;
-            }
-            srRTFFile.Dispose();//释放占用的rtf文件
-            return line1_Cycletime_list.ToArray();
-        }
+        //        MessageBox.Show("请确认生产报告的rtf文档正确且为被修改！");
+        //        //出现问题重置所有情况
+        //        //释放资源
+        //        srRTFFile.Dispose();
+        //        //重置srRTFFile
+        //        srRTFFile = null;
+        //        return null;
+        //    }
+        //    srRTFFile.Dispose();//释放占用的rtf文件
+        //    return line1_Cycletime_list.ToArray();
+        //}
         #endregion
 
         #region //窗体传值，获取ProductionModel---Dual，Single、double
@@ -1569,6 +1702,8 @@ namespace Exicel转换1
                 //不能设置为null，导出后，再次打开目录 生成处理时summaryandLayout_ComprehensiveList.add添加报 null【未将对象引用设置到对象的实例】
                 //summaryandLayout_ComprehensiveList = null;
                 summaryandLayout_ComprehensiveList.Clear();//移除所有元素
+                //清空TableCtrol
+                evaluation_TabControl.TabPages.Clear();
                 //释放资源，未实现
 
             }
@@ -1581,7 +1716,7 @@ namespace Exicel转换1
             //    //生成成功后重置所有变量的状态
             //    theEndSummaryandLayout = null;
             //}
-
+            //
 
         }
 

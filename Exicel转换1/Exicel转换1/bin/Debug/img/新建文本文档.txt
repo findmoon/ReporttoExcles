@@ -1,0 +1,7 @@
+气：Air
+电：Power
+网口：Net
+
+网结束位置  4MBase中 0.95
+电结束位置  4MBase中 0.86
+气结束位置  4MBase中 0.79

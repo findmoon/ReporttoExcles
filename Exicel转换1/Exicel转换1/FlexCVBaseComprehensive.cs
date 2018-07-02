@@ -71,7 +71,7 @@ namespace Exicel转换1
                     baseComprehensive.Conveyor = summaryInfoList_File.expressSummaryEveryInfo_list[i].Conveyor;
                     baseComprehensive.ModuleCount = summaryInfoList_File.expressSummaryEveryInfo_list[i].ModuleCount;
                     baseComprehensive.SummaryInfoDT = summaryInfoList_File.expressSummaryEveryInfo_list[i].SummaryInfoDT;
-                    baseComprehensive.PictureDataByte = summaryInfoList_File.expressSummaryEveryInfo_list[i].PictureDataByte;
+                    baseComprehensive.ModulepictureDataByte = summaryInfoList_File.expressSummaryEveryInfo_list[i].ModulepictureDataByte;
                     
                     //baseComprehensive.layoutDT = layoutInfoList_File.layoutExpressEveryInfo_list[i].layoutExpressDT;
 

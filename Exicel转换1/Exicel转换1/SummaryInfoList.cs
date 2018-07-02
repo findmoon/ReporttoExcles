@@ -929,7 +929,7 @@ namespace Exicel转换1
                 expressSummaryEveryInfo.ModuleCount = machineCount;
                 //, cPH 两个轨道综合的CPH，由Layoutinfo获取
                 expressSummaryEveryInfo.SummaryInfoDT = ComprehensiveStaticClass.getExpressSummayDataTable(boardQty, Line, Head_Type, jobName, Pannelsize, placementNumber, remark);
-                expressSummaryEveryInfo.PictureDataByte = ComprehensiveStaticClass.GenModulesPicture(allModuleTypeString, module_Statistics);
+                expressSummaryEveryInfo.ModulepictureDataByte = ComprehensiveStaticClass.GenModulesPicture(allModuleTypeString, module_Statistics);
                 expressSummaryEveryInfo.AllModuleType = allModuleTypeString;
                 expressSummaryEveryInfo.AllHeadType = allHeadTypeString;
 
