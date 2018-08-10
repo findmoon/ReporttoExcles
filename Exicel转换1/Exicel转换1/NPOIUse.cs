@@ -122,6 +122,122 @@ namespace NPOIUse
         }
 
         /// <summary>
+        /// 将DataTable数据导入到Isheet中
+        /// </summary>
+        /// <param name="data">sheet</param>
+        /// <param name="data">要导入的数据</param>
+        /// <param name="isColumnWritten">DataTable的列名是否要导入</param>
+        /// <param name="count">写入Isheet的开始的行位置，默认从0行开始</param>
+        public static void DataTableToIsheet(ISheet sheet, DataTable dataTable, bool isColumnWritten,int count=0)
+        {
+            if (dataTable.Rows.Count>=65535)
+            {
+                return;
+            }
+            
+            int i = 0;
+            int j = 0;
+
+            try
+            {                
+                if (isColumnWritten == true) //写入DataTable的列名
+                {
+                    IRow row = sheet.CreateRow(count);
+                    for (j = 0; j < dataTable.Columns.Count; ++j)
+                    {                       
+                        row.CreateCell(j).SetCellValue(dataTable.Columns[j].ColumnName);
+                    }
+                    count += 1;
+                }
+                
+
+                for (i = 0; i < dataTable.Rows.Count; ++i)
+                {
+                    IRow row = sheet.CreateRow(count);
+                    foreach (DataColumn dTColumn in dataTable.Columns)
+                    {
+                        if (dataTable.Rows[i][dTColumn].Equals(DBNull.Value))
+                        {//空值
+                            continue;
+                        }
+                        ICell cell = row.CreateCell(dTColumn.Ordinal);
+                        //当前表格中的内容
+                        string drValue = dataTable.Rows[i][dTColumn].ToString();
+                        bool success;
+                        switch (dTColumn.DataType.ToString())
+                        {
+                            case "System.String"://字符串类型
+                                cell.SetCellValue(drValue);
+                                break;
+                            case "System.DateTime"://日期类型
+                                DateTime DateV;
+                                success = DateTime.TryParse(drValue, out DateV);
+                                if (success)
+                                {
+                                    cell.SetCellValue(DateV);
+                                }
+                                else
+                                {
+                                    cell.SetCellValue(drValue);
+                                }
+                                break;
+                            case "System.Boolean"://布尔型
+                                bool boolV = false;
+                                success = bool.TryParse(drValue, out boolV);
+                                if (success)
+                                {
+                                    cell.SetCellValue(boolV);
+                                }
+                                else
+                                {
+                                    cell.SetCellValue(drValue);
+                                }
+                                break;
+                            case "System.Int16"://整型
+                            case "System.Int32":
+                            case "System.Int64":
+                            case "System.Byte":
+                                int intV;
+                                success = int.TryParse(drValue, out intV);
+                                if (success)
+                                {
+                                    cell.SetCellValue(intV);
+                                }
+                                else
+                                {
+                                    cell.SetCellValue(drValue);
+                                }
+                                break;
+                            case "System.Decimal"://浮点型
+                            case "System.Double":
+                                double doubV;
+                                success = double.TryParse(drValue, out doubV);
+                                if (success)
+                                {
+                                    cell.SetCellValue(doubV);
+                                }
+                                else
+                                {
+                                    cell.SetCellValue(drValue);
+                                }
+                                break;
+                            case "System.DBNull"://空值处理
+                            default:
+                                break;
+                        }
+                        
+                    }
+                    ++count;
+                }
+
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message);
+            }
+        }
+
+        /// <summary>
         /// 将DataTable数据导入到excel中
         /// </summary>
         /// <param name="data">要导入的数据</param>

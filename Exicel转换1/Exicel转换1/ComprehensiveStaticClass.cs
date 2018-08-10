@@ -9,6 +9,11 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Windows.Forms;
+using System.Xml;
+using System.Data.SQLite;
+using Newtonsoft.Json;
+using NPOI.HSSF.UserModel;
+using NPOI.XSSF.UserModel;
 
 namespace Exicel转换1
 {
@@ -24,16 +29,198 @@ namespace Exicel转换1
     //存放module head 理论CPH素有可能性，用以修改的结构
     public struct Module_Head_Cph_Struct
     {
-        public string[] moduleTrayTypestring;
+        public string[] moduleTrayTypestrings;
 
         public List<string> headTypeString_List;
         public List<string[]> CPH_strings_List;
     }
+    //与Module_Head_Cph_struct对应的string组成的结构
+    public struct Module_Head_Cph_String_Struct
+    {
+        public string moduleTrayTypeGroup;
+        public string headTypeGroup;
+        public string cphListGroup;
+    }
+
+    //报价单对应的所有DataTable的结构
+    public struct QuotationDGVDTStruct
+    {
+        public DataTable baseQotationDGVDT;
+        public DataTable optionQotationDGVDT;
+        public DataTable moduleHeadQotationDGVDT;
+        public List<DataTable> nozzleQotationDGVDTList;
+        public List<DataTable> feederQotationDGVDTList;
+    }
+
+    ////NozzleHeadTag和Head的对应字典
+    //public Dictionary<string, string> nozzleHeadTagHeadDict = new Dictionary<string, string>()
+    //    {
+    //        { "R047","H24" },
+    //        {"R07","R12/H08/H12HS/V12" },
+    //        {"R24","G04F" },
+    //        {"R19", "H04"},
+    //        {"R19S","H04SF" },
+    //        { },
+    //        { }
+    //    };
+
+    #region //单例模式，从sqlite中获取Base Module Option等Quotation的基准数据
+    public class AllQuotationDT
+    {
+        public DataTable BaseQotationDT { get; set; }
+        public DataTable PartsQotationDT { get; set; }
+        public DataTable PartsQtyDT { get; set; }
+        public DataTable ModuleHeadQotationDT { get; set; }
+        public DataTable FeederQotationDT { get; set; }
+        public DataTable NozzleQotationDT { get; set; }
+
+        private string _version;
+        public string Version
+        {
+            get
+            {
+                return _version;
+            }
+        }
+
+        private static AllQuotationDT allQuotationDT = null;
+        //是否获取成功，默认未获取false
+        bool isSuccess = false;
+
+        private AllQuotationDT()
+        {
+            GetAllQuotationDT();
+        }
+
+        public static AllQuotationDT GetSingleAllQuotationDT()
+        {
+            if (allQuotationDT != null)
+            {
+                return allQuotationDT;
+            }
+            allQuotationDT = new AllQuotationDT();
+            //获取成功
+            if (allQuotationDT.isSuccess)
+            {
+                return allQuotationDT;
+            }
+            else
+            {
+                allQuotationDT = null;
+                return allQuotationDT;
+            }
+        }
+
+        void GetAllQuotationDT()
+        {
+            string connStr = string.Format("Data Source={0};Version=3;", @".\data\quotation");
+            try
+            {
+                using (SQLiteConnection conn = new SQLiteConnection(connStr))
+                {
+                    using (SQLiteCommand comm = new SQLiteCommand(conn))
+                    {
+                        #region //vertable
+                        comm.CommandText = "SELECT * FROM vertable";
+                        //获取BaseQotation
+                        conn.Open();
+                        _version = comm.ExecuteScalar().ToString();
+                        #endregion
+
+                        #region //BaseQotation
+                        comm.CommandText = "SELECT * FROM BaseQuotation";
+                        //获取BaseQotation
+                        if (conn.State == ConnectionState.Closed)
+                        {
+                            conn.Open();
+                        }
+                        SQLiteDataAdapter qLiteDataAdapter = new SQLiteDataAdapter(comm);
+                        BaseQotationDT = new DataTable();
+                        qLiteDataAdapter.Fill(BaseQotationDT);
+                        //qLiteDataAdapter
+
+                        //var row_4MBaseQotation = from dr in BaseQotationDT.AsEnumerable()
+                        //                 where dr.Field<string>("BaseType") == "4MIII"
+                        //                 select dr;
+                        //var row_2MBaseQotation = from dr in BaseQotationDT.AsEnumerable()
+                        //                 where dr.Field<string>("BaseType") == "2MIII"
+                        //                 select dr;
+                        #endregion
+
+                        #region //PartsQotation
+                        comm.CommandText = "SELECT * FROM PartsQuotation";
+                        if (conn.State == ConnectionState.Closed)
+                        {
+                            conn.Open();
+                        }
+                        qLiteDataAdapter = new SQLiteDataAdapter(comm);
+                        PartsQotationDT = new DataTable();
+                        qLiteDataAdapter.Fill(PartsQotationDT);
+                        #endregion
+
+                        #region PartsQty
+                        comm.CommandText = "SELECT * FROM PartsQty";
+                        if (conn.State == ConnectionState.Closed)
+                        {
+                            conn.Open();
+                        }
+                        qLiteDataAdapter = new SQLiteDataAdapter(comm);
+                        PartsQtyDT = new DataTable();
+                        qLiteDataAdapter.Fill(PartsQtyDT);
+                        #endregion
+
+                        #region ModuleHeadQotation
+                        comm.CommandText = "SELECT * FROM ModuleHeadQuotation";
+                        if (conn.State == ConnectionState.Closed)
+                        {
+                            conn.Open();
+                        }
+                        qLiteDataAdapter = new SQLiteDataAdapter(comm);
+                        ModuleHeadQotationDT = new DataTable();
+                        qLiteDataAdapter.Fill(ModuleHeadQotationDT);
+                        #endregion
+
+                        #region //获取NozzleQuotation
+                        comm.CommandText = "SELECT * FROM NozzleQuotation";
+                        if (conn.State == ConnectionState.Closed)
+                        {
+                            conn.Open();
+                        }
+                        qLiteDataAdapter = new SQLiteDataAdapter(comm);
+                        NozzleQotationDT = new DataTable();
+                        qLiteDataAdapter.Fill(NozzleQotationDT);
+                        #endregion
+
+                        #region //获取FeederQuotation
+                        comm.CommandText = "SELECT * FROM FeederQuotation";
+                        if (conn.State == ConnectionState.Closed)
+                        {
+                            conn.Open();
+                        }
+                        qLiteDataAdapter = new SQLiteDataAdapter(comm);
+                        FeederQotationDT = new DataTable();
+                        qLiteDataAdapter.Fill(FeederQotationDT);
+                        #endregion
+
+                        //获取成功
+                        isSuccess = true;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message);
+                //获取quotation失败
+                isSuccess = false;
+            }
+        }
+    } 
+    #endregion
 
     //存放一些公共的静态方法、数据（字典）的静态类
     static class ComprehensiveStaticClass
     {
-        
+
         //电、气每种机器的值是固定的，使用字典，将字典放入结构中
         //所有Tray：LTray-LTTray-LT2Tray-LTCTray-MTray。只在M6II\M6III上搭配Tray
         //功率字典
@@ -71,8 +258,7 @@ namespace Exicel转换1
             {"2MBase",650},
             {"4MBase",1300}
         };
-
-
+        
         #region //根据各种信息生成summary信息的  除cycletime以外的  DataTable
         //无cycletime，board output/hour、board output/day、 cPH\CPH rate,cycletime\cPH需要由layoutinfo 获取
         public static DataTable getExpressSummayDataTable(int boardQty, string Line, string Head_Type,
@@ -80,16 +266,31 @@ namespace Exicel转换1
         {
             //生成评估的表格
             DataTable genDT = new DataTable();
-            string[] genColumnString = { "Item", "Board", "Line", "Head \nType", "Job name","Panel Size",
-                "Cycle time\n[((L1+L2)/2) Sec]", "Number of \nplacements", "CPH", "Output \nBoard/hour",
-                "Output\nBoard/Day(22H)", "CPH Rate","CPP","Remark" };
+            //string[] genColumnString = { "Item", "Board", "Line", "Head \nType", "Job name","Panel Size",
+            //    "Cycle time\n[((L1+L2)/2) Sec]", "Number of \nplacements", "CPH", "Output \nBoard/hour",
+            //    "Output\nBoard/Day(22H)", "CPH Rate","CPP","Remark" };
 
-            //评估表格的栏
-            for (int i = 0; i < genColumnString.Length; i++)
-            {
-                genDT.Columns.Add(genColumnString[i]);
-            }
+            ////评估表格的栏
+            //for (int i = 0; i < genColumnString.Length; i++)
+            //{
+            //    genDT.Columns.Add(genColumnString[i]);
+            //}
 
+            genDT.Columns.Add("Item", Type.GetType("System.String"));
+            genDT.Columns.Add("Board", Type.GetType("System.Int32"));
+            genDT.Columns.Add("Line", Type.GetType("System.String"));
+            genDT.Columns.Add("Head \nType", Type.GetType("System.String"));
+            genDT.Columns.Add("Job name", Type.GetType("System.String"));
+            genDT.Columns.Add("Panel Size", Type.GetType("System.String"));
+            genDT.Columns.Add("Cycle time\n[((L1+L2)/2) Sec]", Type.GetType("System.Double"));
+            genDT.Columns.Add("Number of \nplacements", Type.GetType("System.Int32"));
+            genDT.Columns.Add("CPH", Type.GetType("System.Int32"));
+            genDT.Columns.Add("Output \nBoard/hour", Type.GetType("System.Int32"));
+            genDT.Columns.Add("Output\nBoard/Day(22H)", Type.GetType("System.Int32"));
+            genDT.Columns.Add("CPH Rate", Type.GetType("System.Double"));
+            genDT.Columns.Add("CPP", Type.GetType("System.Double"));
+            genDT.Columns.Add("Remark", Type.GetType("System.String"));
+       
             //向生成的Excel添加行
             DataRow genRow = genDT.NewRow();
             genRow["Board"] = boardQty;
@@ -120,7 +321,8 @@ namespace Exicel转换1
         #endregion
 
         #region 生成模组base的简笔画
-        public static byte[] GenModuleBaseStickFigure(string[] allModuleTypeString, Dictionary<string, int> module_Statistics, Dictionary<string, int> base_StatisticsDict)
+        public static byte[] GenAirPowerNetPictureByte(string[] allModuleTypeString, 
+            Dictionary<string, int> module_Statistics, Dictionary<string, int> base_StatisticsDict)
         {
             //获取图片
             string img_M3 = @".\img\M3figure.png";
@@ -129,7 +331,7 @@ namespace Exicel转换1
             string base_4M = @".\img\4MBase.png";
             string provider = @".\img\provider.png";
             if (!File.Exists(img_M3) || !File.Exists(img_M6) || !File.Exists(base_2M) || !File.Exists(base_4M)
-                ||!File.Exists(provider))
+                || !File.Exists(provider))
             {
                 MessageBox.Show("缺少电气图相关图片，请确认后重试！");
                 return null;
@@ -148,9 +350,9 @@ namespace Exicel转换1
             double base2MXian = 0.534;
             double base4MXian = 0.536;
             //最后base宽度，最后一个base宽度为全部宽度，默认base顺序固定不可调整
-            var base4M_Width = base4M_Count>0?Convert.ToDouble(imgbase4M.Width * (base4M_Count - 1)) * base4MXian + imgbase4M.Width : 0;
-            var base2M_width = base2M_Count >0? 
-                (base4M_Count == 0 ?Convert.ToDouble(imgbase2M.Width * (base2M_Count - 1)) * base2MXian + imgbase2M.Width : Convert.ToDouble(imgbase2M.Width * base2M_Count) * base2MXian) 
+            var base4M_Width = base4M_Count > 0 ? Convert.ToDouble(imgbase4M.Width * (base4M_Count - 1)) * base4MXian + imgbase4M.Width : 0;
+            var base2M_width = base2M_Count > 0 ?
+                (base4M_Count == 0 ? Convert.ToDouble(imgbase2M.Width * (base2M_Count - 1)) * base2MXian + imgbase2M.Width : Convert.ToDouble(imgbase2M.Width * base2M_Count) * base2MXian)
                 : 0;
             var finalWidth = Convert.ToInt32(base2M_width + base4M_Width);
             var finalHeight = imgbase4M.Height;
@@ -167,14 +369,14 @@ namespace Exicel转换1
             for (int i = 0; i < base2M_Count; i++)
             {
                 //2mBase图像
-                    graph.DrawImage(imgbase2M, pointX, pointY);
-                    pointX += Convert.ToInt32( imgbase2M.Width * base2MXian);                    
-             }
+                graph.DrawImage(imgbase2M, pointX, pointY);
+                pointX += Convert.ToInt32(imgbase2M.Width * base2MXian);
+            }
             for (int i = 0; i < base4M_Count; i++)
             {
                 //4MBase图像
                 graph.DrawImage(imgbase4M, pointX, pointY);
-                pointX += Convert.ToInt32(imgbase4M.Width  * base4MXian);                
+                pointX += Convert.ToInt32(imgbase4M.Width * base4MXian);
             }
             graph.Dispose();
             #endregion
@@ -204,7 +406,7 @@ namespace Exicel转换1
             }
             M3Image_count = M3_count / 2;
             M6Image_count = M6_count;
-            finalWidth = (imgM3.Width+ jiange) * M3Image_count + (imgM6.Width+ jiange) * M6Image_count;
+            finalWidth = (imgM3.Width + jiange) * M3Image_count + (imgM6.Width + jiange) * M6Image_count;
             finalHeight = imgM3.Height;
             #endregion
 
@@ -226,7 +428,7 @@ namespace Exicel转换1
                 {
                     //写入文字M3或M3S
                     graph1.DrawImage(imgM3, pointX, pointY);
-                    pointX += imgM3.Width+ jiange;
+                    pointX += imgM3.Width + jiange;
                     i++;
                 }
                 //M3模组图像
@@ -234,7 +436,7 @@ namespace Exicel转换1
                 {
                     //写入文字M3或M3S
                     graph1.DrawImage(imgM6, pointX, pointY);
-                    pointX += imgM6.Width+ jiange;                    
+                    pointX += imgM6.Width + jiange;
                 }
             }
             graph1.Dispose();
@@ -254,7 +456,7 @@ namespace Exicel转换1
             //画base
             graph2.DrawImage(finalBaseImg, pointX, pointY + finalModuleImg.Height);
             //画provider,调整位置
-            graph2.DrawImage(imgprovider, pointX + finalBaseImg.Width, pointY+28);
+            graph2.DrawImage(imgprovider, pointX + finalBaseImg.Width, pointY + 28);
             graph2.Dispose();
             //finalWidth = finalBaseImg.Width;
             //finalHeight = finalModuleImg.Height + finalBaseImg.Height;
@@ -306,8 +508,8 @@ namespace Exicel转换1
             string img_M6LTCTray = @".\img\M6-LTCTray.png";
             string img_M6MTray = @".\img\M6-MTray.png";
 
-            if (!File.Exists(img_M3) || !File.Exists(img_M6)|| !File.Exists(img_M6LTray) || !File.Exists(img_M6LTTray)
-                || !File.Exists(img_M6LTCTray) || !File.Exists(img_M6MTray)|| !File.Exists(img_M6LT2Tray))
+            if (!File.Exists(img_M3) || !File.Exists(img_M6) || !File.Exists(img_M6LTray) || !File.Exists(img_M6LTTray)
+                || !File.Exists(img_M6LTCTray) || !File.Exists(img_M6MTray) || !File.Exists(img_M6LT2Tray))
             {
                 MessageBox.Show("缺少模组相关图片，请确认后重试");
                 return null;
@@ -332,7 +534,7 @@ namespace Exicel转换1
             int M3Image_count = 0;
             int M6Image_count = 0;
             //模组M3或M6的个数
-            int M3_count=0, M6_count=0;
+            int M3_count = 0, M6_count = 0;
 
             foreach (var item in module_Statistics)
             {
@@ -350,10 +552,8 @@ namespace Exicel转换1
             M6Image_count = M6_count;
             int finalWidth = imgM3.Width * M3Image_count + imgM6.Width * M6Image_count + jiange * 2;
             int finalHeight = imgM3.Height + jiange * 2;
-            #endregion 
-
-           
-
+            #endregion
+            
             Bitmap finalImg = new Bitmap(finalWidth, finalHeight);
             Graphics graph = Graphics.FromImage(finalImg);
             //graph.Clear(SystemColors.AppWorkspace);
@@ -371,20 +571,20 @@ namespace Exicel转换1
                 if (allModuleTypeString[i].Substring(0, 2) == "M3" && allModuleTypeString[i + 1].Substring(0, 2) == "M3")
                 {
                     //写入文字M3或M3S
-                    graph.DrawImage(WriteTextToM3Image(allModuleTypeString[i], allModuleTypeString[i+1],imgM3), pointX, pointY);
+                    graph.DrawImage(WriteTextToM3Image(allModuleTypeString[i], allModuleTypeString[i + 1], imgM3), pointX, pointY);
                     pointX += imgM3.Width;
                     i++;
                 }
                 else if (allModuleTypeString[i].Substring(0, 2) == "M6")//M6模组图像
                 {
                     string[] moduleTypeSplit = allModuleTypeString[i].Split('-');
-                    if (moduleTypeSplit.Length>1)//imgM6LTray\imgM6LTTray\imgM6LTCTray\imgM6MTray
+                    if (moduleTypeSplit.Length > 1)//imgM6LTray\imgM6LTTray\imgM6LTCTray\imgM6MTray
                     {
                         switch (moduleTypeSplit[1].ToLower())
                         {
                             case "ltray":
                                 {
-                                    graph.DrawImage(WriteTextToM6Image(moduleTypeSplit[0],imgM6LTray), pointX, pointY);
+                                    graph.DrawImage(WriteTextToM6Image(moduleTypeSplit[0], imgM6LTray), pointX, pointY);
                                     pointX += imgM6.Width;
                                     break;
                                 }
@@ -407,7 +607,7 @@ namespace Exicel转换1
                             default:
                                 break;
                         }
-                        
+
                     }
                     else
                     {
@@ -539,7 +739,7 @@ namespace Exicel转换1
             }
         }
         #endregion
-        
+
         #region //将string插入Excel指定位置
         private static void StringInsertWorkbook(ExcelHelper excelHelper1, string insertString, string sheetName,
             int[] insertPoint)
@@ -557,9 +757,9 @@ namespace Exicel转换1
         /// <param name="insertPoint">插入位置</param>
         /// <param name="hasBorder">是否设置边框，默认不设置</param>
         private static void StringInsertWorkbook(ExcelHelper excelHelper1, string insertString, string sheetName,
-            int[] insertPoint, bool hasBorder=false)
+            int[] insertPoint, bool hasBorder = false)
         {
-            StringInsertWorkbook(excelHelper1, insertString, sheetName, insertPoint, Orientation.Origin, 0, null,0, hasBorder);
+            StringInsertWorkbook(excelHelper1, insertString, sheetName, insertPoint, Orientation.Origin, 0, null, 0, hasBorder);
         }
 
         //重载字符串插入sheet，指定合并插入时的单元格，合并方向和单元格数量
@@ -577,7 +777,7 @@ namespace Exicel转换1
         /// <param name="colorShort">colorShort NPOI颜色，0表示不设置颜色</param>
         /// <param name="hasBorder">是否显示边框，默认不显示</param>
         private static void StringInsertWorkbook(ExcelHelper excelHelper1, string insertString, string sheetName,
-            int[] insertPoint, Orientation mergeOrientation,int mergeNum, int[] WidthHeight, short colorShort,bool hasBorder=true)
+            int[] insertPoint, Orientation mergeOrientation, int mergeNum, int[] WidthHeight, short colorShort, bool hasBorder = true)
         {
             IWorkbook workbook = excelHelper1.WorkBook;
             //FileStream fs = excelHelper1.FS;
@@ -598,10 +798,10 @@ namespace Exicel转换1
                 {
                     row = sheet.GetRow(count);
                 }
-                if (WidthHeight!=null)
+                if (WidthHeight != null)
                 {
                     row.HeightInPoints = WidthHeight[1];
-                }                
+                }
                 row.CreateCell(insertPoint[1]).SetCellValue(insertString);
 
                 //
@@ -634,39 +834,39 @@ namespace Exicel转换1
                 #endregion
                 //合并单元格
                 //mergeNum为合并的cell数量，结束位置为mergeNum-1
-                if (mergeOrientation==Orientation.Horizontal)//横向
-                {                    
+                if (mergeOrientation == Orientation.Horizontal)//横向
+                {
                     //设置样式到单元格
-                    for (int i = insertPoint[1]; i < insertPoint[1]+ mergeNum; i++)
+                    for (int i = insertPoint[1]; i < insertPoint[1] + mergeNum; i++)
                     {
-                        if (row.GetCell(i)==null)
+                        if (row.GetCell(i) == null)
                         {
                             row.CreateCell(i);
                         }
                         row.GetCell(i).CellStyle = cellStyle;
-                        
+
                     }
                     //合并
-                    sheet.AddMergedRegion(new CellRangeAddress(insertPoint[0], insertPoint[0], insertPoint[1], insertPoint[1] + mergeNum-1));
+                    sheet.AddMergedRegion(new CellRangeAddress(insertPoint[0], insertPoint[0], insertPoint[1], insertPoint[1] + mergeNum - 1));
                 }
                 if (mergeOrientation == Orientation.Vertical)
                 {
-                    for (int i = insertPoint[0]; i < insertPoint[0]+mergeNum; i++)
+                    for (int i = insertPoint[0]; i < insertPoint[0] + mergeNum; i++)
                     {
-                        if (sheet.GetRow(i)==null)
+                        if (sheet.GetRow(i) == null)
                         {
                             sheet.CreateRow(i);
                         }
-                        if (sheet.GetRow(i).GetCell(insertPoint[1])==null)
+                        if (sheet.GetRow(i).GetCell(insertPoint[1]) == null)
                         {
                             sheet.GetRow(i).CreateCell(insertPoint[1]);
                         }
                         sheet.GetRow(i).GetCell(insertPoint[1]).CellStyle = cellStyle;
                     }
-                    sheet.AddMergedRegion(new CellRangeAddress(insertPoint[0], insertPoint[0] + mergeNum-1, insertPoint[1], insertPoint[1]));
+                    sheet.AddMergedRegion(new CellRangeAddress(insertPoint[0], insertPoint[0] + mergeNum - 1, insertPoint[1], insertPoint[1]));
                 }
 
-                
+
 
             }
             catch (Exception ex)
@@ -698,6 +898,8 @@ namespace Exicel转换1
             //从指定的位置开始插入DataTable数据
             int count = insertPoint[0];
             ISheet sheet = excelHelper1.ExcelToIsheet(sheetName);
+            ICellStyle cellStyle;
+            IDataFormat dataformat = workbook.CreateDataFormat();
 
             #region sheet由excelHelper获取
             //if (workbook != null)
@@ -734,9 +936,83 @@ namespace Exicel转换1
                 for (int i = 0; i < dt.Rows.Count; ++i)
                 {
                     IRow row = sheet.CreateRow(count);
-                    for (int j = 0; j < dt.Columns.Count; ++j)
+                    foreach (DataColumn dTColumn in dt.Columns)
                     {
-                        row.CreateCell(insertPoint[1] + j).SetCellValue(dt.Rows[i][j].ToString());
+                        ICell cell = row.CreateCell(insertPoint[1]+dTColumn.Ordinal);
+
+                        ////处理百分数列，cellstyle
+                        //if (dTColumn.ColumnName == "CPH Rate")
+                        //{
+                        //    string str = dt.Rows[i][dTColumn.Ordinal].ToString();
+                        //    cell.SetCellValue(Convert.ToDouble(str.Substring(0, str.Length - 1)) / 100.00);
+
+                        //    cellStyle = workbook.CreateCellStyle();
+                        //    //百分比未其作用
+                        //    cellStyle.DataFormat = dataformat.GetFormat("0.00%");
+                        //    cell.CellStyle = cellStyle;
+                        //    //double a= str.Substring(0, str.Length - 1));
+                        //    continue;
+                        //}
+
+                        //当前表格中的内容
+                        string drValue = dt.Rows[i][dTColumn].ToString();                        
+                        switch (dTColumn.DataType.ToString())
+                        {                           
+                            case "System.DateTime"://日期类型
+                                DateTime DateV;
+                                if (DateTime.TryParse(drValue, out DateV))
+                                {
+                                    cell.SetCellValue(DateV);
+                                }
+                                else
+                                {
+                                    cell.SetCellValue(drValue);
+                                }
+                                break;
+                            case "System.Boolean"://布尔型
+                                bool boolV = false;
+                                if (bool.TryParse(drValue, out boolV))
+                                {
+                                    cell.SetCellValue(boolV);
+                                }
+                                else
+                                {
+                                    cell.SetCellValue(drValue);
+                                }
+                                break;
+                            case "System.Int16"://整型
+                            case "System.Int32":
+                            case "System.Int64":
+                            case "System.Byte":
+                                int intV;
+                                if (int.TryParse(drValue, out intV))
+                                {
+                                    cell.SetCellValue(intV);
+                                }
+                                else
+                                {
+                                    cell.SetCellValue(drValue);
+                                }
+                                break;
+                            case "System.Decimal"://浮点型
+                            case "System.Double":
+                                double doubV;
+                                if (double.TryParse(drValue, out doubV))
+                                {
+                                    cell.SetCellValue(doubV);
+                                }
+                                else
+                                {
+                                    cell.SetCellValue(drValue);
+                                }
+                                break;
+                            case "System.String"://字符串类型                                
+                            case "System.DBNull"://空值处理
+                            default:
+                                cell.SetCellValue(drValue);
+                                break;
+                        }
+
                     }
                     ++count;
                 }
@@ -747,20 +1023,22 @@ namespace Exicel转换1
                 }
                 #region sheet1的样式
                 //设置列宽
-                int commonWidth = 11;
+                int commonWidth = 10;
                 sheet.SetColumnWidth(0, 1 * 256);
-                sheet.SetColumnWidth(1, commonWidth * 256);
-                sheet.SetColumnWidth(2, commonWidth * 256);
-                sheet.SetColumnWidth(3, System.Convert.ToInt32(System.Convert.ToDouble(commonWidth * 256) * 3));
+                sheet.SetColumnWidth(1, (commonWidth-3) * 256);
+                sheet.SetColumnWidth(2, (commonWidth-3) * 256);
+                sheet.SetColumnWidth(3, System.Convert.ToInt32(System.Convert.ToDouble(commonWidth * 256) * 2.6));
                 sheet.SetColumnWidth(4, commonWidth * 2 * 256);
-                sheet.SetColumnWidth(5, System.Convert.ToInt32(System.Convert.ToDouble(commonWidth * 256) * 1.8));
+                sheet.SetColumnWidth(5, System.Convert.ToInt32(System.Convert.ToDouble(commonWidth * 256) * 2));
                 sheet.SetColumnWidth(6, commonWidth * 256);
-                sheet.SetColumnWidth(7, commonWidth * 256);
-                sheet.SetColumnWidth(8, commonWidth * 256);
-                sheet.SetColumnWidth(9, commonWidth * 256);
-                sheet.SetColumnWidth(10, commonWidth * 256);
-                sheet.SetColumnWidth(11, commonWidth * 256);
+                sheet.SetColumnWidth(7, (commonWidth + 1) * 256);
+                sheet.SetColumnWidth(8, (commonWidth + 2) * 256);
+                sheet.SetColumnWidth(9, (commonWidth-3) * 256);
+                sheet.SetColumnWidth(10, (commonWidth+1) * 256);
+                sheet.SetColumnWidth(11, (commonWidth+5) * 256);
                 sheet.SetColumnWidth(12, commonWidth * 256);
+                sheet.SetColumnWidth(13, (commonWidth+3) * 256);
+                sheet.SetColumnWidth(14, (commonWidth+2) * 256);
 
                 //设置行高,仅设置summaryDT两行的行高,仅仅设置 insertPoint[0] 和 count 之间的 行高
 
@@ -800,7 +1078,11 @@ namespace Exicel转换1
                 //    //设置SetDefaultColumnStyle后，仅到新创建cell时，会应用这个默认设置
                 //    //sheet.SetDefaultColumnStyle(i, cellStyle);
                 //}
-                ICellStyle cellStyle;
+
+                //设置单元格样式,必须每一个cell对应一个样式，否则无法设置背景
+
+                
+
                 for (int i = insertPoint[0]; i < count; i++)
                 {
                     if (sheet.GetRow(i) != null)
@@ -816,14 +1098,12 @@ namespace Exicel转换1
                                 continue;
                             }
 
-                            //设置单元格样式,必须每一个cell对应一个样式，否则无法设置背景
-
                             cellStyle = workbook.CreateCellStyle();
                             //垂直居中
-                            cellStyle.VerticalAlignment = NPOI.SS.UserModel.VerticalAlignment.Center;
+                            cellStyle.VerticalAlignment = VerticalAlignment.Center;
                             //水平对齐
                             cellStyle.Alignment = NPOI.SS.UserModel.HorizontalAlignment.Center;
-                            //  cellStyle.Alignment = NPOI.SS.UserModel.HorizontalAlignment.Right;
+
 
                             //设置开启自动换行,在下面应用到单元格样式时，\n转义字符处理
                             cellStyle.WrapText = true;
@@ -837,7 +1117,8 @@ namespace Exicel转换1
                             cellStyle.BorderTop = NPOI.SS.UserModel.BorderStyle.Thin;
                             cellStyle.BorderLeft = NPOI.SS.UserModel.BorderStyle.Thin;
                             cellStyle.BorderRight = NPOI.SS.UserModel.BorderStyle.Thin;
-
+                            //填充模式
+                            cellStyle.FillPattern = FillPattern.SolidForeground;
 
                             if (i == sheet.LastRowNum)
                             {
@@ -854,10 +1135,19 @@ namespace Exicel转换1
                                     font.FontHeightInPoints = 8;
                                     cellStyle.SetFont(font);
                                 }
+                                else if (j == row.LastCellNum - 3)
+                                {
+                                    //获取默认的dataformat
+                                    //short df = cellStyle.DataFormat;
+                                    ////处理百分数列，cellstyle                                    
+                                    //百分比 处理成功
+                                    cellStyle.DataFormat = dataformat.GetFormat("0.00%");                                    
+                                }
+                                else if (j == row.LastCellNum - 2)
+                                {
+                                    cellStyle.DataFormat = dataformat.GetFormat("_(\"JPY\" * #,##0.0000_);_(\"JPY\"* (#,##0.0000);_(\"JPY\"* \" - \"_);_(@_)");                                    
+                                }
                             }
-
-                            //填充模式
-                            cellStyle.FillPattern = FillPattern.SolidForeground;
 
                             row.GetCell(j).CellStyle = cellStyle;
                             //cellStyle.Dispose();
@@ -878,7 +1168,6 @@ namespace Exicel转换1
             catch (Exception ex)
             {
                 MessageBox.Show(ex.Message);
-
             }
 
         }
@@ -926,7 +1215,7 @@ namespace Exicel转换1
                         row.CreateCell(insertPoint[1] + j).SetCellValue(dt.Columns[j].ColumnName);
                     }
                     count++;
-                }
+                }              
 
                 for (int i = 0; i < dt.Rows.Count; ++i)
                 {
@@ -940,9 +1229,69 @@ namespace Exicel转换1
                         row = sheet.GetRow(count);
                     }
                     //将内容插入sheet
-                    for (int j = 0; j < dt.Columns.Count; ++j)
+                    foreach (DataColumn dTColumn in dt.Columns)
                     {
-                        row.CreateCell(insertPoint[1] + j).SetCellValue(dt.Rows[i][j].ToString());
+                        ICell cell = row.CreateCell(insertPoint[1] + dTColumn.Ordinal);
+
+                        //当前表格中的内容
+                        string drValue = dt.Rows[i][dTColumn].ToString();
+                        switch (dTColumn.DataType.ToString())
+                        {                            
+                            case "System.DateTime"://日期类型
+                                DateTime DateV;
+                                if (DateTime.TryParse(drValue, out DateV))
+                                {
+                                    cell.SetCellValue(DateV);
+                                }
+                                else
+                                {
+                                    cell.SetCellValue(drValue);
+                                }
+                                break;
+                            case "System.Boolean"://布尔型
+                                bool boolV = false;
+                                if (bool.TryParse(drValue, out boolV))
+                                {
+                                    cell.SetCellValue(boolV);
+                                }
+                                else
+                                {
+                                    cell.SetCellValue(drValue);
+                                }
+                                break;
+                            case "System.Int16"://整型
+                            case "System.Int32":
+                            case "System.Int64":
+                            case "System.Byte":
+                                int intV;
+                                if (int.TryParse(drValue, out intV))
+                                {
+                                    cell.SetCellValue(intV);
+                                }
+                                else
+                                {
+                                    cell.SetCellValue(drValue);
+                                }
+                                break;
+                            case "System.Decimal"://浮点型
+                            case "System.Double":
+                                double doubV;
+                                if (double.TryParse(drValue, out doubV))
+                                {
+                                    cell.SetCellValue(doubV);
+                                }
+                                else
+                                {
+                                    cell.SetCellValue(drValue);
+                                }
+                                break;
+                            case "System.String"://字符串类型                                
+                            case "System.DBNull"://空值处理
+                            default:
+                                cell.SetCellValue(drValue);
+                                break;
+                        }
+
                     }
                     ++count;
                 }
@@ -983,6 +1332,28 @@ namespace Exicel转换1
                 //    //sheet.SetDefaultColumnStyle(i, cellStyle);
                 //}
                 ICellStyle cellStyle;
+                //设置单元格样式,必须每一个cell对应一个样式，否则无法设置背景
+
+                cellStyle = workbook.CreateCellStyle();
+
+                //垂直居中
+                //垂直居中
+                cellStyle.VerticalAlignment = NPOI.SS.UserModel.VerticalAlignment.Center;
+                //水平对齐
+                cellStyle.Alignment = NPOI.SS.UserModel.HorizontalAlignment.Center;
+
+                //设置cellstyle背景
+                //cellStyle.FillBackgroundColor = IndexedColors.Automatic.Index;
+                //cellStyle.FillForegroundColor = IndexedColors.Automatic.Index;
+
+                //设置边框
+                cellStyle.BorderBottom = NPOI.SS.UserModel.BorderStyle.Thin;
+                cellStyle.BorderTop = NPOI.SS.UserModel.BorderStyle.Thin;
+                cellStyle.BorderLeft = NPOI.SS.UserModel.BorderStyle.Thin;
+                cellStyle.BorderRight = NPOI.SS.UserModel.BorderStyle.Thin;
+
+                //填充模式
+                cellStyle.FillPattern = FillPattern.SolidForeground;
                 for (int i = insertPoint[0]; i < count; i++)
                 {
                     if (sheet.GetRow(i) != null)
@@ -998,35 +1369,15 @@ namespace Exicel转换1
                                 continue;
                             }
 
-                            //设置单元格样式,必须每一个cell对应一个样式，否则无法设置背景
-
-                            cellStyle = workbook.CreateCellStyle();
-
                             //设置开启自动换行,在下面应用到单元格样式时，\n转义字符处理
-                            //第一行换行,且居中
                             if (i == insertPoint[0])
                             {
                                 cellStyle.WrapText = true;
-                                //垂直居中
-                                cellStyle.VerticalAlignment = NPOI.SS.UserModel.VerticalAlignment.Center;
-                                //水平对齐
-                                cellStyle.Alignment = NPOI.SS.UserModel.HorizontalAlignment.Center;
                             }
-
-
-                            //设置cellstyle背景
-                            //cellStyle.FillBackgroundColor = IndexedColors.Automatic.Index;
-                            //cellStyle.FillForegroundColor = IndexedColors.Automatic.Index;
-
-                            //设置边框
-                            cellStyle.BorderBottom = NPOI.SS.UserModel.BorderStyle.Thin;
-                            cellStyle.BorderTop = NPOI.SS.UserModel.BorderStyle.Thin;
-                            cellStyle.BorderLeft = NPOI.SS.UserModel.BorderStyle.Thin;
-                            cellStyle.BorderRight = NPOI.SS.UserModel.BorderStyle.Thin;
-
-
-                            //填充模式
-                            cellStyle.FillPattern = FillPattern.SolidForeground;
+                            else
+                            {
+                                cellStyle.WrapText = false;
+                            }
 
                             row.GetCell(j).CellStyle = cellStyle;
                             //cellStyle.Dispose();
@@ -1164,8 +1515,8 @@ namespace Exicel转换1
         /// <param name="WidthHeight">插入图片位置所在行的行高</param>
         /// <param name="isDisplayGrid">是否显示单元格</param>
         private static void insertModulePictureToWorbook(ExcelHelper excelHelper1, string sheetName, int[] pictureInsertPoint,
-            byte[] PictureDataByte, int machineCount, Orientation hideborderOrientation, int hideborderCellNum, 
-            int[] WidthHeight = null,bool isDisplayGrid=true)
+            byte[] PictureDataByte, int machineCount, Orientation hideborderOrientation, int hideborderCellNum,
+            int[] WidthHeight = null, bool isDisplayGrid = true)
         {
             //插入的位置
             int startRow = pictureInsertPoint[0];
@@ -1194,8 +1545,8 @@ namespace Exicel转换1
                 endCol = startCol + 5;
             }
 
-            insertPictureToWorbook(excelHelper1, sheetName, new int[] { startRow,startCol },
-            new int[] { endRow,endCol}, PictureDataByte, WidthHeight,isDisplayGrid);
+            insertPictureToWorbook(excelHelper1, sheetName, new int[] { startRow, startCol },
+            new int[] { endRow, endCol }, PictureDataByte, WidthHeight, isDisplayGrid);
 
             #region 将图片插入sheet的实现
             ////生成报告的excelHelper1 excelHelper类
@@ -1315,7 +1666,7 @@ namespace Exicel转换1
             int endRow = pictureEndPoint[0];
             int endCol = pictureEndPoint[1];
             //根据模组数量长度，变更结束单元格位置
-            
+
             //偏移依旧不起作用
             excelHelper1.pictureDataToSheet(sheet, PictureDataByte, 50, 10, 50, 10, startRow, startCol, endRow, endCol);
 
@@ -1324,50 +1675,53 @@ namespace Exicel转换1
             {
                 sheet.DisplayGridlines = false;
             }
-           
+
             #endregion
         }
 
         #endregion
 
+        #region //string字符串比较
         /// <summary>
         /// //比较两个string数组是否相等的
         /// </summary>
         /// <param name="string1"></param>
         /// <param name="string2"></param>
         /// <returns>相等返回true</returns>
-        static public bool CompareStringArray(string[] string1,string[] string2)
+        static public bool CompareStringArray(string[] string1, string[] string2)
         {
-            if (string1.Length!=string2.Length)
+            if (string1.Length != string2.Length)
             {
                 return false;
             }
             for (int i = 0; i < string1.Length; i++)
             {
-                if (string1[i]!=string2[i])
+                if (string1[i] != string2[i])
                 {
                     return false;
                 }
             }
             return true;
-        }
-        //从BaseComprehensive列表List 按同一机种、同一配置生成Excel
-        static public void GenExcelfromBaseComprehensiveList(List<BaseComprehensive> baseComprehensiveList,string excelFileName)
+        } 
+        #endregion
+
+        #region //从BaseComprehensive列表List 按同一机种、同一配置生成Excel
+        static public void GenExcelfromBaseComprehensiveList(List<EvaluationReportClass> evaluationReportClassList, string excelFileName)
         {
-            if (baseComprehensiveList.Count==0)
+            if (evaluationReportClassList.Count == 0)
             {
                 return;
             }
-            if (baseComprehensiveList.Count == 1)//只选择了一个job报告，直接生成
+            if (evaluationReportClassList.Count == 1)//只选择了一个job报告，直接生成
             {
-                GenExclefromBaseComprehensive(excelFileName,baseComprehensiveList[0].Jobname, baseComprehensiveList[0]);                
+                GenExclefromBaseComprehensive(excelFileName, evaluationReportClassList[0].Jobname, evaluationReportClassList[0]);
             }
 
-            if (baseComprehensiveList.Count>1)
+            if (evaluationReportClassList.Count > 1)
             {
                 //相同机种的BaseComprehensiveList
-                List<BaseComprehensive> theSameModel_BaseComprehensiveList = new List<BaseComprehensive>();
-                theSameModel_BaseComprehensiveList.Add(baseComprehensiveList[0]);
+                List<EvaluationReportClass> theSameModel_evaluationReportList = new List<EvaluationReportClass>();
+                theSameModel_evaluationReportList.Add(evaluationReportClassList[0]);
 
                 #region //将同一机种、同一配置、和其他 进行分类。使用List下标number区分
                 //存放同一机种的number位置 数组的 列表，可能有多个 同一机种组成的数组
@@ -1379,7 +1733,7 @@ namespace Exicel转换1
 
                 //记录已经查找确认过的位置Number，防止重复查找
                 List<int> hasConfirmed_Number = new List<int>();
-                for (int i = 0; i < baseComprehensiveList.Count; i++)
+                for (int i = 0; i < evaluationReportClassList.Count; i++)
                 {
                     //已经确认过的跳过，防止重复查找
                     if (hasConfirmed_Number.Contains(i))
@@ -1390,9 +1744,9 @@ namespace Exicel转换1
                     //每次循环当前值i后面的之前，都假设i是多个 同一机种的一个
                     List<int> theSameModel_Number = new List<int>();
                     theSameModel_Number.Add(i);
-                    for (int j = i + 1; j < baseComprehensiveList.Count; j++)
+                    for (int j = i + 1; j < evaluationReportClassList.Count; j++)
                     {
-                        if (baseComprehensiveList[i].Jobname == baseComprehensiveList[j].Jobname)
+                        if (evaluationReportClassList[i].Jobname == evaluationReportClassList[j].Jobname)
                         {
                             //只能判断i j是同一机种，而不同判断其他还有同一机种
                             theSameModel_Number.Add(j);
@@ -1420,11 +1774,11 @@ namespace Exicel转换1
                     List<int> theSameConfig_Number = new List<int>();
                     theSameConfig_Number.Add(i);
                     //判断是否有同一配置
-                    for (int j = i + 1; j < baseComprehensiveList.Count; j++)
+                    for (int j = i + 1; j < evaluationReportClassList.Count; j++)
                     {
                         //module和head string[]相等，判定为同一配置
-                        if (CompareStringArray(baseComprehensiveList[i].AllModuleType, baseComprehensiveList[j].AllModuleType) &&
-                            CompareStringArray(baseComprehensiveList[i].AllHeadType, baseComprehensiveList[j].AllHeadType))
+                        if (CompareStringArray(evaluationReportClassList[i].AllModuleType, evaluationReportClassList[j].AllModuleType) &&
+                            CompareStringArray(evaluationReportClassList[i].AllHeadType, evaluationReportClassList[j].AllHeadType))
                         {
                             theSameConfig_Number.Add(j);
                             //添加 已经确认的位置j
@@ -1450,42 +1804,52 @@ namespace Exicel转换1
                 }
                 #endregion
 
-                //将BaseComprehensive信息写入到workbook的处理
+                #region //将BaseComprehensive信息按同一机种、同配置和其他写入到workbook的处理
                 //创建存放BaseComprehensive个信息的ExcelHelper
                 NPOIUse.ExcelHelper excelHelper1 = new NPOIUse.ExcelHelper(excelFileName);
                 //同一机种的处理
-                if (theSameModelArray_List.Count>0)
+                if (theSameModelArray_List.Count > 0)
                 {
                     for (int i = 0; i < theSameModelArray_List.Count; i++)
                     {
                         //获取当前同一机种 组的sheetName
-                        string sheetName = baseComprehensiveList[theSameModelArray_List[i][0]].Jobname;
+                        string sheetName = evaluationReportClassList[theSameModelArray_List[i][0]].Jobname;
 
                         //layout  插入的位置,第一个layout插入默认从2开始
                         int layoutInsertRowNum = 2;
                         for (int j = 0; j < theSameModelArray_List[i].Length; j++)
                         {
                             //计算layoutInsertRowNum插入的位置
-                            if (j>0)
+                            if (j > 0)
                             {
-                                layoutInsertRowNum += (baseComprehensiveList[theSameModelArray_List[i][j - 1]].feederNozzleDT.Rows.Count + 5);
+                                layoutInsertRowNum += (evaluationReportClassList[theSameModelArray_List[i][j - 1]].feederNozzleDT.Rows.Count + 5);
                             }
-                            
+
                             //将    插入workbook
-                            InsertWorkbookfromBaseComprehensive(excelHelper1, sheetName, baseComprehensiveList[theSameModelArray_List[i][j]],
+                            InsertWorkbookfromBaseComprehensive(excelHelper1, sheetName, evaluationReportClassList[theSameModelArray_List[i][j]],
                                 2 + j * 6, layoutInsertRowNum);
-                            
+                            //summary放到一起
+                            if (j==1)
+                            {
+                                InsertWorkbookFromSummaryDT(excelHelper1, "Compare" + sheetName, evaluationReportClassList[theSameModelArray_List[i][j]],
+                                j+5+1);
+                            }
+                            else
+                            {
+                                InsertWorkbookFromSummaryDT(excelHelper1, "Compare" + sheetName, evaluationReportClassList[theSameModelArray_List[i][j]],
+                                j +5);
+                            }                            
                         }
                     }
                 }
 
                 //同一配置的处理
-                if (theSameConfigArray_List.Count>0)
+                if (theSameConfigArray_List.Count > 0)
                 {
                     for (int i = 0; i < theSameConfigArray_List.Count; i++)
                     {
                         //获取当前同一配置 组的sheetName
-                        string sheetName = baseComprehensiveList[theSameConfigArray_List[i][0]].MachineKind;
+                        string sheetName = evaluationReportClassList[theSameConfigArray_List[i][0]].MachineKind;
 
                         //summaryInfo DataTable的插入位置，第一个默认从2开始
                         int summaryInsertRowNum = 2;
@@ -1497,7 +1861,7 @@ namespace Exicel转换1
                             if (j > 0)
                             {
                                 //同一机种job插入位置的指定
-                                if (j==1)//处理同一配置 第二个job插入的位置
+                                if (j == 1)//处理同一配置 第二个job插入的位置
                                 {
                                     summaryInsertRowNum += j * 4;
                                 }
@@ -1507,19 +1871,22 @@ namespace Exicel转换1
                                 }
 
                                 //layout插入的位置
-                                layoutInsertRowNum += (baseComprehensiveList[theSameConfigArray_List[i][j - 1]].feederNozzleDT.Rows.Count + 5);
+                                layoutInsertRowNum += (evaluationReportClassList[theSameConfigArray_List[i][j - 1]].feederNozzleDT.Rows.Count + 5);
                             }
 
                             //将    插入workbook
-                            InsertWorkbookfromBaseComprehensive(excelHelper1, sheetName, baseComprehensiveList[theSameConfigArray_List[i][j]],
-                                summaryInsertRowNum, layoutInsertRowNum,true);
+                            InsertWorkbookfromBaseComprehensive(excelHelper1, sheetName, evaluationReportClassList[theSameConfigArray_List[i][j]],
+                                summaryInsertRowNum, layoutInsertRowNum, true);
 
+                            //summary放到一起
+                            InsertWorkbookFromSummaryDT(excelHelper1, "Compare" + sheetName, evaluationReportClassList[theSameConfigArray_List[i][j]],
+                                summaryInsertRowNum);
                         }
                     }
                 }
 
                 //其他job的正常处理
-                if (theOrther_Number.Count>0)
+                if (theOrther_Number.Count > 0)
                 {
                     ////layoutFT的插入位置，同样固定即可。为第二行2
                     //layout  插入的位置,第一个layout插入默认从2开始
@@ -1527,8 +1894,8 @@ namespace Exicel转换1
                     for (int j = 0; j < theOrther_Number.Count; j++)
                     {
                         //获取当前 组的 不同 baseComprehensive的sheetName
-                        string sheetName = "sheet"+(j+1);
-                        
+                        string sheetName = "sheet" + (j + 1);
+
                         ////计算layoutInsertRowNum插入的位置
                         //if (j > 0)
                         //{
@@ -1536,10 +1903,11 @@ namespace Exicel转换1
                         //}
 
                         //其他job的正常处理 将 BaseComprehensive对象 插入workbook，每次都是单独的sheet，插入位置固定第二行
-                        InsertWorkbookfromBaseComprehensive(excelHelper1, sheetName, baseComprehensiveList[theOrther_Number[j]],
-                            2 , 2);
+                        InsertWorkbookfromBaseComprehensive(excelHelper1, sheetName, evaluationReportClassList[theOrther_Number[j]],
+                            2, 2);
                     }
-                }
+                } 
+                #endregion
 
                 //ExcelHelper类实现保存的方法
                 excelHelper1.SaveWorkbook();
@@ -1547,74 +1915,112 @@ namespace Exicel转换1
             }
 
 
+        } 
+        #endregion
+
+        /// <summary>
+        /// 由summaryDT直接生成sheet，并排放在一起
+        /// </summary>
+        /// <param name="excelHelper"></param>
+        /// <param name="sheetName"></param>
+        /// <param name="evaluationReportClass"></param>
+        /// <param name="summaryInsertRowNum"></param>
+        static void InsertWorkbookFromSummaryDT(ExcelHelper excelHelper,string sheetName, EvaluationReportClass evaluationReportClass,
+            int summaryInsertRowNum)
+        {
+            //sheetname太长时无法创建对应的sheet。截取前16长度
+            if (sheetName.Length > 16)
+            {
+                sheetName = sheetName.Substring(0, 16);
+            }
+            if (excelHelper.WorkBook.GetSheet(sheetName) == null)
+            {
+                //插入sheet对应表格的datatable
+                DataTableToResultSheet1(excelHelper, evaluationReportClass.SummaryDT, sheetName, true,
+                    new int[2] { summaryInsertRowNum, 1 });                
+            }
+            else
+            {
+                //插入sheet对应表格的datatable
+                //插入行+1，直插入表数据，不插入column name即可
+                DataTableToResultSheet1(excelHelper, evaluationReportClass.SummaryDT, sheetName, false,
+                    new int[2] { summaryInsertRowNum, 1 });
+            }
         }
 
         #region //在指定位置（行）插入baseComprehensive，解决多个baseComprehensive时插入Excel
         //使用参数ExcelHelper类,插入成功返回true
         //summaryInfo插入的位置，LayoutDT插入的位置
-        static void InsertWorkbookfromBaseComprehensive(ExcelHelper excelHelper1, string sheetName, BaseComprehensive baseComprehensive,
+        static void InsertWorkbookfromBaseComprehensive(ExcelHelper excelHelper1, string sheetName, EvaluationReportClass evaluationReportClass,
             int summaryInsertRowNum, int layoutInsertRowNum, bool isTheSameModule = false)
         {
             #region 第一个sheet的获取和生成
             //第一个sheet的标题，以字符串形式插入
-            string oneTitle = "FUJI Line Throughput Report " + baseComprehensive.MachineKind;
-                        
+            string oneTitle = "FUJI Line Throughput Report " + evaluationReportClass.MachineKind;
+
             //sheetname太长时无法创建对应的sheet。截取前16长度
-            if (sheetName.Length>16)
+            if (sheetName.Length > 16)
             {
                 sheetName = sheetName.Substring(0, 16);
-            }
-            string sheet1 = sheetName;
-                       
+            }            
+
             //判断同一机种是否是第一次插入(包含图片、title、DataTable)，是否是第二次插入
+            //此处计算模组数
+            int ModuleCount = 0;
+            foreach (int i in evaluationReportClass.module_StatisticsDict.Values)
+            {
+                ModuleCount += i;
+            }
             if (isTheSameModule)
             {
-                if (excelHelper1.WorkBook.GetSheet(sheet1) == null)
+                if (excelHelper1.WorkBook.GetSheet(sheetName) == null)
                 {
                     //插入sheet对应表格的datatable
-                    DataTableToResultSheet1(excelHelper1, baseComprehensive.SummaryInfoDT, sheet1, true,
+                    DataTableToResultSheet1(excelHelper1, evaluationReportClass.SummaryDT, sheetName, true,
                         new int[2] { summaryInsertRowNum + 2, 1 });
                     //插入标题
-                    StringInsertWorkbook(excelHelper1, oneTitle, sheet1, new int[2] { summaryInsertRowNum, 1 },
-                        Orientation.Horizontal, baseComprehensive.SummaryInfoDT.Columns.Count, new int[] { 0, 45 },0,false);
+                    StringInsertWorkbook(excelHelper1, oneTitle, sheetName, new int[2] { summaryInsertRowNum, 1 },
+                        Orientation.Horizontal, evaluationReportClass.SummaryDT.Columns.Count, new int[] { 0, 45 }, 0, false);
 
                     //插入图片位置信息
                     //StringInsertWorkbook(excelHelper1, "", sheet1, new int[2] { 2, 1 }, IndexedColors.LightGreen.Index);
                     //Line_short 需要以画布的形式写入，而不是单元格内的文字;
                     //插入图片
-                    insertModulePictureToWorbook(excelHelper1, sheet1, new int[2] { summaryInsertRowNum+1,
-                        1 }, baseComprehensive.ModulepictureDataByte, baseComprehensive.ModuleCount,
-                        Orientation.Horizontal, baseComprehensive.SummaryInfoDT.Columns.Count, new int[] { 0, 80 });
+                    //ModuleCount计算图片位置的调整偏移等，使用模组stastisticsDict统计
+
+                    insertModulePictureToWorbook(excelHelper1, sheetName, new int[2] { summaryInsertRowNum+1,
+                        1 }, evaluationReportClass.ModulepictureDataByte, ModuleCount,
+                        Orientation.Horizontal, evaluationReportClass.SummaryDT.Columns.Count, new int[] { 0, 80 });
                 }
                 else
                 {
                     //插入sheet对应表格的datatable
                     //插入行+1，直插入表数据，不插入column name即可
-                    DataTableToResultSheet1(excelHelper1, baseComprehensive.SummaryInfoDT, sheet1, false,
+                    DataTableToResultSheet1(excelHelper1, evaluationReportClass.SummaryDT, sheetName, false,
                         new int[2] { summaryInsertRowNum, 1 });
                 }
             }
             else
             {
                 //插入sheet对应表格的datatable
-                DataTableToResultSheet1(excelHelper1, baseComprehensive.SummaryInfoDT, sheet1, true, new int[2] { summaryInsertRowNum + 2, 1 });
+                DataTableToResultSheet1(excelHelper1, evaluationReportClass.SummaryDT, sheetName, true, new int[2] { summaryInsertRowNum + 2, 1 });
                 //插入标题
-                StringInsertWorkbook(excelHelper1, oneTitle, sheet1, new int[2] { summaryInsertRowNum, 1 },
-                    Orientation.Horizontal, baseComprehensive.SummaryInfoDT.Columns.Count, new int[] { 0, 45 }, 0,false);
+                StringInsertWorkbook(excelHelper1, oneTitle, sheetName, new int[2] { summaryInsertRowNum, 1 },
+                    Orientation.Horizontal, evaluationReportClass.SummaryDT.Columns.Count, new int[] { 0, 45 }, 0, false);
 
                 //插入图片位置信息
                 //StringInsertWorkbook(excelHelper1, "", sheet1, new int[2] { 2, 1 }, IndexedColors.LightGreen.Index);
                 //Line_short 需要以画布的形式写入，而不是单元格内的文字;
                 //插入图片
-                insertModulePictureToWorbook(excelHelper1, sheet1, new int[2] { summaryInsertRowNum+1,1 }, 
-                    baseComprehensive.ModulepictureDataByte, baseComprehensive.ModuleCount,
-                    Orientation.Horizontal, baseComprehensive.SummaryInfoDT.Columns.Count, new int[] { 0, 80 });
+                insertModulePictureToWorbook(excelHelper1, sheetName, new int[2] { summaryInsertRowNum + 1, 1 },
+                    evaluationReportClass.ModulepictureDataByte, ModuleCount,
+                    Orientation.Horizontal, evaluationReportClass.SummaryDT.Columns.Count, new int[] { 0, 80 });
             }
             #endregion
 
             #region 生成第二个sheet
             //第二个sheet的标题，以字符串形式插入
-            string secondTitle = baseComprehensive.Jobname;
+            string secondTitle = evaluationReportClass.Jobname;
             //第二个sheet的建议
             string ProposalString = "Proposal \n Layout";
 
@@ -1626,36 +2032,36 @@ namespace Exicel转换1
             int[] layoutInsertPoint = new int[2] { layoutInsertRowNum, 2 };
 
             //插入layoutDT
-            DataTableToResultSheet2(excelHelper1, baseComprehensive.layoutDT, sheet2, true,
+            DataTableToResultSheet2(excelHelper1, evaluationReportClass.layoutDT, sheet2, true,
                 new int[2] { layoutInsertPoint[0] + 1, layoutInsertPoint[1] });
             //插入feederNozzleDT
-            DataTableToResultSheet2(excelHelper1, baseComprehensive.feederNozzleDT, sheet2, true,
+            DataTableToResultSheet2(excelHelper1, evaluationReportClass.feederNozzleDT, sheet2, true,
                 new int[2] { layoutInsertPoint[0] + 1, layoutInsertPoint[1] + 10 });
             //插入标题
             StringInsertWorkbook(excelHelper1, secondTitle, sheet2, layoutInsertPoint,
-                 Orientation.Horizontal, baseComprehensive.layoutDT.Columns.Count + baseComprehensive.feederNozzleDT.Columns.Count, new int[2] { 0, 50 }, 0);
+                 Orientation.Horizontal, evaluationReportClass.layoutDT.Columns.Count + evaluationReportClass.feederNozzleDT.Columns.Count, new int[2] { 0, 50 }, 0);
 
             //插入建议
             StringInsertWorkbook(excelHelper1, ProposalString, sheet2, new int[2] { layoutInsertPoint[0], layoutInsertPoint[1] - 1 },
-                Orientation.Vertical, baseComprehensive.layoutDT.Rows.Count + 2, null, 0);
+                Orientation.Vertical, evaluationReportClass.layoutDT.Rows.Count + 2, null, 0);
             //StringInsertWorkbook(excelHelper1, ProposalString, sheet2, new int[2] { 2, 1 }, IndexedColors.BrightGreen.Index);
             #endregion
 
             #region //插入电气图sheet
-            string sheet3= sheetName+"AirPowerNet";
+            string sheet3 = sheetName + "AirPowerNet";
             //结束位置
-            int baseCount = baseComprehensive.base_StatisticsDict["2MBASE"] + baseComprehensive.base_StatisticsDict["4MBASE"]*2;
+            int baseCount = evaluationReportClass.base_StatisticsDict["2MBASE"] + evaluationReportClass.base_StatisticsDict["4MBASE"] * 2;
             int colNum = 10;
             int dec = 0;
             while (dec < baseCount)
             {
                 dec += 2;
             }
-            
+
             colNum += dec;
 
-            insertPictureToWorbook(excelHelper1, sheet3, new int[2] { summaryInsertRowNum, 1 }, new int[2] { summaryInsertRowNum + 1, 1+ colNum }, 
-                baseComprehensive.ModuleBaseStickFigure,new int[] { 0, 150 },false);
+            insertPictureToWorbook(excelHelper1, sheet3, new int[2] { summaryInsertRowNum, 1 }, new int[2] { summaryInsertRowNum + 1, 1 + colNum },
+                evaluationReportClass.AirPowerNetPictureByte, new int[] { 0, 150 }, false);
 
 
             #endregion
@@ -1692,7 +2098,7 @@ namespace Exicel转换1
         #region //插入单个baseComprehensive 到Workbook
         //在指定位置（行）插入baseComprehensive，解决多个baseComprehensive时插入Excel
         //使用参数ExcelHelper类
-        static public void InsertWorkbookfromBaseComprehensive(ExcelHelper excelHelper1, string sheetName, BaseComprehensive baseComprehensive)
+        static public void InsertWorkbookfromBaseComprehensive(ExcelHelper excelHelper1, string sheetName, EvaluationReportClass baseComprehensive)
         {
             //不指定插入行，默认第二行插入。
             InsertWorkbookfromBaseComprehensive(excelHelper1, sheetName, baseComprehensive, 2, 2);
@@ -1700,26 +2106,585 @@ namespace Exicel转换1
         #endregion
 
         #region //从生成excelFileName生成Excel，插入BaseComprehensive对应的各个信息到Excel
-        static public void GenExclefromBaseComprehensive(string excelFileName, string sheetName,BaseComprehensive baseComprehensive)
+        static public void GenExclefromBaseComprehensive(string excelFileName, string sheetName, EvaluationReportClass baseComprehensive)
         {
             //使用指定的fileName 创建Iworkbook
             if (excelFileName == null)
             {
                 MessageBox.Show("未选择任何文件！");
                 return;
-            }            
+            }
 
             //创建ExcelHelper，用以存放转换后的sheet1和sheet2
-            NPOIUse.ExcelHelper excelHelper1 = new NPOIUse.ExcelHelper(excelFileName);
+            ExcelHelper excelHelper1 = new ExcelHelper(excelFileName);
 
             //调用重载
-            InsertWorkbookfromBaseComprehensive(excelHelper1,sheetName, baseComprehensive);
+            InsertWorkbookfromBaseComprehensive(excelHelper1, sheetName, baseComprehensive);
 
             //将ExcelHelper 的workbook写入到ExcelHelper 对应的文件流
             //ExcelHelper类实现保存的方法
             excelHelper1.SaveWorkbook();
         }
         #endregion
+
+        public static void GenQuotationExcel(string fileName,QuotationDGVDTStruct quotationDGVDTStruct, string layOut,string sheetName="Quotation")
+        {
+            #region old
+            //ExcelHelper excelHelper = new ExcelHelper(fileName);
+            //ISheet sheet = excelHelper.ExcelToIsheet(sheetName);
+
+            ////样式
+            //ICellStyle cellStyle = excelHelper.WorkBook.CreateCellStyle();
+            //IRow row = sheet.CreateRow(3);//第三行创建row
+            //row.CreateCell(2).SetCellValue("QUOTATION");
+            //cellStyle.Alignment = NPOI.SS.UserModel.HorizontalAlignment.Right;
+            //sheet.GetRow(3).GetCell(2).CellStyle = cellStyle;
+
+            //sheet.CreateRow(4).CreateCell(2).SetCellValue("Layout : " + layOut);
+            //cellStyle.Alignment = NPOI.SS.UserModel.HorizontalAlignment.Center;//居中
+            //sheet.GetRow(4).GetCell(2).CellStyle = cellStyle;
+            //sheet.CreateRow(4).CreateCell(3);//创建空cell
+
+            //sheet.AddMergedRegion(new CellRangeAddress(4, 4, 2, 3));//合并
+
+            ////sheet.GetRow(4).GetCell(2).CellStyle = cellStyle;
+
+            //sheet.CreateRow(5).CreateCell(5).SetCellValue("REF:"); 
+            //sheet.CreateRow(6).CreateCell(1).SetCellValue("MESSRS.:*******"); 
+            //sheet.CreateRow(6).CreateCell(5).SetCellValue(string.Format("DATE :{0:mmm,dd,yyyy}", DateTime.Now)); 
+            //sheet.CreateRow(8).CreateCell(4).SetCellValue("          F.O.B.NAGOYA,JAPAN");
+            ////ExcelHelper.DataTableToIsheet(sheet,dataTable, true,9);
+            //#region //DataTableToSheet
+            //int count = 9;
+
+            //int i = 0;
+            //int j = 0;
+
+            //try
+            //{
+            //    //写入DataTable的列名
+
+            //        row = sheet.CreateRow(count);
+            //        for (j = 0; j < dataTable.Columns.Count; ++j)
+            //        {
+            //            if (dataTable.Columns[j].ColumnName == "Column1")
+            //            {
+            //                continue;
+            //            }
+            //            row.CreateCell(j).SetCellValue(dataTable.Columns[j].ColumnName);
+            //        }
+            //        count += 1;
+
+
+
+            //    for (i = 0; i < dataTable.Rows.Count; ++i)
+            //    {
+            //        row = sheet.CreateRow(count);
+            //        foreach (DataColumn dTColumn in dataTable.Columns)
+            //        {
+            //            if (dataTable.Rows[i][dTColumn].Equals(DBNull.Value))
+            //            {//空值
+            //                continue;
+            //            }
+            //            ICell cell = row.CreateCell(dTColumn.Ordinal);
+            //            //当前表格中的内容
+            //            string drValue = dataTable.Rows[i][dTColumn].ToString();
+            //            bool success;
+            //            switch (dTColumn.DataType.ToString())
+            //            {
+            //                case "System.String"://字符串类型
+            //                    cell.SetCellValue(drValue);
+            //                    break;
+            //                case "System.DateTime"://日期类型
+            //                    DateTime DateV;
+            //                    success = DateTime.TryParse(drValue, out DateV);
+            //                    if (success)
+            //                    {
+            //                        cell.SetCellValue(DateV);
+            //                    }
+            //                    else
+            //                    {
+            //                        cell.SetCellValue(drValue);
+            //                    }
+            //                    break;
+            //                case "System.Boolean"://布尔型
+            //                    bool boolV = false;
+            //                    success = bool.TryParse(drValue, out boolV);
+            //                    if (success)
+            //                    {
+            //                        cell.SetCellValue(boolV);
+            //                    }
+            //                    else
+            //                    {
+            //                        cell.SetCellValue(drValue);
+            //                    }
+            //                    break;
+            //                case "System.Int16"://整型
+            //                case "System.Int32":
+            //                case "System.Int64":
+            //                case "System.Byte":
+            //                    int intV;
+            //                    success = int.TryParse(drValue, out intV);
+            //                    if (success)
+            //                    {
+            //                        cell.SetCellValue(intV);
+            //                    }
+            //                    else
+            //                    {
+            //                        cell.SetCellValue(drValue);
+            //                    }
+            //                    break;
+            //                case "System.Decimal"://浮点型
+            //                case "System.Double":
+            //                    double doubV;
+            //                    success = double.TryParse(drValue, out doubV);
+            //                    if (success)
+            //                    {
+            //                        cell.SetCellValue(doubV);
+            //                    }
+            //                    else
+            //                    {
+            //                        cell.SetCellValue(drValue);
+            //                    }
+            //                    break;
+            //                case "System.DBNull"://空值处理
+            //                default:
+            //                    break;
+            //            }
+            //        }
+            //        ++count;
+            //    }
+
+            //}
+            //catch (Exception ex)
+            //{
+            //    MessageBox.Show(ex.Message);
+            //}
+            //#endregion
+            ////sheet样式
+            ////取消网格
+
+            //sheet.DisplayGridlines = false;
+            ////sheet.SetDefaultColumnStyle;
+            ////设置列宽
+            //int commonWidth = 5;
+            //sheet.SetColumnWidth(0, commonWidth * 256);
+            //sheet.SetColumnWidth(1, commonWidth * 256);
+            //sheet.SetColumnWidth(2, commonWidth * 256*100);
+            //sheet.SetColumnWidth(3, commonWidth * 256*2);
+            //excelHelper.SaveWorkbook();
+
+            #endregion
+            try
+            {
+                #region 
+                //读取模板
+                string templetPath = @"./data/QuoTemplet.xltx";
+                if (!File.Exists(templetPath))
+                {
+                    MessageBox.Show("模板文件QuoTemplet.xltx不存在，无法生成");
+                }
+                // 复制模板，以后的操作都在复制的文件上进行
+                //File.Copy(templetPath, fileName);
+                FileStream fs = new FileStream(templetPath, FileMode.Open, FileAccess.ReadWrite, FileShare.Read);
+                IWorkbook workbook = new XSSFWorkbook(fs);
+                ISheet sheet = workbook.GetSheet("Quotation");
+                if (sheet == null)
+                {
+                    MessageBox.Show("模板错误！");
+                    return;
+                }
+                fs.Close();
+
+                //设置头部
+                sheet.GetRow(4).GetCell(3).SetCellValue("Layout : " + layOut);
+                sheet.GetRow(6).GetCell(7).SetCellValue(string.Format("DATE :{0:mmm,dd,yyyy}", DateTime.UtcNow));
+
+                IRow row;
+                ICell cell;
+                int count = 15;//sheet中插入的位置
+                int priceTemp;
+                //复制获取样式
+                IRow rowRef = sheet.GetRow(count);
+                //
+                ICellStyle boldCellStyle = sheet.GetRow(count - 1).GetCell(3).CellStyle;
+                #region //添加baseQotationDGVDT到 workbook
+                //位移行
+                //sheet.ShiftRows(count, sheet.LastRowNum, quotationDGVDTStruct.baseQotationDGVDT.Rows.Count, true, false);
+                for (int i = 0; i < quotationDGVDTStruct.baseQotationDGVDT.Rows.Count; i++)
+                {
+                    //选中 且数量不为0
+                    if (Convert.ToInt32(quotationDGVDTStruct.baseQotationDGVDT.Rows[i]["Option"]) == 0
+                        && Convert.ToInt32(quotationDGVDTStruct.baseQotationDGVDT.Rows[i]["QTY"]) != 0)
+                    {
+                        //位移一行
+                        sheet.ShiftRows(count, sheet.LastRowNum, 1, true, false);
+
+                        row = sheet.CreateRow(count);
+
+                        if (int.TryParse(quotationDGVDTStruct.baseQotationDGVDT.Rows[i]["QTY"].ToString(), out priceTemp))
+                        {
+                            cell = row.CreateCell(0);
+                            cell.CellStyle = rowRef.GetCell(0).CellStyle;
+                            cell.SetCellType(rowRef.GetCell(0).CellType);
+                            cell.SetCellValue(priceTemp);
+                        }
+
+                        cell = row.CreateCell(1);
+                        cell.CellStyle = rowRef.GetCell(1).CellStyle;
+                        cell.SetCellType(rowRef.GetCell(1).CellType);
+                        cell.SetCellValue(quotationDGVDTStruct.baseQotationDGVDT.Rows[i]["unit"].ToString());
+
+                        cell = row.CreateCell(3);
+                        cell.CellStyle = rowRef.GetCell(3).CellStyle;
+                        cell.SetCellType(rowRef.GetCell(3).CellType);
+                        cell.SetCellValue(quotationDGVDTStruct.baseQotationDGVDT.Rows[i]["DESCRIPTION"].ToString());
+
+                        if (int.TryParse(quotationDGVDTStruct.baseQotationDGVDT.Rows[i]["UNIT PRICE"].ToString(), out priceTemp))
+                        {
+                            cell = row.CreateCell(5);
+                            cell.CellStyle = rowRef.GetCell(5).CellStyle;
+                            cell.SetCellType(rowRef.GetCell(5).CellType);
+                            cell.SetCellValue(priceTemp);
+                        }
+                        if (int.TryParse(quotationDGVDTStruct.baseQotationDGVDT.Rows[i]["AMOUNT"].ToString(), out priceTemp))
+                        {
+                            cell = row.CreateCell(7);
+                            cell.CellStyle = rowRef.GetCell(7).CellStyle;
+                            cell.SetCellType(rowRef.GetCell(7).CellType);
+                            cell.SetCellValue(priceTemp);
+                        }
+                        if (int.TryParse(quotationDGVDTStruct.baseQotationDGVDT.Rows[i]["EP"].ToString(), out priceTemp))
+                        {
+                            cell = row.CreateCell(8);
+                            cell.CellStyle = rowRef.GetCell(8).CellStyle;
+                            cell.SetCellType(rowRef.GetCell(8).CellType);
+                            cell.SetCellValue(priceTemp);
+                        }
+                        //下一行
+                        count++;
+                    }
+                }
+                #endregion
+
+                #region //添加 moduleHeadQotationDGVDT到sheet
+
+                //模组head报价单部分 开始的位置
+                for (int i = 0; i < quotationDGVDTStruct.moduleHeadQotationDGVDT.Rows.Count; i++)
+                {
+                    //未选中或数量为0.不生成sheet
+                    if (Convert.ToInt32(quotationDGVDTStruct.moduleHeadQotationDGVDT.Rows[i]["Option"]) != 0 || Convert.ToInt32(quotationDGVDTStruct.moduleHeadQotationDGVDT.Rows[i]["QTY"]) == 0)
+                    {
+                        continue;
+                    }
+
+                    //位移行
+                    sheet.ShiftRows(count, sheet.LastRowNum, quotationDGVDTStruct.moduleHeadQotationDGVDT.Rows[i]["DESCRIPTION"].ToString().Split('\n').Length + 1, true, false);
+
+                    //跨过一行
+                    count++;
+
+                    //插入DataGridView的位置
+                    for (int j = 0; j < quotationDGVDTStruct.moduleHeadQotationDGVDT.Rows[i]["DESCRIPTION"].ToString().Split('\n').Length + 1; j++)
+                    {
+                        row = sheet.CreateRow(count);
+                        if (j == 0)//首行，加标题
+                        {
+                            cell = row.CreateCell(3);
+                            cell.CellStyle = boldCellStyle;
+                            cell.SetCellType(rowRef.GetCell(3).CellType);
+                            cell.SetCellValue(quotationDGVDTStruct.moduleHeadQotationDGVDT.Rows[i]["QuatationType"].ToString());
+
+                        }
+                        else if (j == 1)
+                        {
+                            if (int.TryParse(quotationDGVDTStruct.moduleHeadQotationDGVDT.Rows[i]["QTY"].ToString(), out priceTemp))
+                            {
+                                cell = row.CreateCell(0);
+                                cell.CellStyle = rowRef.GetCell(0).CellStyle;
+                                cell.SetCellType(rowRef.GetCell(0).CellType);
+                                cell.SetCellValue(priceTemp);
+                            }
+                            row.CreateCell(1).SetCellValue(quotationDGVDTStruct.moduleHeadQotationDGVDT.Rows[i]["unit"].ToString());
+                            row.CreateCell(3).SetCellValue(quotationDGVDTStruct.moduleHeadQotationDGVDT.Rows[i]["DESCRIPTION"].ToString().Split('\n')[j - 1]);
+                            if (int.TryParse(quotationDGVDTStruct.moduleHeadQotationDGVDT.Rows[i]["UNIT PRICE"].ToString(), out priceTemp))
+                            {
+                                cell = row.CreateCell(5);
+                                cell.CellStyle = rowRef.GetCell(5).CellStyle;
+                                cell.SetCellType(rowRef.GetCell(5).CellType);
+                                cell.SetCellValue(priceTemp);
+                            }
+                            if (int.TryParse(quotationDGVDTStruct.moduleHeadQotationDGVDT.Rows[i]["AMOUNT"].ToString(), out priceTemp))
+                            {
+                                cell = row.CreateCell(7);
+                                cell.CellStyle = rowRef.GetCell(7).CellStyle;
+                                cell.SetCellType(rowRef.GetCell(7).CellType);
+                                cell.SetCellValue(priceTemp);
+                            }
+                            if (int.TryParse(quotationDGVDTStruct.moduleHeadQotationDGVDT.Rows[i]["EP"].ToString(), out priceTemp))
+                            {
+                                cell = row.CreateCell(8);
+                                cell.CellStyle = rowRef.GetCell(8).CellStyle;
+                                cell.SetCellType(rowRef.GetCell(8).CellType);
+                                cell.SetCellValue(priceTemp);
+                            }
+                            //quotationExcelDT.Rows[dTPoint_Struct.ModuleQotationDTStartEndRowList[i][0] + j].Cells["EP"].Value = moduleHeadQotationDGVDT.Rows[i]["EP"];
+                        }
+                        else
+                        {
+                            row.CreateCell(3).SetCellValue(quotationDGVDTStruct.moduleHeadQotationDGVDT.Rows[i]["DESCRIPTION"].ToString().Split('\n')[j - 1]);
+                        }
+                        count++;
+                    }
+                }
+                #endregion
+                sheet.ShiftRows(count, sheet.LastRowNum, 1, true, false);
+                //跨过2行
+                count += 1;
+                #region //添加 optionQotationDGVDT到sheet
+
+                //OptionDGVDT
+                for (int i = 0; i < quotationDGVDTStruct.optionQotationDGVDT.Rows.Count + 1; i++)
+                {
+                    if (i == 0)//标题行
+                    {
+                        //位移一行
+                        sheet.ShiftRows(count, sheet.LastRowNum, 1, true, false);
+
+                        row = sheet.CreateRow(count);
+                        cell = row.CreateCell(3);
+                        cell.CellStyle = boldCellStyle;
+                        cell.SetCellValue(quotationDGVDTStruct.optionQotationDGVDT.Rows[i]["QuatationType"].ToString());
+                        count++;
+                        continue;
+                    }
+                    //选中且不为0
+                    if (Convert.ToInt32(quotationDGVDTStruct.optionQotationDGVDT.Rows[i - 1]["Option"]) == 0 && Convert.ToInt32(quotationDGVDTStruct.optionQotationDGVDT.Rows[i - 1]["QTY"]) != 0)
+                    {
+
+
+                        //位移一行
+                        sheet.ShiftRows(count, sheet.LastRowNum, 1, true, false);
+
+                        row = sheet.CreateRow(count);
+                        if (int.TryParse(quotationDGVDTStruct.optionQotationDGVDT.Rows[i - 1]["QTY"].ToString(), out priceTemp))
+                        {
+                            cell = row.CreateCell(0);
+                            cell.CellStyle = rowRef.GetCell(0).CellStyle;
+                            cell.SetCellType(rowRef.GetCell(0).CellType);
+                            cell.SetCellValue(priceTemp);
+                        }
+                        row.CreateCell(1).SetCellValue(quotationDGVDTStruct.optionQotationDGVDT.Rows[i - 1]["unit"].ToString());
+                        row.CreateCell(3).SetCellValue(quotationDGVDTStruct.optionQotationDGVDT.Rows[i - 1]["DESCRIPTION"].ToString());
+                        if (int.TryParse(quotationDGVDTStruct.optionQotationDGVDT.Rows[i - 1]["UNIT PRICE"].ToString(), out priceTemp))
+                        {
+                            cell = row.CreateCell(5);
+                            cell.CellStyle = rowRef.GetCell(5).CellStyle;
+                            cell.SetCellType(rowRef.GetCell(5).CellType);
+                            cell.SetCellValue(priceTemp);
+                        }
+                        if (int.TryParse(quotationDGVDTStruct.optionQotationDGVDT.Rows[i - 1]["AMOUNT"].ToString(), out priceTemp))
+                        {
+                            cell = row.CreateCell(7);
+                            cell.CellStyle = rowRef.GetCell(7).CellStyle;
+                            cell.SetCellType(rowRef.GetCell(7).CellType);
+                            cell.SetCellValue(priceTemp);
+                        }
+                        //dataRow["EP"].Value = OptionDGVDT.Rows[i-1]["EP"];
+                        count++;
+                    }
+                }
+                #endregion
+
+                //位移一行
+                sheet.ShiftRows(count, sheet.LastRowNum, 2, true, false);
+                //跨过一行
+                //count++;
+                count += 9;
+
+                #region //添加nozzleQotationDGVDTList 到sheet
+                foreach (DataTable nozzleQotationDGVDT in quotationDGVDTStruct.nozzleQotationDGVDTList)
+                {
+
+                    //遍历，是否未全选中,默认未全选
+                    bool isChecked = false;
+                    for (int i = 0; i < nozzleQotationDGVDT.Rows.Count; i++)
+                    {
+                        if (Convert.ToInt32(nozzleQotationDGVDT.Rows[i]["Option"]) == 0 &&
+                            Convert.ToInt32(nozzleQotationDGVDT.Rows[i]["QTY"]) != 0)
+                        {
+                            isChecked = true;
+                            break;
+                        }
+                    }
+                    if (!isChecked)
+                    {//全部不写入DataTable(未选中)
+                        continue;
+                    }
+                    //位移一行
+                    sheet.ShiftRows(count, sheet.LastRowNum, 1, true, false);
+                    count++;//各个nozzle之间有空格
+
+                    for (int i = 0; i < nozzleQotationDGVDT.Rows.Count + 1; i++)
+                    {
+                        //考虑全不选中是，仍会出现一个标题，特殊处理
+                        if (i == 0)//标题行
+                        {
+                            //位移一行
+                            sheet.ShiftRows(count, sheet.LastRowNum, 1, true, false);
+
+                            row = sheet.CreateRow(count);
+                            cell = row.CreateCell(3);
+                            cell.CellStyle = boldCellStyle;
+                            cell.SetCellValue(nozzleQotationDGVDT.Rows[i]["QuatationType"].ToString());
+                            count++;
+                            continue;
+                        }
+                        //选中且不为0
+                        if (Convert.ToInt32(nozzleQotationDGVDT.Rows[i - 1]["Option"]) == 0 && Convert.ToInt32(nozzleQotationDGVDT.Rows[i - 1]["QTY"]) != 0)
+                        {
+                            //位移一行
+                            sheet.ShiftRows(count, sheet.LastRowNum, 1, true, false);
+
+                            row = sheet.CreateRow(count);
+                            if (int.TryParse(nozzleQotationDGVDT.Rows[i - 1]["QTY"].ToString(), out priceTemp))
+                            {
+                                cell = row.CreateCell(0);
+                                cell.CellStyle = rowRef.GetCell(0).CellStyle;
+                                cell.SetCellType(rowRef.GetCell(0).CellType);
+                                cell.SetCellValue(priceTemp);
+                            }
+                            row.CreateCell(1).SetCellValue(nozzleQotationDGVDT.Rows[i - 1]["unit"].ToString());
+                            row.CreateCell(3).SetCellValue(nozzleQotationDGVDT.Rows[i - 1]["DESCRIPTION"].ToString());
+                            if (int.TryParse(nozzleQotationDGVDT.Rows[i - 1]["UNIT PRICE"].ToString(), out priceTemp))
+                            {
+                                cell = row.CreateCell(5);
+                                cell.CellStyle = rowRef.GetCell(5).CellStyle;
+                                cell.SetCellType(rowRef.GetCell(5).CellType);
+                                cell.SetCellValue(priceTemp);
+                            }
+                            if (int.TryParse(nozzleQotationDGVDT.Rows[i - 1]["AMOUNT"].ToString(), out priceTemp))
+                            {
+                                cell = row.CreateCell(7);
+                                cell.CellStyle = rowRef.GetCell(7).CellStyle;
+                                cell.SetCellType(rowRef.GetCell(7).CellType);
+                                cell.SetCellValue(priceTemp);
+                            }
+
+                            //dataRow["EP"].Value = OptionDGVDT.Rows[i-1]["EP"];
+                            count++;
+                        }
+                    }
+                }
+                #endregion
+
+                //位移一行
+                sheet.ShiftRows(count, sheet.LastRowNum, 1, true, false);
+                //跨过一行
+                //count++;
+
+                #region //添加feederQotationDGVDTList 到sheet
+                foreach (DataTable feederQotationDGVDT in quotationDGVDTStruct.feederQotationDGVDTList)
+                {
+                    //遍历，是否未全选中,默认未全选
+                    bool isChecked = false;
+                    for (int i = 0; i < feederQotationDGVDT.Rows.Count; i++)
+                    {
+                        if (Convert.ToInt32(feederQotationDGVDT.Rows[i]["Option"]) == 0 &&
+                            Convert.ToInt32(feederQotationDGVDT.Rows[i]["QTY"]) != 0)
+                        {
+                            isChecked = true;
+                            break;
+                        }
+                    }
+                    if (!isChecked)
+                    {//全部不写入DataTable(未选中)
+                        continue;
+                    }
+                    //位移一行
+                    sheet.ShiftRows(count, sheet.LastRowNum, 1, true, false);
+                    count++;
+                    for (int i = 0; i < feederQotationDGVDT.Rows.Count + 1; i++)
+                    {
+                        if (i == 0)//标题行
+                        {
+                            //位移一行
+                            sheet.ShiftRows(count, sheet.LastRowNum, 1, true, false);
+
+                            row = sheet.CreateRow(count);
+                            cell = row.CreateCell(3);
+                            cell.CellStyle = boldCellStyle;
+                            cell.SetCellValue(feederQotationDGVDT.Rows[i]["QuatationType"].ToString());
+                            count++;
+                            continue;
+                        }
+                        //选中且不为0
+                        if (Convert.ToInt32(feederQotationDGVDT.Rows[i - 1]["Option"]) == 0 && Convert.ToInt32(feederQotationDGVDT.Rows[i - 1]["QTY"]) != 0)
+                        {
+                            //位移一行
+                            sheet.ShiftRows(count, sheet.LastRowNum, 1, true, false);
+
+                            row = sheet.CreateRow(count);
+                            if (int.TryParse(feederQotationDGVDT.Rows[i - 1]["QTY"].ToString(), out priceTemp))
+                            {
+                                cell = row.CreateCell(0);
+                                cell.CellStyle = rowRef.GetCell(0).CellStyle;
+                                cell.SetCellType(rowRef.GetCell(0).CellType);
+                                cell.SetCellValue(priceTemp);
+                            }
+                            row.CreateCell(1).SetCellValue(feederQotationDGVDT.Rows[i - 1]["unit"].ToString());
+                            row.CreateCell(3).SetCellValue(feederQotationDGVDT.Rows[i - 1]["DESCRIPTION"].ToString());
+                            if (int.TryParse(feederQotationDGVDT.Rows[i - 1]["UNIT PRICE"].ToString(), out priceTemp))
+                            {
+                                cell = row.CreateCell(5);
+                                cell.CellStyle = rowRef.GetCell(5).CellStyle;
+                                cell.SetCellType(rowRef.GetCell(5).CellType);
+                                cell.SetCellValue(priceTemp);
+                            }
+                            if (int.TryParse(feederQotationDGVDT.Rows[i - 1]["AMOUNT"].ToString(), out priceTemp))
+                            {
+                                cell = row.CreateCell(7);
+                                cell.CellStyle = rowRef.GetCell(7).CellStyle;
+                                cell.SetCellType(rowRef.GetCell(7).CellType);
+                                cell.SetCellValue(priceTemp);
+                            }
+                            if (int.TryParse(feederQotationDGVDT.Rows[i - 1]["EP"].ToString(), out priceTemp))
+                            {
+                                cell = row.CreateCell(8);
+                                cell.CellStyle = rowRef.GetCell(8).CellStyle;
+                                cell.SetCellType(rowRef.GetCell(8).CellType);
+                                cell.SetCellValue(priceTemp);
+                            }
+                            count++;
+                        }
+                    }
+                }
+                #endregion
+                #endregion
+                //Force excel to recalculate all the formula while open
+                sheet.ForceFormulaRecalculation = true;
+                //FileAccess.Write权限下，无法生成Excel文件
+                FileStream fstream = new FileStream(fileName, FileMode.OpenOrCreate, FileAccess.ReadWrite);
+                workbook.Write(fstream);
+                fstream.Close();
+                MessageBox.Show("生成Excel成功！");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message);
+            }
+        }
+
+        ///// <summary>
+        ///// 从QuotationDGVDTStruct 生成xcelfilename
+        ///// </summary>
+        ///// <param name="excelFileName"></param>
+        ///// <param name="quotationDGVDTStruct"></param>
+        //public static void GenQuotationFromQuotationDGVDTStruct(string excelFileName,QuotationDGVDTStruct quotationDGVDTStruct)
+        //{
+
+        //}
+        //    //InsertWorkbookfromBaseComprehensive
 
         #region 获取时间戳 
         /// <summary> 
@@ -1783,6 +2748,45 @@ namespace Exicel转换1
         //    }
         //    return Head_Statistics;
         //}
+        #endregion
+
+        #region //获取base的统计字典
+        public static Dictionary<string, int> GetBaseStasticsDict(Dictionary<string, int> module_Statistics)
+        {
+            //计算base信息
+            //存储模组对应Base的个数，1个M3 module 对应1个M的base，2个M3 module或1个M6 Module对应2Mbase，4个M3 module或2个M6 Module对应4Mbase
+            //base尽可能少的分配
+            //转换为单M的base 的总数
+            int baseCount_M_TotalM3 = 0;
+            //单独统计M3、M6个数
+            int Count_M3 = 0;
+            int Count_M6 = 0;
+            foreach (var moduleKind in module_Statistics)
+            {
+                if (moduleKind.Key.Substring(0, 2) == "M3")
+                {
+                    baseCount_M_TotalM3 += moduleKind.Value;
+                    Count_M3 += moduleKind.Value;
+                }
+                if (moduleKind.Key.Substring(0, 2) == "M6")
+                {
+                    baseCount_M_TotalM3 += moduleKind.Value * 2;
+                    Count_M6 += moduleKind.Value;
+                }
+            }
+            int baseCount_4M = (baseCount_M_TotalM3 / 4);
+            int baseCount_2M = 0;
+            if ((baseCount_M_TotalM3 % 4) != 0)
+            {
+                baseCount_2M = 1;
+            }
+
+            //字典，存放2MBase 4MBase 的数量
+            return new Dictionary<string, int>() {
+                {"4MBASE",baseCount_4M },
+                {"2MBASE",baseCount_2M },
+                };
+        }
         #endregion
 
         #region //获取拼接的line字符串
@@ -1866,26 +2870,27 @@ namespace Exicel转换1
         public static string GenRemarkFromModuleBaseStasticsDict(Dictionary<string, int> module_StatisticsDict,
             Dictionary<string, int> base_StatisticsDict)
         {
-            return GenRemarkFromModuleBaseStasticsDict( module_StatisticsDict,base_StatisticsDict,null);
+            return GenRemarkFromModuleBaseStasticsDict(module_StatisticsDict, base_StatisticsDict, null);
         }
         #endregion
 
+        #region 生成remark
         /// <summary>
-        /// 重载，加载计算Tray的功率。
+        /// 从modulebaseStasticsDict和Traystrings中生成remark
         /// </summary>
         /// <param name="module_StatisticsDict"></param>
         /// <param name="base_StatisticsDict"></param>
         /// <param name="allTrayStrings"></param>
         /// <returns></returns>
         public static string GenRemarkFromModuleBaseStasticsDict(Dictionary<string, int> module_StatisticsDict,
-            Dictionary<string, int> base_StatisticsDict,string[] allTrayStrings)
+            Dictionary<string, int> base_StatisticsDict, string[] allTrayStrings)
         {
             #region //生成Remake信息
             //
             //使用循环获取key的方法，取值。否则有个可能没有相关的key，无法取值报错
             double gonglv = 0.00;
             //Tray盘功率
-            if (allTrayStrings!=null&&allTrayStrings.Length>0)
+            if (allTrayStrings != null && allTrayStrings.Length > 0)
             {
                 Dictionary<string, int> tray_StatisticsDict = new Dictionary<string, int>();
                 for (int i = 0; i < allTrayStrings.Length; i++)
@@ -1896,7 +2901,7 @@ namespace Exicel转换1
                     }
                     else
                     {
-                        tray_StatisticsDict.Add(allTrayStrings[i],1);
+                        tray_StatisticsDict.Add(allTrayStrings[i], 1);
                     }
                 }
                 //加Tray功率
@@ -1928,10 +2933,362 @@ namespace Exicel转换1
             double baseLength = ComprehensiveStaticClass.baseLength_Dictionary["2MBase"] * base_StatisticsDict["2MBASE"] +
                 ComprehensiveStaticClass.baseLength_Dictionary["4MBase"] * base_StatisticsDict["4MBASE"];
             //最后拼接
-            return string.Format("功率：{0}\n耗气量：{1}\n长度：{2}\n当前IP数：{3}",
+            return string.Format("功率：{0}KVA\n耗气量：{1}L/min\n长度：{2}mm\n当前IP数：{3}",
                 gonglv, haoqiliang, baseLength, countu_ip);
             #endregion
         }
+        #endregion
+
+        #region DataTable和xml相互转换
+        //DataTable和xml相互转换实现，用于将layout和summary中的dt转换为xml存储在数据库
+        public static DataTable XmlToDataTable(string xmlStr)
+        {
+            if (!string.IsNullOrEmpty(xmlStr))
+            {
+                StringReader stringReader = null;
+                XmlTextReader xmlTR = null;
+                try
+                {
+                    DataSet ds = new DataSet();
+                    //读取字符串中的信息
+                    stringReader = new StringReader(xmlStr);
+                    //读取stringReader中的数据
+                    xmlTR = new XmlTextReader(stringReader);
+                    //ds读取xmlTR中的数据
+                    ds.ReadXml(xmlTR,XmlReadMode.Auto);
+                    return ds.Tables[0];
+                }
+                catch (Exception ex)
+                {
+                    return null;
+                }
+                finally
+                {
+                    //释放资源
+                    if (xmlTR != null)
+                    {
+                        xmlTR.Close();
+                        stringReader.Close();
+                        stringReader.Dispose();
+                    }
+                }
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// DataTable转xml
+        /// </summary>
+        public static string DataTableToXml(DataTable tb)
+        {
+            if (tb == null)
+            {
+                return string.Empty;
+            }
+            StringWriter stringWriter = new StringWriter();
+            if (string.IsNullOrEmpty(tb.TableName))
+            {
+                tb.TableName = "tmp";
+            }
+            //架构写入xml
+            tb.WriteXml(stringWriter,XmlWriteMode.WriteSchema);
+            string xmlStr = stringWriter.ToString();
+            stringWriter.Close();
+            return xmlStr;
+        }
+
+        #endregion
+
+        #region json 序列化和反序列化
+        //public static string DictToJson<T1, T2>(Dictionary<T1,T2> dict)
+        //{
+        //    //json序列化
+        //    return JsonConvert.SerializeObject(dict);
+        //}
+        //public static Dictionary<T1,T2> DictToJson<T1, T2>(string jsonStr)
+        //{
+        //    //json序列化
+        //    return JsonConvert.DeserializeObject<Dictionary<T1, T2>>(jsonStr);
+        //}
+        #endregion
+
+        #region 将一个完整的EvaluationReportClass插入到数据库
+        /// <summary>
+        /// 将一个完整的EvaluationReportClass插入或者更新到数据库,数据库存在则更新
+        /// </summary>
+        /// <param name="evaluationReportClass"></param>
+        /// <returns>保存成功或失败</returns>
+        public static bool EvaluationReportInsertUpdateSqLite(EvaluationReportClass evaluationReportClass)
+        {
+            //定义dqlite的数据库连接对象
+            string connString = string.Format("Data Source={0};Version=3;", @".\data\convertDB");
+            using (var connection = new SQLiteConnection(connString))
+            {
+                using (var comm = connection.CreateCommand())
+                {
+                    //var comm = new SQLiteCommand();
+                    //comm.Connection = connection;
+                    //执行sql前，打开连接
+                    connection.Open();
+                    //判断是否存在,存在则更新
+                    comm.CommandText = @"SELECT * FROM EvaluationReportTable WHERE TimeStamp=@TimeStamp";
+                    comm.Parameters.AddWithValue("@TimeStamp", evaluationReportClass.TimeStamp);
+
+                    SQLiteDataReader dataReader = comm.ExecuteReader();
+                    //更新或插入，参数列表是一致的
+                    comm.Parameters.Clear();//清空参数
+                    comm.Parameters.AddWithValue("@TimeStamp", evaluationReportClass.TimeStamp);
+                    comm.Parameters.AddWithValue("@machineKind", evaluationReportClass.MachineKind);
+                    comm.Parameters.AddWithValue("@machineName", evaluationReportClass.MachineName);
+                    comm.Parameters.AddWithValue("@Jobname", evaluationReportClass.Jobname);
+                    comm.Parameters.AddWithValue("@ToporBot", evaluationReportClass.ToporBot);
+                    comm.Parameters.AddWithValue("@targetConveyor", evaluationReportClass.TargetConveyor);
+                    comm.Parameters.AddWithValue("@productionMode", evaluationReportClass.ProductionMode);
+                    comm.Parameters.AddWithValue("@summaryDTXml", DataTableToXml(evaluationReportClass.SummaryDT));
+                    comm.Parameters.AddWithValue("@ModulePictureByte", evaluationReportClass.ModulepictureDataByte);
+                    comm.Parameters.AddWithValue("@layoutDTXml", DataTableToXml(evaluationReportClass.layoutDT));
+                    comm.Parameters.AddWithValue("@feedrNozzleDTXml", DataTableToXml(evaluationReportClass.feederNozzleDT));
+                    comm.Parameters.AddWithValue("@AirPowerNetPictureByte", evaluationReportClass.AirPowerNetPictureByte);
+                    comm.Parameters.AddWithValue("@ModuleTypeStrings", string.Join(",", evaluationReportClass.AllModuleType));
+                    comm.Parameters.AddWithValue("@BaseStasticsJson", JsonConvert.SerializeObject(evaluationReportClass.base_StatisticsDict));
+                    comm.Parameters.AddWithValue("@moduleStatisticsJson", JsonConvert.SerializeObject(evaluationReportClass.module_StatisticsDict));
+                    comm.Parameters.AddWithValue("@HeadTypeStrings", string.Join(",", evaluationReportClass.AllHeadType));
+                    comm.Parameters.AddWithValue("@HeadTypeNozzleDictJson", JsonConvert.SerializeObject(evaluationReportClass.HeadTypeNozzleDict));
+                    //使用逗号，分割连接module和head的tyoe类型数组
+                    if (dataReader.HasRows)
+                    {
+                        //存在则更新
+                        dataReader.Close();//关闭DataReader，否则它独占connection                            
+                                           //开启(使用)事务
+                        SQLiteTransaction qLiteTransaction = connection.BeginTransaction();
+                        //将事务应用于command
+                        comm.Transaction = qLiteTransaction;
+                        try//尝试执行事务
+                        {
+                            comm.CommandText = @"UPDATE EvaluationReportTable SET machineKind=@machineKind,
+                                    machineName=@machineName,Jobname=@Jobname,ToporBot=@ToporBot,targetConveyor=@targetConveyor,
+                                    productionMode=@productionMode,summaryDTXml=@summaryDTXml,ModulePictureByte=@ModulePictureByte,
+                                    layoutDTXml=@layoutDTXml,feedrNozzleDTXml=@feedrNozzleDTXml,AirPowerNetPictureByte=@AirPowerNetPictureByte,
+                                    ModuleTypeStrings=@ModuleTypeStrings,BaseStasticsJson=@BaseStasticsJson,moduleStatisticsJson=@moduleStatisticsJson,
+                                    HeadTypeStrings=@HeadTypeStrings,HeadTypeNozzleDictJson=@HeadTypeNozzleDictJson WHERE TimeStamp=@TimeStamp";
+
+                            //执行sql前，打开连接
+                            if (connection.State == ConnectionState.Closed)
+                            {
+                                connection.Open();
+                            }
+                            int affectRow = comm.ExecuteNonQuery();
+                            if (affectRow == 0)
+                            {
+                                //更新失败，抛出异常
+                                throw new Exception("更新失败！");
+                            }
+
+                            #region //更新到ModuleHeadCphStructTable
+                            comm.Parameters.Clear();//清空参数
+                            comm.CommandText = "";
+
+                            //拼接update更新字符串                            
+                            for (int i = 0; i < evaluationReportClass.module_Head_Cph_Structs_List.Count; i++)
+                            {
+                                //序列化Struct结构
+                                Module_Head_Cph_String_Struct module_Head_Cph_String_Struct =
+                                    SerializeModule_Head_Cph_StructToString(evaluationReportClass.module_Head_Cph_Structs_List[i]);
+
+                                comm.CommandText += $"UPDATE ModuleHeadCphStructTable SET ModuleTrayTypeGroup='{module_Head_Cph_String_Struct.moduleTrayTypeGroup}'," +
+                                    $"HeadTypeGroup='{module_Head_Cph_String_Struct.headTypeGroup}',CPHListGroup='{module_Head_Cph_String_Struct.cphListGroup}' " +
+                                    $"WHERE TimeStamp={evaluationReportClass.TimeStamp} AND Indx={i};";
+                            }
+
+                            //执行sql前，打开连接
+                            if (connection.State == ConnectionState.Closed)
+                            {
+                                connection.Open();
+                            }
+                            affectRow = comm.ExecuteNonQuery();
+                            if (affectRow == 0 || affectRow != evaluationReportClass.AllModuleType.Length)
+                            {
+                                //更新失败，抛出异常
+                                throw new Exception("更新失败！");
+                            }
+                            //提交事务 
+                            qLiteTransaction.Commit();
+                        }
+                        catch (Exception ex)
+                        {
+                            //出错回滚事务
+                            qLiteTransaction.Rollback();
+                            qLiteTransaction.Dispose();//释放
+                            MessageBox.Show(ex.Message);
+                            return false;
+                        }
+                        #endregion
+                    }
+                    else
+                    {
+                        //不存在则保存
+                        #region //保存到EvaluationReportTable
+                        dataReader.Close();//关闭DataReader，否则它独占connection
+
+                        //开启(使用)事务
+                        SQLiteTransaction qLiteTransaction = connection.BeginTransaction();
+                        //将事务应用于command
+                        comm.Transaction = qLiteTransaction;
+                        try//尝试执行事务
+                        {
+                            comm.CommandText = @"INSERT INTO EvaluationReportTable VALUES (@TimeStamp,@machineKind,
+                                    @machineName,@Jobname,@ToporBot,@targetConveyor,@productionMode,@summaryDTXml,@ModulePictureByte,
+                                    @layoutDTXml,@feedrNozzleDTXml,@AirPowerNetPictureByte,@ModuleTypeStrings,@BaseStasticsJson,
+                                    @moduleStatisticsJson,@HeadTypeStrings,@HeadTypeNozzleDictJson)";
+                            //SQLiteParameter[] qLiteParameter = new SQLiteParameter[]
+                            //{
+                            //    new SQLiteParameter("@TimeStamp",evaluationReportClass.TimeStamp),
+                            //    new SQLiteParameter("@machineKind")
+                            //};
+                            //                    SqlCommand的Parameters的方法
+                            //SqlCommand cmd = new("insert into notice(ly_title) values(@ly_title)",conn);
+                            //                    //一、最正规的写法。
+                            //                    cmd.Parameters.Add(new SqlParameter("@ly_title", SqlDbType.NVarChar, 20));
+                            //                    cmd.Parameters["@ly_title"].value = "title";
+                            //                    //二、没有new SqlParameter()
+                            //                    cmd.Parameters.Add("@ly_title", SqlDbType.NVarChar, 20);
+                            //                    cmd.Parameters["@ly_title"].Value = "title";
+
+
+                            //执行sql前，打开连接
+                            if (connection.State == ConnectionState.Closed)
+                            {
+                                connection.Open();
+                            }
+                            int affectRow = comm.ExecuteNonQuery();
+                            if (affectRow == 0)
+                            {
+                                //插入失败，抛出异常
+                                throw new Exception("保存异常失败！");
+                                //MessageBox.Show("保存失败！");
+                                //return false;
+                            }
+                            #endregion
+                            #region //保存到ModuleHeadCphStructTable
+                            comm.Parameters.Clear();//清空参数
+                            comm.CommandText = @"INSERT INTO ModuleHeadCphStructTable ";
+
+                            //拼接select字符串
+                            string joinTemp = "";
+                            for (int i = 0; i < evaluationReportClass.module_Head_Cph_Structs_List.Count; i++)
+                            {
+                                //序列化Struct结构
+                                Module_Head_Cph_String_Struct module_Head_Cph_String_Struct =
+                                    SerializeModule_Head_Cph_StructToString(evaluationReportClass.module_Head_Cph_Structs_List[i]);
+
+                                joinTemp += $"SELECT {evaluationReportClass.TimeStamp},{i},'{module_Head_Cph_String_Struct.moduleTrayTypeGroup}'," +
+                                    $"'{module_Head_Cph_String_Struct.headTypeGroup}','{module_Head_Cph_String_Struct.cphListGroup}' UNION ALL ";
+                            }
+                            comm.CommandText += joinTemp.Substring(0, joinTemp.LastIndexOf("UNION ALL"));
+                            //执行sql前，打开连接
+                            if (connection.State == ConnectionState.Closed)
+                            {
+                                connection.Open();
+                            }
+                            affectRow = comm.ExecuteNonQuery();
+                            if (affectRow == 0 || affectRow != evaluationReportClass.AllModuleType.Length)
+                            {
+                                throw new Exception("保存异常失败！");
+                                //MessageBox.Show("保存失败！");
+                                //return false;
+                            }
+                            //提交事务
+                            qLiteTransaction.Commit();
+                        }
+                        catch (Exception ex)
+                        {
+                            //出错回滚事务
+                            qLiteTransaction.Rollback();
+                            qLiteTransaction.Dispose();//释放
+                            MessageBox.Show(ex.Message);
+                            return false;
+                        }
+                        #endregion
+                    }
+                    return true;
+                }
+            }
+        }
+
+        #endregion
+
+        #region //Module_Head_Cph_String_Struct的序列化和反序列化
+        public static Module_Head_Cph_String_Struct SerializeModule_Head_Cph_StructToString(Module_Head_Cph_Struct module_Head_Cph_Struct)
+        {
+            string moduleTrayTypeGroup = string.Join(",", module_Head_Cph_Struct.moduleTrayTypestrings);
+            string headTypeGroup = string.Join(",", module_Head_Cph_Struct.headTypeString_List);
+            List<string> tempCPHListGroup = new List<string>();
+            for (int i = 0; i < module_Head_Cph_Struct.CPH_strings_List.Count; i++)
+            {
+                tempCPHListGroup.Add(string.Join(";", module_Head_Cph_Struct.CPH_strings_List[i]));
+            }
+            string cphListGroup = string.Join(",", tempCPHListGroup);
+
+            return new Module_Head_Cph_String_Struct()
+            {
+                moduleTrayTypeGroup = moduleTrayTypeGroup,
+                headTypeGroup = headTypeGroup,
+                cphListGroup = cphListGroup
+            };
+        }
+
+        public static Module_Head_Cph_Struct DeserializeStringToModule_Head_Cph_Struct(Module_Head_Cph_String_Struct module_Head_Cph_String_Struct)
+        {
+            string[] moduleTrayTypeStrings = module_Head_Cph_String_Struct.moduleTrayTypeGroup.Split(',');
+
+            string[] temp = module_Head_Cph_String_Struct.headTypeGroup.Split(',');
+            List<string> headTypeString_List = new List<string>();
+            headTypeString_List.AddRange(temp);
+
+            List<string[]> CPH_strings_List = new List<string[]>();
+            string[] tempCPHList = module_Head_Cph_String_Struct.cphListGroup.Split(',');
+            for (int i = 0; i < tempCPHList.Length; i++)
+            {
+                CPH_strings_List.Add(tempCPHList[i].Split(';'));
+            }
+
+
+            return new Module_Head_Cph_Struct()
+            {
+                moduleTrayTypestrings = moduleTrayTypeStrings,
+                headTypeString_List = headTypeString_List,
+                CPH_strings_List = CPH_strings_List
+            };
+        }
+        #endregion
+
+        #region //从SQLiteDataReader中获取指定列的colIndx中的byte[]
+        /// <summary>
+        /// 从dataReader中获取指定列的colIndx中的byte[]
+        /// </summary>
+        /// <param name="dataReader">SQLiteDataReader</param>
+        /// <param name="colIndx">指定的列</param>
+        /// <returns></returns>
+        public static byte[] GetBytesFromDataReader(SQLiteDataReader dataReader, int colIndx)
+        {
+            //声明获取的一块 buffer数据
+            //const int CHUNK_SIZE = 2 * 1024;         
+            byte[] buffer = new byte[1024];
+            long bytesRead;
+            long fieldoffset = 0;
+            //byte[] buffer = new byte[dataReader["ModulePictureByte"].ToString().Length];
+            //long modulePicture = dataReader.GetBytes(8, 0, buffer, 0, buffer.Length);
+            using (MemoryStream ms = new MemoryStream())
+            {
+                while ((bytesRead = dataReader.GetBytes(colIndx, fieldoffset, buffer, 0, buffer.Length)) > 0)
+                {
+                    ms.Write(buffer, 0, (int)bytesRead);
+                    fieldoffset += bytesRead;
+                }
+                return ms.ToArray();
+            }
+        }
+        #endregion
     }
 
     #region //构造一个对象，里面存放
@@ -1942,37 +3299,37 @@ namespace Exicel转换1
     public class ExpressSummaryEveryInfo
     {
         private string jobname;
-        private string t_or_b;
+        private string toporBot;
         private string targetConveyor;
-        private string conveyor;
-        private int moduleCount;
-        private DataTable summaryInfoDT;
+        private string productionMode;
+        //private int moduleCount;
+        private DataTable summaryDT;
         private byte[] modulepictureDataByte;
         private string machineKind;
         private string[] allModuleType;
         private string[] allHeadType;
-        private string[] allTrayStrings;
+        //private string[] allTrayStrings;
 
-        public string[] AllTrayStrings
+        //public string[] AllTrayStrings
+        //{
+        //    set
+        //    {
+        //        allTrayStrings = value;
+        //    }
+        //    get
+        //    {
+        //        return allTrayStrings;
+        //    }
+        //}
+        public string ToporBot
         {
-            set
-            {
-                allTrayStrings = value;
-            }
             get
             {
-                return allTrayStrings;
-            }
-        }
-        public string T_or_B
-        {
-            get
-            {
-                return t_or_b;
+                return toporBot;
             }
             set
             {
-                t_or_b = value;
+                toporBot = value;
             }
         }
         public string Jobname
@@ -1997,37 +3354,37 @@ namespace Exicel转换1
                 return targetConveyor;
             }
         }
-        public string Conveyor
+        public string ProductionMode
         {
             set
             {
-                conveyor = value;
+                productionMode = value;
             }
             get
             {
-                return conveyor;
+                return productionMode;
             }
         }
-        public int ModuleCount
+        //public int ModuleCount
+        //{
+        //    set
+        //    {
+        //        moduleCount = value;
+        //    }
+        //    get
+        //    {
+        //        return moduleCount;
+        //    }
+        //}
+        public DataTable SummaryDT
         {
             set
             {
-                moduleCount = value;
+                summaryDT = value;
             }
             get
             {
-                return moduleCount;
-            }
-        }
-        public DataTable SummaryInfoDT
-        {
-            set
-            {
-                summaryInfoDT = value;
-            }
-            get
-            {
-                return summaryInfoDT;
+                return summaryDT;
             }
         }
         public byte[] ModulepictureDataByte
@@ -2080,20 +3437,25 @@ namespace Exicel转换1
     /// <summary>
     /// BaseComprehensive类，TimeStamp初始化时赋值，只读属性，不允许在其他时刻修改
     /// </summary>
-    public class BaseComprehensive : ExpressSummaryEveryInfo
+    public class EvaluationReportClass : ExpressSummaryEveryInfo
     {
         private Int64 timeStamp;
+        //public DataTable SummaryInfoDT { get; set; }
+        //public byte[] ModulepictureDataByte { get; set; }
+        //public string MachineKind { get; set; }
+        //AllTrayStrings不放入最后的数据库，只在加载后代码中更新调整remork和layou中M6与之的搭配
+        //public string[] AllTrayStrings { get; set; }
+
         public DataTable layoutDT;
         public DataTable feederNozzleDT;
-        public DataTable totalfeederNozzleDT;
-        private int baseCount_M_TotalM3;
-        public Dictionary<string, int> base_StatisticsDict;       
-        public Dictionary<string, int> module_StatisticsDict;       
-        
+        //private int baseCount_M_TotalM3;
+        public Dictionary<string, int> base_StatisticsDict;
+        public Dictionary<string, int> module_StatisticsDict;
+
         public List<Module_Head_Cph_Struct> module_Head_Cph_Structs_List = null;
 
         public string MachineName { get; set; }
-        public string CPHRate { get; set; }
+        public string Line { get; set; }//"NXTIII-(M3III*2+M6III*1) 4MBASE III * 1"
         public Int64 TimeStamp
         {
             get
@@ -2102,22 +3464,26 @@ namespace Exicel转换1
             }
         }
         //电气图GenModuleBaseStickFigure  ModuleBaseStickFigure
-        public byte[] ModuleBaseStickFigure { get; set; }
+        public byte[] AirPowerNetPictureByte { get; set; }
         //timestamp唯一标识 BaseComprehensive 对象，必须要赋值
-        public BaseComprehensive(Int64 timeStamp)
+        public EvaluationReportClass(Int64 timeStamp)
         {
             this.timeStamp = timeStamp;
         }
+        //模组(即第几个head)和Nozzle的统计
+        public Dictionary<string, string[]> HeadTypeNozzleDict { get; set; }
 
+        //吸嘴的统计字典
+        //public Dictionary<string, int> Nozzle_Statistics { get; set; }
 
         //综合计算后的 最终的summaryInfoDT
-        public void GetTheEndSummaryInfoDT(DataTable expressSummaryInfoDT, string cycletime, string cPH,string cphRate)
+        public void GetTheEndSummaryDT(DataTable expressSummaryInfoDT, string cycletime, string cPH, double cphRate)
         {
-            this.GetTheEndSummaryInfoDT(expressSummaryInfoDT, Convert.ToDouble(cycletime), Convert.ToInt32(cPH), cphRate);
+            this.GetTheEndSummaryDT(expressSummaryInfoDT, Convert.ToDouble(cycletime), Convert.ToInt32(cPH), cphRate);
         }
 
         //重载 GetTheEndSummaryInfoDT
-        public void GetTheEndSummaryInfoDT(DataTable expressSummaryInfoDT, double cycletime, int cPH,string cphRate)
+        public void GetTheEndSummaryDT(DataTable expressSummaryInfoDT, double cycletime, int cPH, double cphRate)
         {//无 、CPH rate
             //cycletime，board output/hour、board output/day(22H)、 cPH
             expressSummaryInfoDT.Rows[0]["Cycle time\n[((L1+L2)/2) Sec]"] = cycletime;
@@ -2131,7 +3497,7 @@ namespace Exicel转换1
 
             // CPP  链接报价单,未实现
 
-            this.SummaryInfoDT = expressSummaryInfoDT;
+            this.SummaryDT = expressSummaryInfoDT;
         }
 
         /// <summary>
@@ -2149,24 +3515,24 @@ namespace Exicel转换1
             List<string> allTrayList = new List<string>();
 
             //public List<Module_Head_Cph_Struct> module_Head_Cph_Structs_List = null;
-            double cphTheory =0.00;
+            double cphTheory = 0.00;
             //更新allmodule head cph layout
             for (int i = 0; i < module_Head_Cph_Structs_List.Count; i++)
             {
-                AllModuleType[i] = module_Head_Cph_Structs_List[i].moduleTrayTypestring[0];
+                AllModuleType[i] = module_Head_Cph_Structs_List[i].moduleTrayTypestrings[0];
                 AllHeadType[i] = module_Head_Cph_Structs_List[i].headTypeString_List[0];
-                layoutDT.Rows[i][2] = module_Head_Cph_Structs_List[i].moduleTrayTypestring[0];
+                layoutDT.Rows[i][2] = module_Head_Cph_Structs_List[i].moduleTrayTypestrings[0];
                 layoutDT.Rows[i][3] = module_Head_Cph_Structs_List[i].headTypeString_List[0];
 
                 //提取Tray盘信息
-                if (AllModuleType[i].Split('-').Length>1)
+                if (AllModuleType[i].Split('-').Length > 1)
                 {
                     allTrayList.Add(AllModuleType[i].Split('-')[1]);
                 }
                 cphTheory += Convert.ToDouble(module_Head_Cph_Structs_List[i].CPH_strings_List[0][0].Split('-')[1]);
             }
             //更新所有的TrayStrings
-            AllTrayStrings = allTrayList.ToArray();
+            string[] AllTrayStrings = allTrayList.ToArray();
 
 
             //更新summaryDT中的：
@@ -2180,25 +3546,25 @@ namespace Exicel转换1
             //更新模组图片
             ModulepictureDataByte = ComprehensiveStaticClass.GenModulesPicture(AllModuleType, module_StatisticsDict);
             //更新电气图
-            ModuleBaseStickFigure = ComprehensiveStaticClass.GenModuleBaseStickFigure(AllModuleType, module_StatisticsDict, base_StatisticsDict);
+            AirPowerNetPictureByte = ComprehensiveStaticClass.GenAirPowerNetPictureByte(AllModuleType, module_StatisticsDict, base_StatisticsDict);
 
             //更新Line
-            string Line = ComprehensiveStaticClass.GenLineStringFromModuleStasticsBaseStastics(
+            Line = ComprehensiveStaticClass.GenLineStringFromModuleStasticsBaseStastics(
                 module_StatisticsDict, base_StatisticsDict, MachineKind);
             //获取HeadType
             string headType = ComprehensiveStaticClass.GenHeadTypeFormHeadStrings(AllHeadType);
             //获取CPHRate
-            string cphRate = string.Format("{0:P}", Convert.ToDouble(SummaryInfoDT.Rows[0]["CPH"]) / cphTheory);
+            double cphRate = Convert.ToDouble(SummaryDT.Rows[0]["CPH"]) / cphTheory;
             //获取Remark
             string remark = ComprehensiveStaticClass.GenRemarkFromModuleBaseStasticsDict(module_StatisticsDict,
                 base_StatisticsDict, AllTrayStrings);
             //更新CPHRate
-            CPHRate = cphRate;
+            //CPHRate = cphRate;
             //更新summaryDT
-            SummaryInfoDT.Rows[0]["Line"] = Line;
-            SummaryInfoDT.Rows[0]["Head \nType"] = headType;
-            SummaryInfoDT.Rows[0]["CPH Rate"] = cphRate;
-            SummaryInfoDT.Rows[0]["Remark"] = remark;
+            SummaryDT.Rows[0]["Line"] = Line;
+            SummaryDT.Rows[0]["Head \nType"] = headType;
+            SummaryDT.Rows[0]["CPH Rate"] = cphRate;
+            SummaryDT.Rows[0]["Remark"] = remark;
         }
     }
 

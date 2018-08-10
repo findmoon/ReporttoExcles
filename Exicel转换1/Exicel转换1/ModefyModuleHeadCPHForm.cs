@@ -11,8 +11,8 @@ namespace Exicel转换1
 {
     public partial class ModefyModuleHeadCPHForm : Form
     {
-        //全局唯一的单例
-        public static ModefyModuleHeadCPHForm single_ModefyModuleHeadCPHForm = null;
+        ////全局唯一的单例
+        //public static ModefyModuleHeadCPHForm single_ModefyModuleHeadCPHForm = null;
 
         //发布事件，用于父窗体订阅 刷新数据
         public event EventHandler Update_module_Head_Cph_Base = null;
@@ -28,7 +28,15 @@ namespace Exicel转换1
         //转换为单M的BaseCount
         private int baseCount_M_TotalM3;
 
-        private ModefyModuleHeadCPHForm(List<Module_Head_Cph_Struct> module_Head_Cph_Structs_List, 
+        //showForm()事件中重置改变的变量.无
+        public void showForm()
+        {
+            //重置修改的标识
+            isModefiedData = false;
+            this.Show();
+        }
+
+        public ModefyModuleHeadCPHForm(List<Module_Head_Cph_Struct> module_Head_Cph_Structs_List, 
             Dictionary<string, int> base_StatisticsDict)
         {
             InitializeComponent();
@@ -43,19 +51,47 @@ namespace Exicel转换1
             InitBaseCombination();
         }
 
-        //单例模式的实现
-        public static ModefyModuleHeadCPHForm Getsingle_ModefyModuleHeadCPHForm(List<Module_Head_Cph_Struct> module_Head_Cph_Structs_List,
-            Dictionary<string, int> base_StatisticsDict)
+        ////禁用窗体的关闭按钮
+        //private const int CP_NOCLOSE_BUTTON = 0x200;
+        //protected override CreateParams CreateParams
+        //{
+        //    get
+        //    {
+        //        CreateParams myCp = base.CreateParams;
+        //        myCp.ClassStyle = myCp.ClassStyle | CP_NOCLOSE_BUTTON;
+        //        return myCp;
+        //    }
+
+        //}
+        
+        //private void Form1_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        //{
+        //    e.Cancel = true;
+        //}
+
+        // 重写OnClosing使点击关闭按键时隐藏窗体
+        protected override void OnClosing(CancelEventArgs e)
         {
-            //每次打开获取显示ModefyModuleHeadCPHForm控件时，重置标识未
-            isModefiedData = false;
-            //已经生成，不在创建
-            if (single_ModefyModuleHeadCPHForm != null)
-            {
-                return single_ModefyModuleHeadCPHForm;
-            }
-            return new ModefyModuleHeadCPHForm(module_Head_Cph_Structs_List, base_StatisticsDict);
+            //this.ShowInTaskbar = false;
+            //this.WindowState = FormWindowState.Minimized;
+            this.Hide();
+            e.Cancel = true;
         }
+
+        ////单例模式的实现
+        //public static ModefyModuleHeadCPHForm Getsingle_ModefyModuleHeadCPHForm(List<Module_Head_Cph_Struct> module_Head_Cph_Structs_List,
+        //    Dictionary<string, int> base_StatisticsDict)
+        //{
+        //    //每次打开获取显示ModefyModuleHeadCPHForm控件时，重置标识
+        //    isModefiedData = false;
+        //    //已经生成，不在创建
+        //    if (single_ModefyModuleHeadCPHForm != null)
+        //    {
+        //        return single_ModefyModuleHeadCPHForm;
+        //    }
+        //    single_ModefyModuleHeadCPHForm = new ModefyModuleHeadCPHForm(module_Head_Cph_Structs_List, base_StatisticsDict);
+        //    return single_ModefyModuleHeadCPHForm;
+        //}
 
         //初始化更新Base的组合
         public void InitBaseCombination()
@@ -167,9 +203,9 @@ namespace Exicel转换1
 
                 //添加module到comboBoxCell
                 DataGridViewComboBoxCell moduledataGridViewComboBoxCell = new DataGridViewComboBoxCell();
-                for (int j = 0; j < this.module_Head_Cph_Structs_List[i].moduleTrayTypestring.Length; j++)
+                for (int j = 0; j < this.module_Head_Cph_Structs_List[i].moduleTrayTypestrings.Length; j++)
                 {
-                    moduledataGridViewComboBoxCell.Items.Add(this.module_Head_Cph_Structs_List[i].moduleTrayTypestring[j]);
+                    moduledataGridViewComboBoxCell.Items.Add(this.module_Head_Cph_Structs_List[i].moduleTrayTypestrings[j]);
                 }
 
                 //添加到单元格cell
@@ -234,18 +270,18 @@ namespace Exicel转换1
                 string TheoryCPH = ModuleHeadCPHDGV.Rows[i].Cells["TheoryCPH"].Value.ToString();
 
                 //修改module_Head_Cph_Structs_List[i]的数据
-                for (int j = 0; j < this.module_Head_Cph_Structs_List[i].moduleTrayTypestring.Length; j++)
+                for (int j = 0; j < this.module_Head_Cph_Structs_List[i].moduleTrayTypestrings.Length; j++)
                 {
                     //未改变对应的数据，即值仍未数组的第一个，则不进行下面的交换计算，省去开销
-                    if (this.module_Head_Cph_Structs_List[i].moduleTrayTypestring[0] == moduleValue)
+                    if (this.module_Head_Cph_Structs_List[i].moduleTrayTypestrings[0] == moduleValue)
                     {
                         break;
                     }
-                    if (this.module_Head_Cph_Structs_List[i].moduleTrayTypestring[j]== moduleValue)
+                    if (this.module_Head_Cph_Structs_List[i].moduleTrayTypestrings[j]== moduleValue)
                     {
                         //与数组的第一个交换位置
-                        this.module_Head_Cph_Structs_List[i].moduleTrayTypestring[j] = this.module_Head_Cph_Structs_List[i].moduleTrayTypestring[0];
-                        this.module_Head_Cph_Structs_List[i].moduleTrayTypestring[0] = moduleValue;
+                        this.module_Head_Cph_Structs_List[i].moduleTrayTypestrings[j] = this.module_Head_Cph_Structs_List[i].moduleTrayTypestrings[0];
+                        this.module_Head_Cph_Structs_List[i].moduleTrayTypestrings[0] = moduleValue;
                     }
                 }
                 //headType、CPHStringsList

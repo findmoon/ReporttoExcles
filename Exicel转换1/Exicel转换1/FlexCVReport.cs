@@ -34,7 +34,7 @@ namespace Exicel转换1
         ExcelHelper excelHelper = null;
 
         //承接所有打开的report 之后获取的BaseComprehensive
-        List<BaseComprehensive> baseComprehensive_list = new List<BaseComprehensive>();
+        List<EvaluationReportClass> baseComprehensive_list = new List<EvaluationReportClass>();
 
         //ExcelHelper 另一个轨道生产报告的实例
         ExcelHelper excelHelper_another = null;

@@ -925,10 +925,10 @@ namespace Exicel转换1
                 ExpressSummaryEveryInfo expressSummaryEveryInfo = new ExpressSummaryEveryInfo();
                 expressSummaryEveryInfo.Jobname = jobName;
                 expressSummaryEveryInfo.TargetConveyor = TargetConveyor;
-                expressSummaryEveryInfo.Conveyor = conveyor;
-                expressSummaryEveryInfo.ModuleCount = machineCount;
+                expressSummaryEveryInfo.ProductionMode = conveyor;
+                //expressSummaryEveryInfo.ModuleCount = machineCount;
                 //, cPH 两个轨道综合的CPH，由Layoutinfo获取
-                expressSummaryEveryInfo.SummaryInfoDT = ComprehensiveStaticClass.getExpressSummayDataTable(boardQty, Line, Head_Type, jobName, Pannelsize, placementNumber, remark);
+                expressSummaryEveryInfo.SummaryDT = ComprehensiveStaticClass.getExpressSummayDataTable(boardQty, Line, Head_Type, jobName, Pannelsize, placementNumber, remark);
                 expressSummaryEveryInfo.ModulepictureDataByte = ComprehensiveStaticClass.GenModulesPicture(allModuleTypeString, module_Statistics);
                 expressSummaryEveryInfo.AllModuleType = allModuleTypeString;
                 expressSummaryEveryInfo.AllHeadType = allHeadTypeString;

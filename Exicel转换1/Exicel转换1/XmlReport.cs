@@ -11,14 +11,22 @@ using System.IO;
 using System.Threading;
 using System.Data.SQLite;
 using System.Text.RegularExpressions;
+using Newtonsoft.Json;
 
 namespace Exicel转换1
 {
     public partial class XmlReport : UserControl
     {
-        public XmlReport()
+        //用户管理 模块
+        UserManageCtrol userManage =null;
+        //权限水平 level,给与默认权限
+        int userLevel = 4;
+        public XmlReport(UserAcount userAcount)
         {
             InitializeComponent();
+            //初始化用户管理控件 模块
+            userManage = new UserManageCtrol(userAcount);
+            userLevel = userAcount.Level;
         }
         ////窗体的显示类型转换，
         ////报错未实现该方法
@@ -27,8 +35,15 @@ namespace Exicel转换1
         //    throw new NotImplementedException();
         //}
 
+        // 初始化report操作界面 控件.最好实现同时控制操作界面和用户界面
+        // 可被其他控件调用，控制权限切换
+        //操作界面 根据level控制 编辑报价单与否
+
+
         int openFolderNum = 0;
 
+        //正在从数据库架子啊Evaluation的标识位
+        bool hasLoadEvaluation = false;
         ////模组代码对应的模组类型的 字典
         //Dictionary<string, string> moduleCodeDict = new Dictionary<string, string>()
         //{
@@ -41,7 +56,7 @@ namespace Exicel转换1
         //    {"15","H24" },
         //    {"18","H04SF" }
         //};
-                
+
         //public string ProductionMode
         //{
         //    set
@@ -51,10 +66,10 @@ namespace Exicel转换1
         //}
 
         //最后包含summary和layout(layouInfoDT feederNozzleDT)的信息的list，实现可以打开多个export文件夹
-        List<BaseComprehensive> summaryandLayout_ComprehensiveList = new List<BaseComprehensive>();
+        List<EvaluationReportClass> summaryandLayout_ComprehensiveList = new List<EvaluationReportClass>();
 
         
-        //已打开开的目录
+        //已打开的目录
         string pathXmlFolder = null;
 
         #region //打开xml report文件夹 按钮
@@ -236,6 +251,8 @@ namespace Exicel转换1
                             {
                                 //创建文件流
                                 FileStream fs = new FileStream(files[i], FileMode.Open, FileAccess.Read, FileShare.Read);
+                                SynchronizationContext sc;
+                               
                                 //读取流
                                 srRTFFile = new StreamReader(fs);
                             }
@@ -244,19 +261,19 @@ namespace Exicel转换1
                                 MessageBox.Show(ex.Message);
                             }
                         }
-
-                    }
-
-                    if (rtfNum==0)
-                    {
-                        MessageBox.Show("没有rtf文件，请确认后重试！");
-                        return;
-                    }
+                    }                 
                     
+                }
+
+                if (rtfNum == 0)
+                {
+                    MessageBox.Show("没有rtf文件，请确认后重试！");
+                    return;
                 }
                 //打开的目录和目录数
                 openFolderNum++;
                 HasOpenFolderLbel.Text += pathXmlFolder + "\n";
+
 
             }
             else
@@ -276,32 +293,137 @@ namespace Exicel转换1
             //生成最后的 BaseComprehensive List
             //中间出问题，返回null，则不 执行下面的操作
             //只生成 返回 BaseComprehensive
-            BaseComprehensive theEndSummaryandLayout = GenBaseComprehensive(xml_TimingReportHeaderUnit,xml_TimingReportUnitNxt,xml_TimingReportHeader,
+            EvaluationReportClass theEndSummaryandLayout = GenBaseComprehensive(xml_TimingReportHeaderUnit,xml_TimingReportUnitNxt,xml_TimingReportHeader,
             xml_PartReportUnit,xml_PartReportHead,xml_NozzleChangerReportUnit,xml_FeederReportUnit,srRTFFile);
 
             if (theEndSummaryandLayout == null)
             {
                 return;
             }
-            
+            AddEvaluationReportListAndShow(theEndSummaryandLayout);            
+        }
+        #endregion
+
+        /// <summary>
+        /// 获取到一个EvaluationReportClass后的添加到ummaryandLayout_Comprehensive列表和tabcontrol及显示
+        /// 屏蔽重复添加，即区分新打开和从最近生成过的列表中打开（有可能已经打开添加到list）
+        /// </summary>
+        /// <param name="evaluationReport"></param>
+        private void AddEvaluationReportListAndShow(EvaluationReportClass evaluationReport)
+        {
             //添加到SummaryandLayout_ComprehensiveList列表
-            summaryandLayout_ComprehensiveList.Add(theEndSummaryandLayout);
-            //使用全局变量，因为多处需要判断全局变量的值，因此如果选择一个文件夹后处理完所有的过程后，需要重置所有变量，
-            //否则导致下一次选择判断的混乱。
+            foreach (var item in summaryandLayout_ComprehensiveList)
+            {
+                if (evaluationReport.TimeStamp==item.TimeStamp)
+                {
+                    //存在则显示其tabpage
+                    evaluation_TabControl.SelectTab(item.TimeStamp.ToString());
+                    //防止添加重复
+                    return;
+                }
+            }
 
             //将 BaseComprehensive List中的BaseComprehensive添加到显示表格中
             //每打开一个文件夹生成一个tabcontrol的tabpage
             AddSingle_EvaluationToTabControl(BaseComprehensiveToSingle_EvaluationPanel(
-                theEndSummaryandLayout), evaluation_TabControl);
-                        
+                evaluationReport), evaluation_TabControl);
+
+            //显示完成，即最近列表中加载成功再添加到summaryandLayout_ComprehensiveList
+            summaryandLayout_ComprehensiveList.Add(evaluationReport);
+            //使用全局变量，因为多处需要判断全局变量的值，因此如果选择一个文件夹后处理完所有的过程后，需要重置所有变量，
+            //否则导致下一次选择判断的混乱。
+
+            
         }
-        #endregion
+
+        /// <summary>
+        /// 添加最近转换的评估到TreeView节点，实现按照timeStamp添加至合适位置(逆序)，且屏蔽到已添加的重复的报告
+        /// </summary>
+        /// <param name="iIdentityExcelRe"></param>
+        /// <param name="timeStamp"></param>
+        public void Add2LatestExcelReport(string reportJobName,long timeStamp)
+        {
+            //获取和设置第一个可见的节点
+            //TreeNode topNode = latestBaseComprehensive_treeView.TopNode;
+            TreeNode topNode = latestEvaluationReports_treeView.Nodes[0];
+            topNode.Expand();
+            //添加第一个节点
+            if (topNode.Nodes.Count==0)
+            {
+                //topNode.Nodes.Add(reportJobName + "*" + timeStamp);
+                //树节点的名称和树节点显示的文本
+                topNode.Nodes.Add(Convert.ToString(timeStamp),reportJobName);
+                
+            }
+            foreach (TreeNode node in topNode.Nodes)
+            {
+                //如果重复,不添加,需要循环后确定是否重复
+                //if (timeStamp == Convert.ToInt64(node.Text.Split('*')[node.Text.Split('*').Length - 1]))
+                //{
+                //    return;
+                //}
+                if (timeStamp == Convert.ToInt64(node.Name))
+                {
+                    return;
+                }
+            }
+            //查找插入点
+            //int insertIndx;
+            for (int i = 0; i < topNode.Nodes.Count; i++)
+            {
+                //if (timeStamp > Convert.ToInt64(topNode.Nodes[i].Text.Split('*')[topNode.Nodes[i].Text.Split('*').Length - 1]))
+                //{
+                //    topNode.Nodes.Insert(i, reportJobName + "*" + timeStamp);
+                //    break;
+                //}
+                if (timeStamp > Convert.ToInt64(topNode.Nodes[i].Name))
+                {
+                    topNode.Nodes.Insert(i, Convert.ToString(timeStamp),reportJobName);
+                    break;
+                }
+                if (i == topNode.Nodes.Count - 1)//循环到最后一个节点
+                {
+                    //topNode.Nodes.Insert(i+1, reportJobName + "*" + timeStamp);
+                    topNode.Nodes.Insert(i, Convert.ToString(timeStamp), reportJobName);
+                }
+                #region 错误
+                ////是否是第一个                
+                //if (i == topNode.Nodes.Count - 1)//循环到最后一个节点
+                //{
+                //    if (timeStamp > Convert.ToInt64(topNode.Nodes[i].Text.Split('*')[topNode.Nodes[i].Text.Split('*').Length - 1]))
+                //    {
+                //        //topNode.Nodes.Insert(i, reportJobName + "*" + timeStamp);
+                //        //inser后，下一次循环topNode.Nodes.Count增加、i也增加，两者同步，直接造成死循环
+                //        insertIndx = i;
+                //    }
+                //    else
+                //    {
+                //        insertIndx = i + 1;
+                //    }
+                //}
+                //else
+                //{//不是最后一个，则满足<当前且>下一个，则插入到下一个
+                //    //是否是第一个
+
+                //    if (timeStamp > Convert.ToInt64(topNode.Nodes[i].Text.Split('*')[topNode.Nodes[i].Text.Split('*').Length - 1]) &&
+                //        timeStamp > Convert.ToInt64(topNode.Nodes[i].Text.Split('*')[topNode.Nodes[i].Text.Split('*').Length - 1]))
+                //    {
+
+                //    }
+                //} 
+                #endregion
+            }
+           
+        }
+
+        //更新到数据库
+        //public void 
 
         // 每次只会打开一个文件夹，生成Single_EvaluationPanel 也只有一个
-        public Single_EvaluationPanelControl BaseComprehensiveToSingle_EvaluationPanel(BaseComprehensive baseComprehensive)
+        public Single_EvaluationPanelControl BaseComprehensiveToSingle_EvaluationPanel(EvaluationReportClass baseComprehensive)
         {
             //baseComprehensives 的layoutDT和feedernozzleDT合在一块
-            Single_EvaluationPanelControl single_EvaluationPanelControl= new Single_EvaluationPanelControl(baseComprehensive);
+            Single_EvaluationPanelControl single_EvaluationPanelControl= new Single_EvaluationPanelControl(baseComprehensive, userLevel);
             //还是有右侧的空白
             single_EvaluationPanelControl.Anchor = (AnchorStyles.Bottom | AnchorStyles.Right | AnchorStyles.Left);
             //single_EvaluationPanelControl.AutoSizeMode = AutoSizeMode.GrowAndShrink;
@@ -334,15 +456,15 @@ namespace Exicel转换1
 
         #region //生成 summaryandLayout_ComprehensiveList  theEndSummaryandLayout
         //生成所有信息 BaseComprehensive class 由summaryinfo和layoutinfo组成
-        public BaseComprehensive GenBaseComprehensive(XmlDocument xml_TimingReportHeaderUnit,XmlDocument xml_TimingReportUnitNxt,
+        public EvaluationReportClass GenBaseComprehensive(XmlDocument xml_TimingReportHeaderUnit,XmlDocument xml_TimingReportUnitNxt,
             XmlDocument xml_TimingReportHeader,XmlDocument xml_PartReportUnit,XmlDocument xml_PartReportHead,
             XmlDocument xml_NozzleChangerReportUnit,XmlDocument xml_FeederReportUnit,StreamReader srRTFFile)
         {
             string jobName = xml_TimingReportHeader.GetElementsByTagName("JobName")[1].InnerText;
-            string t_or_b = xml_TimingReportHeader.GetElementsByTagName("BoardSide")[1].InnerText;
+            string toporBot = xml_TimingReportHeader.GetElementsByTagName("BoardSide")[1].InnerText;
             string machine_name = xml_TimingReportHeader.GetElementsByTagName("McName")[1].InnerText;
             //模组总数
-            int ModuleCount = xml_TimingReportUnitNxt.GetElementsByTagName("Module").Count - 1;
+            //int ModuleCount = xml_TimingReportUnitNxt.GetElementsByTagName("Module").Count - 1;
 
             XmlNodeList boardNodeList = xml_PartReportUnit.GetElementsByTagName("seqBrdNum");
             int boardQty = GetBoardQty(boardNodeList);
@@ -404,7 +526,7 @@ namespace Exicel转换1
 
             #region //Base统计字典
             //获取baseStaxticsDict字典
-            Dictionary<string, int> base_StatisticsDict = GetBaseStasticsDict(module_StatisticsDict);
+            Dictionary<string, int> base_StatisticsDict = ComprehensiveStaticClass.GetBaseStasticsDict(module_StatisticsDict);
             #endregion
             #region//拼接Line字符串
             //获取拼接的Line字符串
@@ -474,7 +596,7 @@ namespace Exicel转换1
             }
             #endregion
 
-            #region //获取Nozzle type、Nozzle Qty
+            #region //获取Nozzle type、Nozzle Qty。nozzle_Statistics nozzle统计
             Dictionary<string, int> nozzle_Statistics = new Dictionary<string, int>();
             XmlNodeList nozzle_xmlNodeList = xml_NozzleChangerReportUnit.GetElementsByTagName("Unit");
             for (int i = 0; i < nozzle_xmlNodeList.Count; i++)
@@ -489,6 +611,61 @@ namespace Exicel转换1
                     nozzle_Statistics.Add(nozzleName.InnerText, 1);
                 }
             }
+            #endregion
+
+            #region //模组(即第几个head)和Nozzle的统计 统计
+            //或者 字典Dictionary<int, Dictionary<string,int>[]>{模组数:{{Nozzle1:NozzleNum},{Nozzle1:NozzleNum}}，使用需要复杂处理
+            Dictionary<int, List<string>> module_NozzleDict = new Dictionary< int, List<string>>();
+            //XmlNodeList nozzle_xmlNodeList = xml_NozzleChangerReportUnit.GetElementsByTagName("Unit");
+            for (int i = 0; i < nozzle_xmlNodeList.Count; i++)
+            {
+                XmlNode nozzleName = nozzle_xmlNodeList[i].SelectSingleNode("./ncstNzlName");
+                XmlNode moduleNum = nozzle_xmlNodeList[i].SelectSingleNode("./ModuleNum");
+                if (module_NozzleDict.ContainsKey(Convert.ToInt32(moduleNum.InnerText)))
+                {
+                    if (module_NozzleDict[Convert.ToInt32(moduleNum.InnerText)].Contains(nozzleName.InnerText))
+                    {
+                        continue;
+                    }
+                    else
+                    {
+                        module_NozzleDict[Convert.ToInt32(moduleNum.InnerText)].Add(nozzleName.InnerText);
+                    }
+                }
+                else
+                {
+                    module_NozzleDict.Add(Convert.ToInt32(moduleNum.InnerText), new List<string>() { nozzleName.InnerText });
+                }
+            }
+            //此处应该用HasSet
+            Dictionary<string, HashSet<string>> headTypeNozzleDict1 = new Dictionary<string, HashSet<string>>();
+            foreach (var item in module_NozzleDict)
+            {
+                //head有重复的。模组数从1开始和索引0差一位
+                if (headTypeNozzleDict1.Keys.Contains(allHeadString[item.Key-1]))//如果有key
+                {                    
+                    for (int i = 0; i < item.Value.Count; i++)
+                    {
+                        // 使用hashset，不用判断当前Head中是否有当前吸嘴
+                        //if (!headTypeNozzleDict1[allHeadString[item.Key]].Contains(item.Value[i]))
+                        //{
+                        //    headTypeNozzleDict1[allHeadString[item.Key]].Add(item.Value[i]);
+                        //}
+                        headTypeNozzleDict1[allHeadString[item.Key-1]].Add(item.Value[i]);
+                    }
+                }
+                else//没有key
+                {
+                    headTypeNozzleDict1.Add(allHeadString[item.Key-1], new HashSet<string>(item.Value.ToArray()));
+                }                
+            }
+            //Dictionary<string, string[]> headTypeNozzleDict = headTypeNozzleDict1.ToDictionary<string, string[]>(p=>p.key);
+            Dictionary<string, string[]> headTypeNozzleDict = new Dictionary<string, string[]>();
+            foreach (var item in headTypeNozzleDict1)
+            {
+                headTypeNozzleDict.Add(item.Key, item.Value.ToArray());
+            }
+
             #endregion
 
             //获取生产模式
@@ -525,17 +702,18 @@ namespace Exicel转换1
             }
             #endregion
             //获取电气图
-            byte[] moduleBaseStickFigure = ComprehensiveStaticClass.GenModuleBaseStickFigure(allModuleString, module_StatisticsDict,base_StatisticsDict);
-            if (moduleBaseStickFigure == null)
+            byte[] airPowerNetPictureByte = ComprehensiveStaticClass.GenAirPowerNetPictureByte(allModuleString, module_StatisticsDict,base_StatisticsDict);
+            if (airPowerNetPictureByte == null)
             {
                 return null;
             }
 
             //获取最后的综合的 SummaryandLayout
             //最后包含summaryInfo和layouInfoDT feederNozzleDT的信息
-            BaseComprehensive theEndSummaryAndLayout = new BaseComprehensive(ComprehensiveStaticClass.GetTimeStamp());
-            theEndSummaryAndLayout.T_or_B = t_or_b;
-            theEndSummaryAndLayout.ModuleCount = ModuleCount;
+            EvaluationReportClass theEndSummaryAndLayout = new EvaluationReportClass(ComprehensiveStaticClass.GetTimeStamp());
+            theEndSummaryAndLayout.ToporBot = toporBot;
+            theEndSummaryAndLayout.ProductionMode = productionMode;
+            //theEndSummaryAndLayout.ModuleCount = ModuleCount;
             theEndSummaryAndLayout.MachineKind = machineKind;
             theEndSummaryAndLayout.MachineName = machine_name;
             theEndSummaryAndLayout.Jobname = jobName;
@@ -584,17 +762,19 @@ namespace Exicel转换1
                 //"高速生产模式-1234"需要解析
                 theoryCPH += Convert.ToInt32(module_Head_TheoryCPH_Struct_List[j].CPH_strings_List[0][0].Split('-')[1]);
             }
-            string cphRate = string.Format("{0:P}", Convert.ToDouble(
-                theEndCycletimeCPHLayoutDTFeederNozzleDT_Tuple.Item2) / Convert.ToDouble(theoryCPH));
+            //string cphRate = string.Format("{0:p}", Convert.ToDouble(
+            //    theEndCycletimeCPHLayoutDTFeederNozzleDT_Tuple.Item2) / Convert.ToDouble(theoryCPH));
+            double cphRate =  Convert.ToDouble(
+                theEndCycletimeCPHLayoutDTFeederNozzleDT_Tuple.Item2) / Convert.ToDouble(theoryCPH);
 
             //获取最后的SummaryinfoDT
-            theEndSummaryAndLayout.GetTheEndSummaryInfoDT(expressSummayDataTable,theEndCycletimeCPHLayoutDTFeederNozzleDT_Tuple.Item1, 
+            theEndSummaryAndLayout.GetTheEndSummaryDT(expressSummayDataTable,theEndCycletimeCPHLayoutDTFeederNozzleDT_Tuple.Item1, 
                 theEndCycletimeCPHLayoutDTFeederNozzleDT_Tuple.Item2,cphRate);
 
             //
-            theEndSummaryAndLayout.CPHRate = cphRate;
+            //theEndSummaryAndLayout.CPHRate = cphRate;
             theEndSummaryAndLayout.ModulepictureDataByte = modulepictureDataByte;
-            theEndSummaryAndLayout.ModuleBaseStickFigure = moduleBaseStickFigure;
+            theEndSummaryAndLayout.AirPowerNetPictureByte = airPowerNetPictureByte;
             theEndSummaryAndLayout.layoutDT = theEndCycletimeCPHLayoutDTFeederNozzleDT_Tuple.Item3;
             theEndSummaryAndLayout.feederNozzleDT = theEndCycletimeCPHLayoutDTFeederNozzleDT_Tuple.Item4;
             theEndSummaryAndLayout.AllModuleType = allModuleString;
@@ -610,6 +790,8 @@ namespace Exicel转换1
             theEndSummaryAndLayout.module_Head_Cph_Structs_List = module_Head_TheoryCPH_Struct_List;
             theEndSummaryAndLayout.base_StatisticsDict = base_StatisticsDict;
             theEndSummaryAndLayout.module_StatisticsDict = module_StatisticsDict;
+            theEndSummaryAndLayout.HeadTypeNozzleDict = headTypeNozzleDict;
+            theEndSummaryAndLayout.Line = Line;
 
             return theEndSummaryAndLayout;
             
@@ -617,42 +799,7 @@ namespace Exicel转换1
 
         #endregion
 
-        private Dictionary<string, int> GetBaseStasticsDict(Dictionary<string, int> module_Statistics)
-        {
-            //计算base信息
-            //存储模组对应Base的个数，1个M3 module 对应1个M的base，2个M3 module或1个M6 Module对应2Mbase，4个M3 module或2个M6 Module对应4Mbase
-            //base尽可能少的分配
-            //转换为单M的base 的总数
-            int baseCount_M_TotalM3 = 0;
-            //单独统计M3、M6个数
-            int Count_M3 = 0;
-            int Count_M6 = 0;
-            foreach (var moduleKind in module_Statistics)
-            {
-                if (moduleKind.Key.Substring(0, 2) == "M3")
-                {
-                    baseCount_M_TotalM3 += moduleKind.Value;
-                    Count_M3 += moduleKind.Value;
-                }
-                if (moduleKind.Key.Substring(0, 2) == "M6")
-                {
-                    baseCount_M_TotalM3 += moduleKind.Value * 2;
-                    Count_M6 += moduleKind.Value;
-                }
-            }
-            int baseCount_4M = (baseCount_M_TotalM3 / 4);
-            int baseCount_2M = 0;
-            if ((baseCount_M_TotalM3 % 4) != 0)
-            {
-                baseCount_2M = 1;
-            }
-
-            //字典，存放2MBase 4MBase 的数量
-            return new Dictionary<string, int>() {
-                {"4MBASE",baseCount_4M },
-                {"2MBASE",baseCount_2M },
-                };
-        }
+        
 
         /// <summary>
         /// 获取BoardQty
@@ -699,7 +846,7 @@ namespace Exicel转换1
 
         //    //定义dqlite的数据库连接对象
 
-        //    string connString = string.Format("Data Source={0};Version=3;", @".\convertDB.db");
+        //    string connString = string.Format("Data Source={0};Version=3;", @".\data\convertDB");
         //    SQLiteConnection liteConn = new SQLiteConnection();//创建数据库连接实例
         //    liteConn.ConnectionString = connString;
         //    try
@@ -803,7 +950,7 @@ namespace Exicel转换1
 
         #region //XmlDocument 中获取module head cycletime qty
         //和包含module_Head_TheoryCPH所有可能性的List<module_head_cph_struct>
-        
+
         public List<Tuple<string, string, string, string>> Getline2_module_head_cycletime_qty_Tuple_StructList(XmlDocument xml_TimingReportUnitNxt,
             out List<Module_Head_Cph_Struct> module_Head_TheoryCPH_Struct_List)
         {
@@ -820,7 +967,7 @@ namespace Exicel转换1
             module_Head_TheoryCPH_Struct_List = new List<Module_Head_Cph_Struct>();
 
             //定义dqlite的数据库连接对象
-            string connString = string.Format("Data Source={0};Version=3;", @".\convertDB.db");
+            string connString = string.Format("Data Source={0};Version=3;", @".\data\convertDB");
             SQLiteConnection liteConn = new SQLiteConnection();//创建数据库连接实例
             liteConn.ConnectionString = connString;
             try
@@ -857,7 +1004,8 @@ namespace Exicel转换1
                         MessageBox.Show("无法获取当前的模组类型，请确认是否为NXT！");
                         return null;
                     }
-                    //获取所有的 module /+try 类型
+
+                    #region //获取所有的 module /+try 类型
                     List<string> moduleTrayTypeList = new List<string>();
                     while (dataRead.Read())
                     {
@@ -867,11 +1015,13 @@ namespace Exicel转换1
                             string[] moduleTrayType = dataRead["trayinfostring"].ToString().Split('-');
                             for (int j = 0; j < moduleTrayType.Length; j++)
                             {
-                                moduleTrayTypeList.Add(moduleTrayTypeList[0]+"-"+moduleTrayType[j]);
+                                moduleTrayTypeList.Add(moduleTrayTypeList[0] + "-" + moduleTrayType[j]);
                             }
                         }
                     }
+                    #endregion
 
+                    #region //获取第一个，即当前对应的headType
                     List<string> headTypeList = new List<string>();
                     //查询headType
                     command = new SQLiteCommand(string.Format("select head from HeadTable where headid={0};", headid),
@@ -880,8 +1030,8 @@ namespace Exicel转换1
                     {
                         liteConn.Open();
                     }
-
-                    headTypeList.Add(command.ExecuteScalar().ToString());
+                    headTypeList.Add(command.ExecuteScalar().ToString()); 
+                    #endregion
                     #endregion
 
                     #region //查询CPH
@@ -990,7 +1140,7 @@ namespace Exicel转换1
                     //当前module head对应的 module_head_cph_struct结构
                     Module_Head_Cph_Struct module_Head_Cph_Struct = new Module_Head_Cph_Struct()
                     {
-                        moduleTrayTypestring = moduleTrayTypeList.ToArray(),
+                        moduleTrayTypestrings = moduleTrayTypeList.ToArray(),
                         headTypeString_List = headTypeList,
                         CPH_strings_List = CPH_List
                     };
@@ -999,7 +1149,7 @@ namespace Exicel转换1
 
                     //module_head_cycletime_qty  module_head 取值第一个
                     line2_module_head_cycletime_qty_TupleList.Add(new Tuple<string, string, string, string>(
-                        module_Head_Cph_Struct.moduleTrayTypestring[0],
+                        module_Head_Cph_Struct.moduleTrayTypestrings[0],
                         module_Head_Cph_Struct.headTypeString_List[0],
                         truUnitNode[i].SelectSingleNode("./CycleTime").InnerText,
                         truUnitNode[i].SelectSingleNode("./Qty").InnerText
@@ -1075,28 +1225,28 @@ namespace Exicel转换1
             //Qty Feeder的数量
             //Head  Type
             //Nozzle
-            //QTy  Nozzle的数量
+            //QTy Nozzle的数量
             DataTable layoutDT = new DataTable();
             //小表格
             DataTable feederNozzleDT = new DataTable();
 
             //初始化各个栏
-            layoutDT.Columns.Add("Prouction \n Mode");
-            layoutDT.Columns.Add("Module \n No.");
-            layoutDT.Columns.Add("Module");
-            layoutDT.Columns.Add("Head Type");
-            layoutDT.Columns.Add("Lane1 \nCycle \nTime");
-            layoutDT.Columns.Add("Lane2 \nCycle \nTime");
-            layoutDT.Columns.Add("Cycle \nTime");
-            layoutDT.Columns.Add("Qty");
-            layoutDT.Columns.Add("Avg");
-            layoutDT.Columns.Add("CPH");
+            layoutDT.Columns.Add("Prouction \n Mode",Type.GetType("System.String"));
+            layoutDT.Columns.Add("Module \n No.", Type.GetType("System.Int32"));
+            layoutDT.Columns.Add("Module", Type.GetType("System.String"));
+            layoutDT.Columns.Add("Head Type", Type.GetType("System.String"));
+            layoutDT.Columns.Add("Lane1 \nCycle \nTime", Type.GetType("System.Double"));
+            layoutDT.Columns.Add("Lane2 \nCycle \nTime", Type.GetType("System.Double"));
+            layoutDT.Columns.Add("Cycle \nTime", Type.GetType("System.Double"));
+            layoutDT.Columns.Add("Qty", Type.GetType("System.Int32"));
+            layoutDT.Columns.Add("Avg", Type.GetType("System.Double"));
+            layoutDT.Columns.Add("CPH", Type.GetType("System.Int32"));
 
-            feederNozzleDT.Columns.Add("Feeder");
-            feederNozzleDT.Columns.Add("Qty Feeder");
+            feederNozzleDT.Columns.Add("Feeder", Type.GetType("System.String"));
+            feederNozzleDT.Columns.Add("Qty Feeder", Type.GetType("System.Int32"));
             //feederNozzleDT.Columns.Add("Head  Type");
-            feederNozzleDT.Columns.Add("Nozzle");
-            feederNozzleDT.Columns.Add("QTy  Nozzle");
+            feederNozzleDT.Columns.Add("Nozzle", Type.GetType("System.String"));
+            feederNozzleDT.Columns.Add("QTy Nozzle", Type.GetType("System.Int32"));
 
             //   List<Tuple<string, string, string, string>> line2_module_head_cycletime_qty_TupleList
             //模组数
@@ -1246,7 +1396,7 @@ namespace Exicel转换1
             foreach (var nozzle in nozzle_Statistics)
             {
                 feederNozzleDT.Rows[k]["Nozzle"] = nozzle.Key;
-                feederNozzleDT.Rows[k]["QTy  Nozzle"] = nozzle.Value;
+                feederNozzleDT.Rows[k]["QTy Nozzle"] = nozzle.Value;
                 k++;
             }
             #endregion
@@ -1323,7 +1473,7 @@ namespace Exicel转换1
                     if (lane1AllString.Split('\n').Length > 1)//可以读取多行时，或存在多行时
                     {
                         //匹配lian 的包含数字，姐cycletime部分
-                        string regPattrenString = @"\\par(.*?\d+?.*?)\n";
+                        string regPattrenString = @"\\par.*?(\s+?\d+?.*?)\n";
                         lane1CycleMatchCollection = Regex.Matches(lane1AllString, regPattrenString, RegexOptions.Singleline);
 
                     }
@@ -1351,8 +1501,21 @@ namespace Exicel转换1
                             if (moduleMatch.Success)
                             {
                                 string[] moduleInfo = line.Split('|');
-
-                                lane1_Cycletime_list.Add(moduleInfo[1].Trim());
+                                //line1_Cycletime_list.Add(moduleInfo[1].Trim());
+                                // 存在这种情况 11 |  \hich\af31506\dbch\af13\loch\f13    23.37 | 129 |   0.18}
+                                if (moduleInfo.Length<4)//取值为 line有可能获取为“"305.000mm. Proceeding in paired module production."”
+                                {
+                                    continue;
+                                }
+                                Match m = Regex.Match(moduleInfo[1].Trim(), @".*?(\s+?\d.*)");
+                                if (m.Success)
+                                {
+                                    lane1_Cycletime_list.Add(m.Groups[1].Value.Trim());
+                                }
+                                else
+                                {
+                                    lane1_Cycletime_list.Add(moduleInfo[1].Trim());
+                                }
                             }
 
                         }
@@ -1364,7 +1527,7 @@ namespace Exicel转换1
                     if (lane2AllString.Split('\n').Length > 1)//可以读取多行时，或存在多行时
                     {
                         //匹配lian 的包含数字，姐cycletime部分
-                        string lane2regPattrenString = @"\\par(.*?\d+?.*?)\n";
+                        string lane2regPattrenString = @"\\par.*?(\s+?\d+?.*?)\n";
                         lane2CycleMatchCollection = Regex.Matches(lane2AllString, lane2regPattrenString, RegexOptions.Singleline);
 
                     }
@@ -1392,8 +1555,21 @@ namespace Exicel转换1
                             if (moduleMatch.Success)
                             {
                                 string[] moduleInfo = line.Split('|');
-
-                                lane2_Cycletime_list.Add(moduleInfo[1].Trim());
+                                if (moduleInfo.Length < 4)//取值为 line有可能获取为“"305.000mm. Proceeding in paired module production."”
+                                {
+                                    continue;
+                                }
+                                //lane2_Cycletime_list.Add(moduleInfo[1].Trim());
+                                // 存在这种情况 11 |  \hich\af31506\dbch\af13\loch\f13    23.37 | 129 |   0.18}
+                                Match m = Regex.Match(moduleInfo[1].Trim(), @".*?(\s+?\d.*)");
+                                if (m.Success)
+                                {
+                                    lane2_Cycletime_list.Add(m.Groups[1].Value.Trim());
+                                }
+                                else
+                                {
+                                    lane2_Cycletime_list.Add(moduleInfo[1].Trim());
+                                }
                             }
 
                         }
@@ -1430,7 +1606,7 @@ namespace Exicel转换1
                     if (lane2AllString.Split('\n').Length > 1)//可以读取多行时，或存在多行时
                     {
                         //匹配lian 的包含数字，姐cycletime部分
-                        string lane2regPattrenString = @"\\par(.*?\d+?.*?)\n";
+                        string lane2regPattrenString = @"\\par.*?(\s+?\d+?.*?)\n";
                         lane2CycleMatchCollection = Regex.Matches(lane2AllString, lane2regPattrenString, RegexOptions.Singleline);
 
                     }
@@ -1458,8 +1634,21 @@ namespace Exicel转换1
                             if (moduleMatch.Success)
                             {
                                 string[] moduleInfo = line.Split('|');
-
-                                lane2_Cycletime_list.Add(moduleInfo[1].Trim());
+                                if (moduleInfo.Length < 4)//取值为 line有可能获取为“"305.000mm. Proceeding in paired module production."”
+                                {
+                                    continue;
+                                }
+                                //lane2_Cycletime_list.Add(moduleInfo[1].Trim());
+                                // 存在这种情况 11 |  \hich\af31506\dbch\af13\loch\f13    23.37 | 129 |   0.18}
+                                Match m = Regex.Match(moduleInfo[1].Trim(), @".*?(\s+?\d.*)");
+                                if (m.Success)
+                                {
+                                    lane2_Cycletime_list.Add(m.Groups[1].Value.Trim());
+                                }
+                                else
+                                {
+                                    lane2_Cycletime_list.Add(moduleInfo[1].Trim());
+                                }
                             }
 
                         }
@@ -1495,7 +1684,7 @@ namespace Exicel转换1
                     if (lane1AllString.Split('\n').Length > 1)//可以读取多行时，或存在多行时
                     {
                         //匹配lian 的包含数字，姐cycletime部分
-                        string regPattrenString = @"\\par(.*?\d+?.*?)\n";
+                        string regPattrenString = @"\\par.*?(\s+?\d+?.*?)\n";
                         lane1CycleMatchCollection = Regex.Matches(lane1AllString, regPattrenString, RegexOptions.Singleline);
 
                     }
@@ -1523,10 +1712,22 @@ namespace Exicel转换1
                             if (moduleMatch.Success)
                             {
                                 string[] moduleInfo = line.Split('|');
-
-                                lane1_Cycletime_list.Add(moduleInfo[1].Trim());
+                                if (moduleInfo.Length < 4)//取值为 line有可能获取为“"305.000mm. Proceeding in paired module production."”
+                                {
+                                    continue;
+                                }
+                                //lane1_Cycletime_list.Add(moduleInfo[1].Trim());
+                                // 存在这种情况 11 |  \hich\af31506\dbch\af13\loch\f13    23.37 | 129 |   0.18}
+                                Match m = Regex.Match(moduleInfo[1].Trim(), @".*?(\s+?\d.*)");
+                                if (m.Success)
+                                {
+                                    lane1_Cycletime_list.Add(m.Groups[1].Value.Trim());
+                                }
+                                else
+                                {
+                                    lane1_Cycletime_list.Add(moduleInfo[1].Trim());
+                                }
                             }
-
                         }
                     }
 
@@ -1640,6 +1841,7 @@ namespace Exicel转换1
             if (pMFrom.ShowDialog() == DialogResult.OK)//这样的语句是合法的：DialogResult f = pMFrom.ShowDialog();
             {
                 productionMode = pMFrom.production;
+                //
             }
 
             return productionMode;
@@ -1683,8 +1885,7 @@ namespace Exicel转换1
                 MessageBox.Show("未选择任何可以生成报告的文件夹！");
                 return;
             }
-
-
+            
             //summaryandLayout_ComprehensiveList 写入到Excel
             if (summaryandLayout_ComprehensiveList.Count > 0)
             {
@@ -1698,6 +1899,15 @@ namespace Exicel转换1
                 //Thread thread_ExportExcel = new Thread(new ParameterizedThreadStart(ComprehensiveStaticClass.GenExcelfromBaseComprehensiveList));
                 ComprehensiveStaticClass.GenExcelfromBaseComprehensiveList(summaryandLayout_ComprehensiveList, excelFileName);
 
+                for (int i = 0; i < summaryandLayout_ComprehensiveList.Count; i++)
+                {
+                    //添加或更新到数据库
+                    if (ComprehensiveStaticClass.EvaluationReportInsertUpdateSqLite(summaryandLayout_ComprehensiveList[i]))
+                    {
+                        //最近打开的xml报告 添加到最近的列表，内部屏蔽重复的                    
+                        Add2LatestExcelReport(summaryandLayout_ComprehensiveList[i].Jobname, summaryandLayout_ComprehensiveList[i].TimeStamp);
+                    }                    
+                }
                 //保存完后清空列表 summaryandLayout_ComprehensiveList
                 //不能设置为null，导出后，再次打开目录 生成处理时summaryandLayout_ComprehensiveList.add添加报 null【未将对象引用设置到对象的实例】
                 //summaryandLayout_ComprehensiveList = null;
@@ -1717,13 +1927,15 @@ namespace Exicel转换1
             //    theEndSummaryandLayout = null;
             //}
             //
-
         }
 
 
         private void XmlReport_Load(object sender, EventArgs e)
         {
             //groupBox1.Hide();
+            //加载时获取已经转换的程式
+            LoadAllTreeListFromSqlite();
+            latestEvaluationReports_treeView.Nodes[0].Expand();
         }
 
         private void latestBaseComprehensive_treeView_AfterSelect(object sender, TreeViewEventArgs e)
@@ -1735,5 +1947,212 @@ namespace Exicel转换1
         {
 
         }
+
+        /// <summary>
+        /// 从SQL加载所有的evaluation，只加载显示列表
+        /// </summary>
+        public void LoadAllTreeListFromSqlite()
+        {
+            string connString = string.Format("Data Source={0};Version=3;", @".\data\convertDB");
+            try
+            {
+                using (SQLiteConnection conn = new SQLiteConnection(connString))
+                {
+                    using (SQLiteCommand comm = new SQLiteCommand())
+                    {
+                        comm.CommandText = @"SELECT TimeStamp,Jobname FROM EvaluationReportTable WHERE TimeStamp IN (
+                                            SELECT TimeStamp FROM ModuleHeadCphStructTable)";
+                        comm.Connection = conn;
+                        conn.Open();
+                        SQLiteDataReader dataReader = comm.ExecuteReader();
+                        if (!dataReader.HasRows)
+                        {
+                            return;
+                        }
+                        while (dataReader.Read())
+                        {
+                            //只加载到最近列表
+                            Add2LatestExcelReport(dataReader["Jobname"].ToString(), Convert.ToInt64(dataReader["TimeStamp"].ToString()));
+                            //LoadEvaluationFromSqlite(Convert.ToInt64(dataReader["TimeStamp"].ToString()),false);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message);
+                return;
+            }
+        }
+
+        /// <summary>
+        /// 加载Evaluation，，默认加载后显示
+        /// </summary>
+        /// <param name="timeStamp"></param>
+        /// <param name="isShow"></param>
+        public void LoadEvaluationFromSqlite(Int64 timeStamp,bool isShow=true)
+        {            
+            string connString = string.Format("Data Source={0};Version=3;", @".\data\convertDB");
+            try
+            {
+                using (SQLiteConnection conn = new SQLiteConnection(connString))
+                {
+                    using (SQLiteCommand comm = new SQLiteCommand())
+                    {
+                        comm.Connection = conn;
+                        comm.CommandText = @"select * from EvaluationReportTable where TimeStamp=@TimeStamp";
+                        comm.Parameters.AddWithValue("@TimeStamp", timeStamp);
+                        
+                        conn.Open();
+                        //SQLiteDataAdapter da = new SQLiteDataAdapter(comm);
+                        SQLiteDataReader dataReader = comm.ExecuteReader();
+                        if (!dataReader.HasRows)
+                        {
+                            return;
+                        }
+                        if (dataReader.Read())
+                        {
+                            EvaluationReportClass evaluationReport = new EvaluationReportClass(timeStamp);
+                            evaluationReport.MachineKind = dataReader["machineKind"].ToString();
+                            evaluationReport.MachineName = dataReader["machineName"].ToString();
+                            evaluationReport.Jobname = dataReader["Jobname"].ToString();
+                            evaluationReport.ToporBot = dataReader["ToporBot"].ToString();
+                            evaluationReport.TargetConveyor = dataReader["targetConveyor"].ToString();
+                            evaluationReport.ProductionMode = dataReader["productionMode"].ToString();
+                            evaluationReport.SummaryDT = ComprehensiveStaticClass.XmlToDataTable(dataReader["summaryDTXml"].ToString());
+                            //evaluationReport.ModulepictureDataByte = Encoding.UTF8.GetBytes(dataReader["ModulePictureByte"].ToString());
+
+                            evaluationReport.ModulepictureDataByte = ComprehensiveStaticClass.GetBytesFromDataReader(dataReader, 8);
+                            evaluationReport.layoutDT = ComprehensiveStaticClass.XmlToDataTable(dataReader["layoutDTXml"].ToString());
+                            evaluationReport.feederNozzleDT = ComprehensiveStaticClass.XmlToDataTable(dataReader["feedrNozzleDTXml"].ToString());
+                            evaluationReport.AirPowerNetPictureByte = ComprehensiveStaticClass.GetBytesFromDataReader(dataReader, 11);
+                            evaluationReport.AllModuleType = dataReader["ModuleTypeStrings"].ToString().Split(',');
+                            evaluationReport.base_StatisticsDict = JsonConvert.DeserializeObject<Dictionary<string, int>>(dataReader["BaseStasticsJson"].ToString());
+                            evaluationReport.module_StatisticsDict = JsonConvert.DeserializeObject<Dictionary<string, int>>(dataReader["moduleStatisticsJson"].ToString());
+                            evaluationReport.AllHeadType = dataReader["HeadTypeStrings"].ToString().Split(',');
+                            evaluationReport.HeadTypeNozzleDict = JsonConvert.DeserializeObject<Dictionary<string,string[]>>(dataReader["HeadTypeNozzleDictJson"].ToString());
+                            evaluationReport.Line= evaluationReport.SummaryDT.Rows[0]["Line"].ToString();
+
+                            #region //获取ModuleHeadCphStructTable
+                            //关闭DataReader和清空参数
+                            dataReader.Close();
+                            comm.Parameters.Clear();
+                            //开始查询
+                            comm.CommandText = @"select * from ModuleHeadCphStructTable where timestamp=@TimeStamp order by indx";
+                            comm.Parameters.AddWithValue("@TimeStamp", timeStamp);
+                            if (conn.State == ConnectionState.Closed)
+                            {
+                                conn.Open();
+                            }
+                            //SQLiteDataAdapter da = new SQLiteDataAdapter(comm);
+                            
+                            dataReader = comm.ExecuteReader();
+                            if (!dataReader.HasRows)
+                            {
+                                //释放资源
+                                //evaluationReport
+                                return;
+                            }
+
+                            //创建Module_Head_Cph_Struct
+                            List<Module_Head_Cph_Struct> module_Head_Cph_Structs = new List<Module_Head_Cph_Struct>();
+                            //获取并反序列化module_Head_Cph_Structs_List
+                            Module_Head_Cph_String_Struct module_Head_Cph_String_Struct = new Module_Head_Cph_String_Struct();
+                            while (dataReader.Read())
+                            {
+                                module_Head_Cph_String_Struct.moduleTrayTypeGroup = dataReader["ModuleTrayTypeGroup"].ToString();
+                                module_Head_Cph_String_Struct.headTypeGroup = dataReader["HeadTypeGroup"].ToString();
+                                module_Head_Cph_String_Struct.cphListGroup = dataReader["CPHListGroup"].ToString();
+
+                                Module_Head_Cph_Struct module_Head_Cph_Struct = ComprehensiveStaticClass.DeserializeStringToModule_Head_Cph_Struct(
+                                    module_Head_Cph_String_Struct);
+                                module_Head_Cph_Structs.Add(module_Head_Cph_Struct);
+                            }
+                            evaluationReport.module_Head_Cph_Structs_List = module_Head_Cph_Structs; 
+                            #endregion
+
+                            if (isShow)
+                            {
+                                AddEvaluationReportListAndShow(evaluationReport);
+                            }
+                            else
+                            {
+                                //处理显示和添加evaluationReport，屏蔽重复显示和添加
+                                //ShowAddEvaluationReportClass(evaluationReport);
+                                summaryandLayout_ComprehensiveList.Add(evaluationReport);
+                            }
+                            
+                            //添加到最近打开的程式,添加内部做判断，存在则不添加
+                            Add2LatestExcelReport(evaluationReport.Jobname, evaluationReport.TimeStamp);
+                        }
+
+                        
+                        //@TimeStamp = @TimeStamp=TimeStamp,@machineKind = machineKind,@machineName = machineName,
+                        //            @Jobname = Jobname,@ToporBot = ToporBot,@targetConveyor = targetConveyor,@productionMode = productionMode,
+                        //            @summaryDTXml = summaryDTXml,@ModulePictureByte = ModulePictureByte,@layoutDTXml = layoutDTXml,
+                        //            @feedrNozzleDTXml = feedrNozzleDTXml,@AirPowerNetPictureByte = AirPowerNetPictureByte,
+                        //            @ModuleTypeStrings = ModuleTypeStrings,@BaseStasticsJson = BaseStasticsJson,
+                        //            @moduleStatisticsJson = moduleStatisticsJson,@HeadTypeStrings = HeadTypeStrings from
+                        //                EvaluationReportTable
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message);
+                return;
+            }
+        }
+
+        //最近打开的treelist列表，节点双击事件
+        private void latestEvaluationReports_treeView_DoubleClick(object sender, EventArgs e)
+        {
+            if (latestEvaluationReports_treeView.SelectedNode==latestEvaluationReports_treeView.Nodes[0])
+            {
+                return;
+            }
+            //设置标志位，加载完当前报告之前不允许在加载其他            
+            if (hasLoadEvaluation)
+            {
+                return;
+            }
+            //加载开始
+            hasLoadEvaluation = true;
+            //获取选中的节点
+            //string nodeText = latestEvaluationReports_treeView.SelectedNode.Text;
+            //if (nodeText.Split('*').Length>1)
+            //{
+            //    Int64 timeStamp = Convert.ToInt64(nodeText.Split('*')[nodeText.Split('*').Length - 1]);
+            //    //加载Evaluation
+            //    LoadEvaluation(timeStamp);
+            //}
+            string nodeName = latestEvaluationReports_treeView.SelectedNode.Name;
+            
+                Int64 timeStamp = Convert.ToInt64(nodeName);
+                //加载Evaluation
+                LoadEvaluation(timeStamp);
+            
+
+            //加载结束
+            hasLoadEvaluation = false;
+        }
+
+        //加载显示分两种，1.是从已有的summaryandLayout_ComprehensiveList中加载。2.从SQL加载
+        private void LoadEvaluation(long timeStamp)
+        {
+            foreach (var item in summaryandLayout_ComprehensiveList)
+            {
+                if (item.TimeStamp==timeStamp)
+                {
+                    //存在则显示其tabpage
+                    string s = item.TimeStamp.ToString();
+                    evaluation_TabControl.SelectTab(s);
+                    //从summaryandLayout_ComprehensiveList加载完成
+                    return;
+                }
+            }
+            LoadEvaluationFromSqlite(timeStamp);
+        }
+             
     }
 }

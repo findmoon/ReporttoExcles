@@ -15,18 +15,35 @@ namespace Exicel转换1
         public LineCfg lineCfg;
         public FlexCVReport flexCVCReport;
         public XmlReport xmlReport;
+        public UserManageCtrol userManage = null;
+        public UserAcount userAcount;
 
-        public XmlExcelRtfConvertMain_Form()
+        public XmlExcelRtfConvertMain_Form(UserAcount user)
         {
             InitializeComponent();
+            //根据userAcount初始化Main窗体
+            userAcount = user;
         }
 
-        
+
         private void Form1_Load(object sender, EventArgs e)
         {
+            ////根据userAcount初始化 生成评估报告用户控件【显示和限制不同功能】及用户管理模块
+            userManage = new UserManageCtrol(userAcount);
+
+            //控制log按钮的显示
+            if (userAcount.Level > 3)
+            {
+                DetialLogBtn.Enabled = false;
+            }
+            else
+            {
+                DetialLogBtn.Enabled = false;
+            }
+
             lineCfg = new LineCfg();//给窗体变量初始化
             flexCVCReport = new FlexCVReport();//窗体变量初始化
-            xmlReport = new XmlReport();//窗体变量初始化
+            xmlReport = new XmlReport(userAcount);//窗体变量初始化
 
             ////设置控件依靠父控件
             //xmlReport.Anchor = (AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Top | AnchorStyles.Bottom);
@@ -41,12 +58,14 @@ namespace Exicel转换1
             FlexCVWindowToolBtn.Visible = false;
             LinCfgWindowToolBtn.Enabled = false;
             LinCfgWindowToolBtn.Visible = false;
+
+
         }
         private void GpbWindow_Enter(object sender, EventArgs e)
         {
             //Dock 获取或设置哪些控件边框停靠到其父控件并确定控件如何随其父级一起调整大小。
             this.GpbWindow.AutoSizeMode = AutoSizeMode.GrowAndShrink;
-            
+
         }
 
         private void XmlWindowToolBtn_Click(object sender, EventArgs e)
@@ -90,6 +109,18 @@ namespace Exicel转换1
             flexCVCReport.Hide();
             GpbWindow.Controls.Clear();
             GpbWindow.Controls.Add(lineCfg);
+        }
+
+        private void DetialLogBtn_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void UserAdmin_Click(object sender, EventArgs e)
+        {
+            GpbWindow.Controls.Clear();
+            GpbWindow.Controls.Add(userManage);
+            userManage.Show();
         }
     }
 }

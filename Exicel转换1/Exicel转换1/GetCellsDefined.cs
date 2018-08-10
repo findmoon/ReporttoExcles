@@ -38,10 +38,10 @@ namespace Exicel转换1
             return GetCellArea(dt, startPoint, rowY, columnX, false);
         }
 
-        public DataTable GetCellArea(DataTable dt,int[] startPoint,int rowY, int columnX, bool isFirstRowColumn)
+        public DataTable GetCellArea(DataTable dt, int[] startPoint, int rowY, int columnX, bool isFirstRowColumn)
         {
             DataTable newDT = new DataTable();
-           
+
             DataRow newDR;
 
             //开始获取的基准点
@@ -73,14 +73,14 @@ namespace Exicel转换1
                 {
                     //newDC = new DataColumn(dt.Rows[0][j].ToString());
                     string newDC = dt.Rows[startX][startY + j].ToString();
-                    newDT.Columns.Add(newDC);                    
+                    newDT.Columns.Add(newDC);
                 }
                 startX++;
                 rowY--;
             }
 
-                ///往行内填充数据
-                ///
+            ///往行内填充数据
+            ///
             for (int i = 0; i < rowY; i++)
             {
                 //创建行newDR
@@ -93,7 +93,7 @@ namespace Exicel转换1
                         newDR[j] = dt.Rows[startX + i][startY + j];
                         //MessageBox.Show(newDR[j].ToString());
                     }
-                    
+
                 }
 
                 //将行添加到DataTable
@@ -114,7 +114,7 @@ namespace Exicel转换1
         public DataTable GetCellArea(DataTable dt, int[] startPoint, int[] endPoint, bool isFirstRowColumn)
         {
             //判断是否有结束位置
-            if (endPoint==null)
+            if (endPoint == null)
             {
                 return GetCellArea(dt, startPoint, dt.Rows.Count - startPoint[0], dt.Columns.Count - startPoint[1], isFirstRowColumn);
             }
@@ -125,12 +125,12 @@ namespace Exicel转换1
                 //如果位于同一行，获取两点间所有列
                 if (startPoint[0] == endPoint[0])
                 {
-                   return GetCellArea(dt, startPoint, dt.Rows.Count - startPoint[0], endPoint[1] - startPoint[1], isFirstRowColumn);
+                    return GetCellArea(dt, startPoint, dt.Rows.Count - startPoint[0], endPoint[1] - startPoint[1], isFirstRowColumn);
 
                 }
-                else if(startPoint[1] == endPoint[1])//如果位于同一列，获取两点间所有行
+                else if (startPoint[1] == endPoint[1])//如果位于同一列，获取两点间所有行
                 {
-                   return GetCellArea(dt, startPoint, endPoint[0] - startPoint[0], dt.Columns.Count - startPoint[1], isFirstRowColumn);
+                    return GetCellArea(dt, startPoint, endPoint[0] - startPoint[0], dt.Columns.Count - startPoint[1], isFirstRowColumn);
 
                 }
                 else
@@ -141,13 +141,13 @@ namespace Exicel转换1
 
             }
 
-            
+
         }
 
-       
+
         public DataTable GetCellArea(DataTable dt, int[] startPoint, int[] endPoint)
         {
-            
+
             return GetCellArea(dt, startPoint, endPoint, false);
 
         }
@@ -155,7 +155,7 @@ namespace Exicel转换1
         #endregion
 
         //获取dt下，开始位置，结束位置 根据下一行是否为空确定
-        public DataTable GetCellArea(DataTable dt, int[] startPoint,int columnNum, bool isFirstRowColumn)
+        public DataTable GetCellArea(DataTable dt, int[] startPoint, int columnNum, bool isFirstRowColumn)
         {
             //计算结束位置
             int i = startPoint[0];
@@ -164,13 +164,13 @@ namespace Exicel转换1
                 i++;
             }
 
-            int[] endPoint = new int[2] {i-1, startPoint[1]+ columnNum };
+            int[] endPoint = new int[2] { i - 1, startPoint[1] + columnNum };
 
             return GetCellArea(dt, startPoint, endPoint, isFirstRowColumn);
         }
         public DataTable GetCellArea(DataTable dt, int[] startPoint, int columnNum)
         {
-            return GetCellArea(dt, startPoint, columnNum,false);
+            return GetCellArea(dt, startPoint, columnNum, false);
         }
 
     }

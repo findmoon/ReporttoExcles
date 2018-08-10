@@ -4,6 +4,7 @@ D:\工作\新建文件夹 (2)\新建文件夹\C#\Exicel转换\Exicel转换1\Exic
 D:\工作\新建文件夹 (2)\新建文件夹\C#\Exicel转换\Exicel转换1\Exicel转换1\bin\Debug\EntityFramework.dll
 D:\工作\新建文件夹 (2)\新建文件夹\C#\Exicel转换\Exicel转换1\Exicel转换1\bin\Debug\EntityFramework.SqlServer.dll
 D:\工作\新建文件夹 (2)\新建文件夹\C#\Exicel转换\Exicel转换1\Exicel转换1\bin\Debug\ICSharpCode.SharpZipLib.dll
+D:\工作\新建文件夹 (2)\新建文件夹\C#\Exicel转换\Exicel转换1\Exicel转换1\bin\Debug\Newtonsoft.Json.dll
 D:\工作\新建文件夹 (2)\新建文件夹\C#\Exicel转换\Exicel转换1\Exicel转换1\bin\Debug\NPOI.dll
 D:\工作\新建文件夹 (2)\新建文件夹\C#\Exicel转换\Exicel转换1\Exicel转换1\bin\Debug\NPOI.OOXML.dll
 D:\工作\新建文件夹 (2)\新建文件夹\C#\Exicel转换\Exicel转换1\Exicel转换1\bin\Debug\NPOI.OpenXml4Net.dll
@@ -13,9 +14,18 @@ D:\工作\新建文件夹 (2)\新建文件夹\C#\Exicel转换\Exicel转换1\Exic
 D:\工作\新建文件夹 (2)\新建文件夹\C#\Exicel转换\Exicel转换1\Exicel转换1\bin\Debug\System.Data.SQLite.Linq.dll
 D:\工作\新建文件夹 (2)\新建文件夹\C#\Exicel转换\Exicel转换1\Exicel转换1\bin\Debug\EntityFramework.xml
 D:\工作\新建文件夹 (2)\新建文件夹\C#\Exicel转换\Exicel转换1\Exicel转换1\bin\Debug\EntityFramework.SqlServer.xml
+D:\工作\新建文件夹 (2)\新建文件夹\C#\Exicel转换\Exicel转换1\Exicel转换1\bin\Debug\Newtonsoft.Json.xml
 D:\工作\新建文件夹 (2)\新建文件夹\C#\Exicel转换\Exicel转换1\Exicel转换1\bin\Debug\NPOI.xml
 D:\工作\新建文件夹 (2)\新建文件夹\C#\Exicel转换\Exicel转换1\Exicel转换1\bin\Debug\System.Data.SQLite.xml
 D:\工作\新建文件夹 (2)\新建文件夹\C#\Exicel转换\Exicel转换1\Exicel转换1\bin\Debug\System.Data.SQLite.dll.config
+D:\工作\新建文件夹 (2)\新建文件夹\C#\Exicel转换\Exicel转换1\Exicel转换1\obj\Debug\Exicel转换1.CurrenUerCtrol.resources
+D:\工作\新建文件夹 (2)\新建文件夹\C#\Exicel转换\Exicel转换1\Exicel转换1\obj\Debug\Exicel转换1.LoginCtrol.resources
+D:\工作\新建文件夹 (2)\新建文件夹\C#\Exicel转换\Exicel转换1\Exicel转换1\obj\Debug\Exicel转换1.LoginFrom.resources
+D:\工作\新建文件夹 (2)\新建文件夹\C#\Exicel转换\Exicel转换1\Exicel转换1\obj\Debug\Exicel转换1.QuotationForm.resources
+D:\工作\新建文件夹 (2)\新建文件夹\C#\Exicel转换\Exicel转换1\Exicel转换1\obj\Debug\Exicel转换1.QuotationLackItem.resources
+D:\工作\新建文件夹 (2)\新建文件夹\C#\Exicel转换\Exicel转换1\Exicel转换1\obj\Debug\Exicel转换1.RegisterCtrol.resources
+D:\工作\新建文件夹 (2)\新建文件夹\C#\Exicel转换\Exicel转换1\Exicel转换1\obj\Debug\Exicel转换1.UserAndPrivilegeCtrol.resources
+D:\工作\新建文件夹 (2)\新建文件夹\C#\Exicel转换\Exicel转换1\Exicel转换1\obj\Debug\Exicel转换1.UserManageCtrol.resources
 D:\工作\新建文件夹 (2)\新建文件夹\C#\Exicel转换\Exicel转换1\Exicel转换1\obj\Debug\Exicel转换1.XmlExcelRtfConvertMain_Form.resources
 D:\工作\新建文件夹 (2)\新建文件夹\C#\Exicel转换\Exicel转换1\Exicel转换1\obj\Debug\Exicel转换1.FlexCVReport.resources
 D:\工作\新建文件夹 (2)\新建文件夹\C#\Exicel转换\Exicel转换1\Exicel转换1\obj\Debug\Exicel转换1.LineCfg.resources
@@ -29,4 +39,5 @@ D:\工作\新建文件夹 (2)\新建文件夹\C#\Exicel转换\Exicel转换1\Exic
 D:\工作\新建文件夹 (2)\新建文件夹\C#\Exicel转换\Exicel转换1\Exicel转换1\obj\Debug\Excel评估报告转换.csproj.CopyComplete
 D:\工作\新建文件夹 (2)\新建文件夹\C#\Exicel转换\Exicel转换1\Exicel转换1\obj\Debug\Exicel转换Job Report.exe
 D:\工作\新建文件夹 (2)\新建文件夹\C#\Exicel转换\Exicel转换1\Exicel转换1\obj\Debug\Exicel转换Job Report.pdb
+D:\工作\新建文件夹 (2)\新建文件夹\C#\Exicel转换\Exicel转换1\Exicel转换1\obj\Debug\Exicel转换1.CPPCalculate.resources
 D:\工作\新建文件夹 (2)\新建文件夹\C#\Exicel转换\Exicel转换1\Exicel转换1\obj\Debug\Excel评估报告转换.csprojResolveAssemblyReference.cache

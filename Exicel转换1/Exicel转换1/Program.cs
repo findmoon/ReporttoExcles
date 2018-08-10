@@ -13,13 +13,15 @@ namespace Exicel转换1
         [STAThread]
         static void Main()
         {
-            if (DateTime.Compare(DateTime.Now, Convert.ToDateTime("2018-9-30")) > 0)
-            {
-                return;
-            }
+            //if (DateTime.Compare(DateTime.Now, Convert.ToDateTime("2018-9-30")) > 0)
+            //{
+            //    return;
+            //}
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new XmlExcelRtfConvertMain_Form());
+            //Application.Run(new XmlExcelRtfConvertMain_Form());
+            //默认首先加载登录窗口
+            Application.Run(new LoginFrom());
         }
     }
 }

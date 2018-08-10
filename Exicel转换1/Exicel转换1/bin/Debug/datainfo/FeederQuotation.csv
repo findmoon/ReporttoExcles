@@ -1,0 +1,38 @@
+1,0400F,180,Set,W04F 7"  2UDLFA001300   ,0,128000 ,Intelligent Feeder  with reel holder: 
+2,0400F,180,Set,W04F (0201 support) 7" 2UDLFA002800,1,160000 ,Intelligent Feeder  with reel holder: 
+3,0800F,180,Set,W08F 7"  2UDLFA001000  ,0,96000 ,Intelligent Feeder  with reel holder: 
+4,0800F,180,Set,W08F 7"  2UDLFA001000 WITH MAGNET,1,101700 ,Intelligent Feeder  with reel holder: 
+5,0800F,180,Set,"W08F 7” with [Retrofitted center pin(2ADLFA0247**)]
+",1,97000 ,Intelligent Feeder  with reel holder: 
+6,0800F,180,Set,W08F 7" with Sub Plate(2ADLFA011800) * 2UDLFA003800,1,117800 ,Intelligent Feeder  with reel holder: 
+7,0800F,330,Set,W08F 13"  2UDLFA001100,0,96000 ,Intelligent Feeder  with reel holder: 
+8,1200F,180,Set,W12F 7"  2UDLFB000900,0,128000 ,Intelligent Feeder  with reel holder: 
+9,1200F,380,Set,W12F 15"  2UDLFB000600,0,128000 ,Intelligent Feeder  with reel holder: 
+10,1600F,380,Set,W16F 15"  2UDLFB000700,0,160000 ,Intelligent Feeder  with reel holder: 
+11,2400C,380,Set,W24C 15"  UF10500,0,192000 ,Intelligent Feeder  with reel holder: 
+12,3200C,380,Set,W32C 15"  UF10700,0,320000 ,Intelligent Feeder  with reel holder: 
+13,4400C,380,Set,W44C 15"  UF10900,0,400000 ,Intelligent Feeder  with reel holder: 
+14,5600C,380,Set,W56C 15"  UF11100,0,480000 ,Intelligent Feeder  with reel holder: 
+15,7200,380,Set,W72 15"  UF02500,0,960000 ,Intelligent Feeder  with reel holder: 
+16,8800,380,Set,W88 15"  UF02600,0,1120000 ,Intelligent Feeder  with reel holder: 
+17,10400,380,Set,W104 15"  UF05000,0,1440000 ,Intelligent Feeder  with reel holder: 
+18,0400F,0,Set,W04F 2UDLFA001400,1,112000 ,"Intelligent Feeder  without reel holder, with roller: "
+19,0400F,0,Set,W04F (0201 support) 7" 2UDLFA002900,1,144000 ,"Intelligent Feeder  without reel holder, with roller: "
+20,0800F,0,Set,W08F 2UDLFA001200,1,80000 ,"Intelligent Feeder  without reel holder, with roller: "
+21,0800F,0,Set,W08F with Sub Plate(2ADLFA011800) * 2UDLFA004000,1,98800 ,"Intelligent Feeder  without reel holder, with roller: "
+22,1200F,0,Set,W12F  2UDLFB001100,1,105600 ,"Intelligent Feeder  without reel holder, with roller: "
+23,1600F,0,Set,W16F  2ULDFB001300,1,132800 ,"Intelligent Feeder  without reel holder, with roller: "
+24,2400C,0,Set,W24C  UF10600,1,160000 ,"Intelligent Feeder  without reel holder, with roller: "
+25,3200C,0,Set,W32C  UF10800,1,265600 ,"Intelligent Feeder  without reel holder, with roller: "
+26,4400C,0,Set,W44C  UF11000,1,332800 ,"Intelligent Feeder  without reel holder, with roller: "
+27,5600C,0,Set,W56C UF11200,1,449600 ,"Intelligent Feeder  without reel holder, with roller: "
+28,7200,0,Set,W72  UF05200,1,896000 ,"Intelligent Feeder  without reel holder, with roller: "
+29,8800,0,Set,W88  UF05300,1,1048000 ,"Intelligent Feeder  without reel holder, with roller: "
+30,10400,0,Set,W104  UF09600,1,1376000 ,"Intelligent Feeder  without reel holder, with roller: "
+31,MTray,0,Set,Tray Unit-M (for M6 III only) UT00200,0,4000000,Tray Unit M  *For M6III Only: 
+32,MTray,0,Set,"Half  Duct Unit for M6 III 2SGTPL000100
+(for one Tray Unit-M  or one Tray Feeder M or one Tray  Feeder L) ",0,17600,Tray Unit M  *For M6III Only: 
+33,MTray,0,Set,Packing & FOB Charge for Tray-M (單買0RM/C同買均要報),0,100000,Tray Unit M  *For M6III Only: 
+34,MTray,0,Set,Half Bucket(for one Tray Unit-M) 2SGTPP000400,1,169600,Tray Unit M  *For M6III Only: 
+35,MTray,0,Set,Tray Unit-M  Change Unit UT00400,1,320000,Tray Unit M  *For M6III Only: 
+36,MTray,0,Set,Packing & FOB Charge for Tray Unit-M Change Unit (單買0RM/C同買均要報),1,100000,Tray Unit M  *For M6III Only: 

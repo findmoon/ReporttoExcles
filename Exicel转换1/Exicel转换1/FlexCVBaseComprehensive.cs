@@ -14,7 +14,7 @@ namespace Exicel转换1
     {
         private SummaryInfoList summaryInfoList_File;
         private layoutInfoList layoutInfoList_File;
-        public List<BaseComprehensive> baseComprehensive_list = new List<BaseComprehensive>();
+        public List<EvaluationReportClass> baseComprehensive_list = new List<EvaluationReportClass>();
         /*
         //存放SummaryInfoList中的SummaryEveryInfo_list，因为可能会打开多个SummaryInfoList，所以要lsit类型
         List<SummaryEveryInfo> SummaryEveryInfo_list = new List<SummaryEveryInfo>();
@@ -64,19 +64,20 @@ namespace Exicel转换1
                 {
                     //resultInfoTable_tuple_list.Add(new Tuple<SummaryEveryInfo, layoutExpressEveryInfo>(
                     // summaryInfoList_File.SummaryEveryInfo_list[i], layoutInfoList_File.layoutExpressEveryInfo_list[i]));
-                    BaseComprehensive baseComprehensive = new BaseComprehensive(ComprehensiveStaticClass.GetTimeStamp());
+                    EvaluationReportClass baseComprehensive = new EvaluationReportClass(ComprehensiveStaticClass.GetTimeStamp());
                     baseComprehensive.Jobname = summaryInfoList_File.expressSummaryEveryInfo_list[i].Jobname;
-                    baseComprehensive.T_or_B = summaryInfoList_File.expressSummaryEveryInfo_list[i].T_or_B;
+                    baseComprehensive.ToporBot = summaryInfoList_File.expressSummaryEveryInfo_list[i].ToporBot;
                     baseComprehensive.TargetConveyor = summaryInfoList_File.expressSummaryEveryInfo_list[i].TargetConveyor;
-                    baseComprehensive.Conveyor = summaryInfoList_File.expressSummaryEveryInfo_list[i].Conveyor;
-                    baseComprehensive.ModuleCount = summaryInfoList_File.expressSummaryEveryInfo_list[i].ModuleCount;
-                    baseComprehensive.SummaryInfoDT = summaryInfoList_File.expressSummaryEveryInfo_list[i].SummaryInfoDT;
+                    //Convery为productModle
+                    //baseComprehensive.Conveyor = summaryInfoList_File.expressSummaryEveryInfo_list[i].Conveyor;
+                    //baseComprehensive.ModuleCount = summaryInfoList_File.expressSummaryEveryInfo_list[i].ModuleCount;
+                    baseComprehensive.SummaryDT = summaryInfoList_File.expressSummaryEveryInfo_list[i].SummaryDT;
                     baseComprehensive.ModulepictureDataByte = summaryInfoList_File.expressSummaryEveryInfo_list[i].ModulepictureDataByte;
                     
                     //baseComprehensive.layoutDT = layoutInfoList_File.layoutExpressEveryInfo_list[i].layoutExpressDT;
 
                     baseComprehensive.feederNozzleDT = layoutInfoList_File.layoutExpressEveryInfo_list[i].feederNozzleDT;
-                    baseComprehensive.totalfeederNozzleDT = layoutInfoList_File.layoutExpressEveryInfo_list[i].totalfeederNozzleDT;
+                    baseComprehensive.feederNozzleDT = layoutInfoList_File.layoutExpressEveryInfo_list[i].totalfeederNozzleDT;
 
                     baseComprehensive_list.Add(baseComprehensive);
                 }

@@ -29,3 +29,14 @@ D:\工作\新建文件夹 (2)\新建文件夹\C#\Exicel转换\Exicel转换1\Exic
 D:\工作\新建文件夹 (2)\新建文件夹\C#\Exicel转换\Exicel转换1\Exicel转换1\obj\Release\Excel评估报告转换.csproj.CopyComplete
 D:\工作\新建文件夹 (2)\新建文件夹\C#\Exicel转换\Exicel转换1\Exicel转换1\obj\Release\Exicel转换Job Report.exe
 D:\工作\新建文件夹 (2)\新建文件夹\C#\Exicel转换\Exicel转换1\Exicel转换1\obj\Release\Exicel转换Job Report.pdb
+D:\工作\新建文件夹 (2)\新建文件夹\C#\Exicel转换\Exicel转换1\Exicel转换1\bin\Release\Newtonsoft.Json.dll
+D:\工作\新建文件夹 (2)\新建文件夹\C#\Exicel转换\Exicel转换1\Exicel转换1\bin\Release\Newtonsoft.Json.xml
+D:\工作\新建文件夹 (2)\新建文件夹\C#\Exicel转换\Exicel转换1\Exicel转换1\obj\Release\Exicel转换1.CurrenUerCtrol.resources
+D:\工作\新建文件夹 (2)\新建文件夹\C#\Exicel转换\Exicel转换1\Exicel转换1\obj\Release\Exicel转换1.LoginCtrol.resources
+D:\工作\新建文件夹 (2)\新建文件夹\C#\Exicel转换\Exicel转换1\Exicel转换1\obj\Release\Exicel转换1.LoginFrom.resources
+D:\工作\新建文件夹 (2)\新建文件夹\C#\Exicel转换\Exicel转换1\Exicel转换1\obj\Release\Exicel转换1.QuotationForm.resources
+D:\工作\新建文件夹 (2)\新建文件夹\C#\Exicel转换\Exicel转换1\Exicel转换1\obj\Release\Exicel转换1.QuotationLackItem.resources
+D:\工作\新建文件夹 (2)\新建文件夹\C#\Exicel转换\Exicel转换1\Exicel转换1\obj\Release\Exicel转换1.RegisterCtrol.resources
+D:\工作\新建文件夹 (2)\新建文件夹\C#\Exicel转换\Exicel转换1\Exicel转换1\obj\Release\Exicel转换1.UserAndPrivilegeCtrol.resources
+D:\工作\新建文件夹 (2)\新建文件夹\C#\Exicel转换\Exicel转换1\Exicel转换1\obj\Release\Exicel转换1.UserManageCtrol.resources
+D:\工作\新建文件夹 (2)\新建文件夹\C#\Exicel转换\Exicel转换1\Exicel转换1\obj\Release\Excel评估报告转换.csprojResolveAssemblyReference.cache
