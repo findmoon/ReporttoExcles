@@ -22,9 +22,13 @@ namespace Exicel转换1
         private string JOBName;
         private string Conveyor;
         private ExcelHelper excelHelper = null;
-        private string sheetName_CustomerReport;
+        private string sheetName_CustomerReport;        
         private DataTable secondSheetDT = null;
         private DataTable smallsecondSheetDT = null;
+
+        private string sheetName_Result;
+        private string Job;
+        private string targetConveyor;
 
         public DataTable SecondSheetDT{
             get
@@ -40,18 +44,20 @@ namespace Exicel转换1
             }
         }
 
-        public getsecondsheet(ExcelHelper excelHelper,string sheetName_CustomerReport, string JOBName,string Conveyor)
+        public getsecondsheet(ExcelHelper excelHelper,string sheetName_CustomerReport, string JOBName,string Conveyor,int machineCount)
         {
+            #region 获取sheetName_CustomerReport的各种信息
             this.JOBName = JOBName;
             this.Conveyor = Conveyor;
             this.excelHelper = excelHelper;
             this.sheetName_CustomerReport = sheetName_CustomerReport;
 
             DataTable CustomerReport_DataTable = null;
+            //ExcelToDataTabl获取sheet到DataTable，第一行是否作为DataTable的列名
             CustomerReport_DataTable = excelHelper.ExcelToDataTable(sheetName_CustomerReport, false);
-            if (CustomerReport_DataTable==null)
+            if (CustomerReport_DataTable == null)
             {
-                MessageBox.Show("未获取到sheet："+ CustomerReport_DataTable);
+                MessageBox.Show("未获取到sheet：" + CustomerReport_DataTable);
                 return;
             }
 
@@ -82,10 +88,10 @@ namespace Exicel转换1
 
             #region 获取确定点的区域
             //第一行均作为DataTable的列，因为sheet生成的表格是个标准的行列对应的表格，便于查找和操作
-            //获取module区域，9行，12列的区域
-            int[] moduleArea = new int[] { 9, 12 };
+            //获取module区域，9行，12列的区域, 行=模组数 machineCount+1 ，12列固定
+            int[] moduleArea = new int[] { machineCount+1, 12 };
             GetCellsDefined getModuleCells = new GetCellsDefined();
-            getModuleCells.GetCellArea(CustomerReport_DataTable, modulePoint, moduleArea[0], moduleArea[1],true);
+            getModuleCells.GetCellArea(CustomerReport_DataTable, modulePoint, moduleArea[0], moduleArea[1], true);
             //获取这个区域的DataTable
             DataTable moduleDT = getModuleCells.DT;
 
@@ -94,8 +100,8 @@ namespace Exicel转换1
             int feederRowCount = NozzleNumberPoint[0] - feederPoint[0] - 1;
             int[] feederArea = new int[] { feederRowCount, 2 };
             GetCellsDefined getFeederCells = new GetCellsDefined();
-           
-            getFeederCells.GetCellArea(CustomerReport_DataTable, feederPoint, feederArea[0], feederArea[1],true);
+
+            getFeederCells.GetCellArea(CustomerReport_DataTable, feederPoint, feederArea[0], feederArea[1], true);
             //获取这个区域的DataTable
             DataTable feederDT = getFeederCells.DT;
 
@@ -152,15 +158,15 @@ namespace Exicel转换1
                 dr["Prouction Mode"] = Conveyor;
 
                 //空行的特殊处理
-                if (i>= moduleDT.Rows.Count)
+                if (i >= moduleDT.Rows.Count)
                 {
                     DataRow dr1 = moduleDT.NewRow();
                     moduleDT.Rows.Add(dr1);
                     dr["Prouction Mode"] = null;
                 }
 
-                
-                
+
+
                 dr["Module No."] = moduleDT.Rows[i]["Module"];
                 dr["Module"] = moduleDT.Rows[i]["Module Type"];
                 dr["Head Type"] = moduleDT.Rows[i]["Head Type"];
@@ -171,7 +177,7 @@ namespace Exicel转换1
                 secondSheetDT.Rows.Add(dr);
             }
 
-            
+
             for (int i = 0; i < secondSheetDTRowCount; i++)
             {
                 if (nozzleNameDT.Rows.Count <= i)
@@ -192,17 +198,31 @@ namespace Exicel转换1
                 dr["QTy  Nozzle"] = nozzleNameDT.Rows[i]["Qty"];
 
                 //head type的单独添加
-                if (i<moduleDT.Rows.Count)
+                if (i < moduleDT.Rows.Count)
                 {
                     dr["Head  Type"] = moduleDT.Rows[i]["Head Type"];
                 }
-                
+
 
                 smallsecondSheetDT.Rows.Add(dr);
             }
             #endregion
+            #endregion
 
+            #region 获取sheetname_Result的各种信息
+            this.sheetName_Result = sheetName_Result;
+            DataTable Result_DataTable = null;
+            //ExcelToDataTabl获取sheet到DataTable，第一行是否作为DataTable的列名
+            Result_DataTable = excelHelper.ExcelToDataTable(sheetName_Result, false);
+            if (Result_DataTable == null)
+            {
+                MessageBox.Show("未获取到sheet：" + CustomerReport_DataTable);
+                return;
+            }
 
+            int[] targetConveyor_Point = getPoints(Result_DataTable, "TargetConveyor");
+            
+            #endregion
 
         }
 
@@ -222,8 +242,7 @@ namespace Exicel转换1
 
         //获取DataTable中两点间某一string的位置
         public int[] getPoints(DataTable dt, int[] Point1,int[] Point2,string findString1)
-        {      
-
+        {
             getDataTablePointsInfo sectionInfo = new getDataTablePointsInfo(dt, Point1, Point2);
             return sectionInfo.GetInfo_Between(findString1)[0];
 

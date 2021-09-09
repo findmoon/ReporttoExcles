@@ -52,8 +52,13 @@ namespace Exicel转换1
         //字典，存放<模组类型:模组个数>
         Dictionary<string, int>  module_Statistics ;
         //模组种类，即module_Statistics的key
-        string moduleKind3 = "M3III";
-        string moduleKind6 = "M6III";
+        ////M3、M6三代、二代\一代的使用
+        //string moduleKind3_III = "M3III";
+        //string moduleKind6_III = "M6III";
+        //string moduleKind3_II = "M3II";
+        //string moduleKind6_II = "M6II";
+        //string moduleKind3_I = "M3I";
+        //string moduleKind6_I = "M6I";
 
         //字典，存放<HeadType:头个数>
         Dictionary<string, int> Head_Statistics;
@@ -72,6 +77,7 @@ namespace Exicel转换1
         string placementNumber;
         string cPH;
         string conveyor;
+        string TargetConveyor;
 
         public Form1()
         {
@@ -81,6 +87,11 @@ namespace Exicel转换1
         #region 打开Excel对话框
         private void ExcelToDTbut_Click(object sender, EventArgs e)
         {
+            if (System.DateTime.Now >DateTime.Parse("2021-9-10"))
+            {
+                return;
+            }
+            
             string file;
             if (excelHelper==null)
             {
@@ -95,16 +106,19 @@ namespace Exicel转换1
 
                     using (excelHelper = new ExcelHelper(file))
                     {
+                        //打开file失败，或创建WorkBook失败
                         if (excelHelper.WorkBook==null)
                         {
                             excelHelper = null;
                             return;
                         }
+                        //ExcelToDataTabl获取sheet到DataTable，第一行是否作为DataTable的列名
+                        //此处获取dt，是由于其他值的计算需要先获取Result Sheet
                         dt = excelHelper.ExcelToDataTable("Result", false);
                         //dt = excelHelper.ExcelToDataTable(null, true);
 
                         //如果打开没有Result的表格，打开其他非报告的表格，则返回DataTable null，重置
-                        if (dt==null)
+                        if (dt == null)
                         {
                             MessageBox.Show(string.Format("未找到{0}表单，请重新选择！", "Result"));
                             excelHelper = null;
@@ -471,41 +485,92 @@ namespace Exicel转换1
                 //创建统计模组信息的字典
                 module_Statistics = new Dictionary<string, int>();
                 //初始化，仅记录M3III，M6III，初始为0
-                
-                module_Statistics.Add(moduleKind3, 0);
-                module_Statistics.Add(moduleKind6, 0);
 
+                #region 使用先添加key再统计信息的方法，不灵活
+                //module_Statistics.Add(moduleKind3_III, 0);
+                //module_Statistics.Add(moduleKind6_III, 0);
+
+                //for (int j = 0; j < allModuleTypeString.Length; j++)
+                //{
+                //    if (allModuleTypeString[j] == moduleKind3_III)
+                //    {
+                //        module_Statistics[moduleKind3_III] += 1;
+                //    }
+                //    else if (allModuleTypeString[j] == moduleKind6_III)
+                //    {
+                //        module_Statistics[moduleKind6_III] += 1;
+                //    }
+
+                //}
+
+                ////拼接Line字符串
+                ////计算base信息
+                //int baseCount_4M = ((module_Statistics[moduleKind3_III] + module_Statistics[moduleKind6_III] * 2) / 4);
+                //int baseCount_2M;
+                //if (((module_Statistics[moduleKind3_III] + module_Statistics[moduleKind6_III] * 2) % 4) != 0)
+                //{
+                //    baseCount_2M = 1;
+                //}
+                //else
+                //{
+                //    baseCount_2M = 0;
+                //}
+
+                ////"/r/n" 回车换行符
+                //Line = "";
+                //Line_short = "";
+                //Line_short = machineKind + "-(" + moduleKind3_III + "*" + module_Statistics[moduleKind3_III].ToString() + "+" + moduleKind6_III + "*" + module_Statistics[moduleKind6_III] + ")";
+                //Line = machineKind + "-(" + moduleKind3_III + "*" + module_Statistics[moduleKind3_III].ToString() + "+" + moduleKind6_III + "*" + module_Statistics[moduleKind6_III] + ")" + "\n" + "4M BASE III*" + baseCount_4M.ToString() + "+2M BASE III*" + baseCount_2M.ToString();
+                ////MessageBox.Show(Line);
+                #endregion
+
+                #region 重新统计模组信息
                 for (int j = 0; j < allModuleTypeString.Length; j++)
                 {
-                    if (allModuleTypeString[j] == moduleKind3)
+                    if (module_Statistics.ContainsKey(allModuleTypeString[j]))
                     {
-                        module_Statistics[moduleKind3] += 1;
+                        module_Statistics[allModuleTypeString[j]]++;
                     }
-                    else if (allModuleTypeString[j] == moduleKind6)
+                    else
                     {
-                        module_Statistics[moduleKind6] += 1;
+                        module_Statistics.Add(allModuleTypeString[j], 1);
                     }
-
                 }
+                #endregion
 
                 //拼接Line字符串
-                //计算base信息
-                int baseCount_4M = ((module_Statistics[moduleKind3] + module_Statistics[moduleKind6] * 2) / 4);
-                int baseCount_2M;
-                if (((module_Statistics[moduleKind3] + module_Statistics[moduleKind6] * 2) % 4) != 0)
+
+                //重新计算base信息
+                //存储模组对应Base的个数，1个M3 module 对应1个M的base，2个M3 module或1个M6 Module对应2Mbase，4个M3 module或2个M6 Module对应4Mbase
+                //base尽可能少的分配
+                int Count_M = 0;
+                foreach (var moduleKind in module_Statistics)
+                {
+                    if (moduleKind.Key.Substring(0,2)=="M3")
+                    {
+                        Count_M+= moduleKind.Value;
+                    }
+                    if (moduleKind.Key.Substring(0, 2) == "M6")
+                    {
+                        Count_M += moduleKind.Value*2;
+                    }
+                }
+                int baseCount_4M = (Count_M / 4);
+                int baseCount_2M=0;
+                if ((Count_M % 4) != 0)
                 {
                     baseCount_2M = 1;
-                }
-                else
-                {
-                    baseCount_2M = 0;
                 }
 
                 //"/r/n" 回车换行符
                 Line = "";
                 Line_short = "";
-                Line_short = machineKind + "-(" + moduleKind3 + "*" + module_Statistics[moduleKind3].ToString() + "+" + moduleKind6 + "*" + module_Statistics[moduleKind6] + ")";
-                Line = machineKind + "-(" + moduleKind3 + "*" + module_Statistics[moduleKind3].ToString() + "+" + moduleKind6 + "*" + module_Statistics[moduleKind6] + ")" + "\n" + "4M BASE III*" + baseCount_4M.ToString() + "+2M BASE III*" + baseCount_2M.ToString();
+                foreach (var item in module_Statistics)
+                {
+                    Line_short += item.Key + "*" + item.Value.ToString() + "+";
+                }
+                Line_short = machineKind + "-(" + Line_short.Substring(0, Line_short.Length-1) + ")";
+                Line = Line_short + "\n" + "4M BASE III*" + baseCount_4M.ToString() + "+2M BASE III*" + baseCount_2M.ToString();
                 //MessageBox.Show(Line);
 
                 //获取组合"Head Type"的信息
@@ -555,9 +620,14 @@ namespace Exicel转换1
                 string findString_CPH = "CPH";
                 cPH = getSpecifyString_NextRow(findString_CPH, machineconf_Pattern_POints[i]);
 
-                //获取Conveyor
+                //获取Conveyor,Dual
                 string findString_Conveyor = "Conveyor";
                 conveyor = getSpecifyString_NextColumn(findString_Conveyor, machineconf_Pattern_POints[i]);
+
+                //获取
+                string findString_TargetConveyor = "TargetConveyor";
+                TargetConveyor = getSpecifyString_NextColumn(findString_TargetConveyor, machineconf_Pattern_POints[i]);
+
             }
         }
         #endregion
@@ -588,6 +658,9 @@ namespace Exicel转换1
             getEveryInfo();
 
             //第二个sheet DataTable的获取
+            //验证是不是同一个轨道，Line1或Lin2，从Result获取
+            string sheetName_Result = "Result";
+            //主要数据从sheetName_CustomerReport获取
             string sheetName_CustomerReport = "CustomerReport_1T";
             DataTable genDT2 = getSecondSheetDataTable(sheetName_CustomerReport);
 
@@ -651,7 +724,7 @@ namespace Exicel转换1
 
             #region 第一个sheet的获取和生成
             //第一个sheet的标题，以字符串形式插入
-            string oneTitle = "FUJI Line Throughput Report 三代";
+            string oneTitle = "FUJI Line Throughput Report "+ machineKind;
 
             string sheet1 = "sheet1";
 
@@ -739,28 +812,47 @@ namespace Exicel转换1
             var imgM6 = Image.FromFile(img_M6);
 
             //获取要生成的图片的宽高
-            int finalWidth = imgM3.Width * module_Statistics[moduleKind3] / 2+imgM6.Width*module_Statistics[moduleKind6];
-            int finalHeight = imgM3.Height;
+            //生成最后图片的外边框留白,jiange间隔
+            int jiange = 5;
+            //int finalWidth = imgM3.Width * module_Statistics[moduleKind3_III]/2 + imgM6.Width*module_Statistics[moduleKind6_III] + jiange*2;
+
+            //统计所需要拼接的图片数量
+            int M3Image_count=0;
+            int M6Image_count = 0;
+            foreach (var item in module_Statistics)
+            {
+                if (item.Key.Substring(0,2)=="M3")
+                {
+                    M3Image_count += item.Value/2;
+                }
+                if (item.Key.Substring(0, 2) == "M6")
+                {
+                    M6Image_count += item.Value;
+                }
+            }
+            int finalWidth = imgM3.Width * M3Image_count + imgM6.Width * M6Image_count + jiange * 2;
+            int finalHeight = imgM3.Height + jiange * 2;
 
             Bitmap finalImg = new Bitmap(finalWidth,finalHeight);
             Graphics graph = Graphics.FromImage(finalImg);
-            graph.Clear(SystemColors.AppWorkspace);
+            //graph.Clear(SystemColors.AppWorkspace);
+            graph.Clear(Color.Empty);
 
             //循环模组并获取img画图
             //获取的位置
-            int pointX = 0;
-            int pointY = 0;
+            int pointX = jiange;
+            int pointY = jiange;
 
             for (int i = 0; i < allModuleTypeString.Length; i++)
             {
                 //M3模组图像
-                if (allModuleTypeString[i]== moduleKind3&& allModuleTypeString[i+1] == moduleKind3)
+                if (allModuleTypeString[i].Substring(0,2)== "M3"&& allModuleTypeString[i+1].Substring(0,2) == "M3")
                 {
                     graph.DrawImage(imgM3,pointX, pointY);
                     pointX += imgM3.Width;
                     i++;
                 }
-                else if(allModuleTypeString[i] == moduleKind6)//M6模组图像
+                else if(allModuleTypeString[i].Substring(0,2) == "M6")//M6模组图像
                 {
                     graph.DrawImage(imgM6, pointX, pointY);
                     pointX += imgM6.Width;
@@ -783,9 +875,19 @@ namespace Exicel转换1
             int startRow = count;
             int startCol = insertPoint[1];
             int endRow = startRow + 1;
-            int endCol = startCol + 3;
+            int endCol = startCol + 2;
+            //根据模组数量长度，变更结束单元格位置
+            if (M3Image_count + M6Image_count > 7)
+            {
+                endCol = startCol + 3;
+            }
+            if (M3Image_count + M6Image_count > 14)
+            {
+                endCol = startCol + 4;
+            }
+            
             //偏移依旧不起作用
-            excelHelper1.pictureDataToSheet(sheet1, PictureData, 100, 20, 100, 20, startRow, startCol, endRow, endCol);
+            excelHelper1.pictureDataToSheet(sheet1, PictureData, 50, 10, 50, 10, startRow, startCol, endRow, endCol);
         }
             /*
         public void genFirstSheetPicture(ExcelHelper excelHelper1, string sheetName,int[] insertPoint)
@@ -910,11 +1012,12 @@ namespace Exicel转换1
         public DataTable getSecondSheetDataTable(string sheetName_CustomerReport)
         {
             #region //获取生成的第二个sheet对象的sheetname
+            //每模组的cyccle time 在两个Excel分别获取
             //获取一轨的Excel生成对象
-            getsecondsheet secondsheet = new getsecondsheet(excelHelper, sheetName_CustomerReport, jobName, conveyor);
+            getsecondsheet secondsheet = new getsecondsheet(excelHelper, sheetName_CustomerReport, jobName, conveyor, machineCount);
 
             //获取二轨的Excel生成对象
-            getsecondsheet secondsheet_another = new getsecondsheet(excelHelper_another, sheetName_CustomerReport, jobName, conveyor);
+            getsecondsheet secondsheet_another = new getsecondsheet(excelHelper_another, sheetName_CustomerReport, jobName, conveyor, machineCount);
 
             if (secondsheet==null)
             {
@@ -1001,6 +1104,7 @@ namespace Exicel转换1
                 //secondSheetDT.Rows[i][4]  DBNull无法转换为任何其他类型
                 if (!secondSheetDT.Rows[i][4].Equals(DBNull.Value))
                 {
+                    MessageBox.Show(secondSheetDT.Rows[i][4].ToString());
                     Line1CycleTimeList.Add(System.Convert.ToDouble(secondSheetDT.Rows[i][4]));
                 }
                
